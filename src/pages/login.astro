@@ -1,0 +1,86 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { supabase } from '../lib/supabase';
+
+
+
+let errorMsg = '';
+
+if (Astro.request.method === 'POST') {
+  try {
+    const data = await Astro.request.formData();
+    const email = data.get('email')?.toString();
+    const password = data.get('password')?.toString();
+
+    const supabaseClient = supabase(Astro);
+    const { data: authData, error } = await supabaseClient.auth.signInWithPassword({
+      email: email || '',
+      password: password || '',
+    });
+
+    if (error) {
+      errorMsg = error.message;
+    } else if (authData.user) {
+      // Busca o perfil do usuário recém logado para direcionar corretamente
+      const { data: perfil } = await supabaseClient
+        .from('perfis_usuarios')
+        .select('role')
+        .eq('id', authData.user.id)
+        .single();
+        
+      if (perfil && perfil.role === 'Admin_RH') {
+        return Astro.redirect('/rh/dashboard');
+      } else {
+        return Astro.redirect('/dashboard');
+      }
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      errorMsg = error.message;
+    }
+  }
+}
+---
+
+<Layout title="Login">
+  <main class="container" style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
+    <div class="card" style="width: 100%; max-width: 400px;">
+      <h1 style="text-align: center; color: var(--color-primary); margin-bottom: 0.5rem;">Login Seguro</h1>
+      <p style="text-align: center; color: var(--color-text-muted); margin-bottom: 2rem;">Entre com suas credenciais organizacionais.</p>
+
+      {errorMsg && (
+        <div style="background: rgba(239, 68, 68, 0.1); color: var(--color-danger); padding: 0.75rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; font-size: 0.875rem;">
+          {errorMsg}
+        </div>
+      )}
+
+      <form method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div>
+          <label for="email" style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem;">Email corporativo</label>
+          <input 
+            type="email" 
+            name="email" 
+            id="email" 
+            required 
+            style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-background); color: var(--color-text); outline: none;" 
+            placeholder="rh@empresa.com.br"
+          />
+        </div>
+        
+        <div>
+          <label for="password" style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem;">Senha</label>
+          <input 
+            type="password" 
+            name="password" 
+            id="password" 
+            required 
+            style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-background); color: var(--color-text); outline: none;" 
+            placeholder="••••••••"
+          />
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="margin-top: 1rem; padding: 0.75rem;">Entrar no Sistema</button>
+      </form>
+    </div>
+  </main>
+</Layout>

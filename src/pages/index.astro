@@ -1,0 +1,17 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+return Astro.redirect('/dashboard');
+---
+
+<Layout title="Dashboard">
+  <main class="container" style="padding-top: 4rem;">
+    <div class="card" style="text-align: center; max-width: 600px; margin: 0 auto;">
+      <h1 style="margin-bottom: 1rem; color: var(--color-primary);">NR1 SaaS Platform</h1>
+      <p style="color: var(--color-text-muted); margin-bottom: 2rem;">
+        Plataforma em modo SSR ativa. O sistema está aguardando configurações de autenticação.
+      </p>
+      <a href="/login" class="btn btn-primary">Acessar Sistema</a>
+    </div>
+  </main>
+</Layout>

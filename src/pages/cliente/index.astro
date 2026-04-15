@@ -1,0 +1,174 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+// Contexto mockado para visualização do portal do Cliente
+const clientData = { 
+  companyName: 'Indústria Metalúrgica SA',
+  logoUrl: '', // Caso tenha personalização de logo
+  userEmail: 'rh@metalurgica.com.br', 
+  userName: 'Gestor de RH',
+  customColor: 'var(--color-primary)' 
+};
+
+// Mock de tarefas/ações do Roadmap NR1 do cliente
+const roadmap = [
+  { id: 1, title: 'Elaboração do PGR', deadline: '15/05/2026', status: 'Em andamento', tag: 'Documentação' },
+  { id: 2, title: 'Avaliação Psicossocial Anual', deadline: '20/06/2026', status: 'Pendente', tag: 'Saúde Ocupacional' },
+  { id: 3, title: 'Treinamento de CIPA', deadline: '10/04/2026', status: 'Atrasado', tag: 'Treinamento' },
+  { id: 4, title: 'Levantamento de Riscos (Setor B)', deadline: '01/04/2026', status: 'Concluído', tag: 'Mapeamento' },
+];
+---
+
+<Layout title="Portal do Cliente | SaaS NR1">
+  <div class="app-layout">
+    
+    <!-- Sidebar Específica do Cliente -->
+    <aside class="sidebar">
+      <div style="padding: 1.5rem 1rem; border-bottom: 1px solid var(--color-border); display: flex; align-items: center; justify-content: space-between;">
+        <h1 style="color: var(--color-primary); font-size: 1.25rem; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 0.5rem; line-height: 1.2;">
+          <svg style="width: 24px; height: 24px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          {clientData.companyName}
+        </h1>
+      </div>
+      
+      <div style="padding: 1rem; border-bottom: 1px solid var(--color-border); background: #fbfbfc;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted);">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </div>
+          <div>
+            <p style="font-size: 0.8rem; font-weight: 600; color: var(--color-text); margin: 0;">{clientData.userName}</p>
+            <p style="font-size: 0.7rem; color: var(--color-text-muted); margin: 0;">{clientData.userEmail}</p>
+          </div>
+        </div>
+      </div>
+
+      <nav style="flex: 1; padding: 1rem 0; overflow-y: auto;">
+        <ul style="list-style: none; margin: 0; padding: 0;">
+          <li style="background: white; border-left: 3px solid var(--color-primary);">
+            <a href="/cliente" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-primary); text-decoration: none; font-size: 0.8rem; font-weight: 600; gap: 0.75rem;">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+              MEU DASHBOARD
+            </a>
+          </li>
+          <li>
+            <a href="#" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-text); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
+              <svg class="icon" style="color: var(--color-primary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              ROADMAP & PLANOS
+            </a>
+          </li>
+          <li>
+            <a href="#" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-text); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
+              <svg class="icon" style="color: var(--color-primary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+              COLABORADORES
+            </a>
+          </li>
+          <li>
+            <a href="#" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-text); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
+              <svg class="icon" style="color: var(--color-text-muted);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              RELATÓRIOS E LAUDOS
+            </a>
+          </li>
+        </ul>
+      </nav>
+      <div style="padding: 1rem; border-top: 1px solid var(--color-border);">
+        <a href="#" style="display: flex; align-items: center; color: var(--color-text-muted); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          SAIR
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      
+      <div style="padding: 2rem 3rem;">
+        <!-- Header area -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2.5rem;">
+          <div>
+            <h2 style="font-size: 1.5rem; color: var(--color-primary); font-weight: 600; margin: 0 0 0.5rem 0;">Acompanhamento NR1</h2>
+            <p style="color: var(--color-text-muted); font-size: 0.875rem; margin: 0;">Visualize o status do seu plano de ação e adequações normativas.</p>
+          </div>
+          <div style="display: flex; gap: 1rem;">
+             <button class="btn btn-outline" style="font-size: 0.75rem;">
+              <svg style="width: 14px; height: 14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              BAIXAR RELATÓRIO
+            </button>
+            <button class="btn btn-primary" style="font-size: 0.75rem;">
+              SOLICITAR SUPORTE
+            </button>
+          </div>
+        </div>
+
+        <!-- Indicadores Resumo -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2.5rem;">
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.25rem;">
+             <div style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600; margin-bottom: 0.5rem; text-transform: uppercase;">Total de Ações</div>
+             <div style="font-size: 1.75rem; font-weight: 700; color: var(--color-text);">24</div>
+          </div>
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.25rem;">
+             <div style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600; margin-bottom: 0.5rem; text-transform: uppercase;">Concluídas</div>
+             <div style="font-size: 1.75rem; font-weight: 700; color: var(--color-success);">12</div>
+          </div>
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.25rem;">
+             <div style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600; margin-bottom: 0.5rem; text-transform: uppercase;">Em Andamento</div>
+             <div style="font-size: 1.75rem; font-weight: 700; color: var(--color-warning);">8</div>
+          </div>
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.25rem; border-bottom: 3px solid var(--color-danger);">
+             <div style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600; margin-bottom: 0.5rem; text-transform: uppercase;">Atrasadas</div>
+             <div style="font-size: 1.75rem; font-weight: 700; color: var(--color-danger);">4</div>
+          </div>
+        </div>
+
+        <h3 style="font-size: 1rem; color: var(--color-text); font-weight: 600; margin-bottom: 1rem;">Seu Roadmap Prioritário</h3>
+
+        <!-- Table Content -->
+        <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden;">
+          <div style="display: flex; padding: 1rem; font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.5px; border-bottom: 1px solid var(--color-border); background: #fbfbfc;">
+            <div style="flex: 2;">AÇÃO REQUERIDA</div>
+            <div style="flex: 1;">ÁREA / TAG</div>
+            <div style="flex: 1;">PRAZO</div>
+            <div style="flex: 1; text-align: center;">STATUS</div>
+          </div>
+
+          <div style="display: flex; flex-direction: column;">
+            {roadmap.map((item) => {
+              let statusColor = 'var(--color-text-muted)';
+              let statusBg = 'transparent';
+              
+              if(item.status === 'Em andamento') { statusColor = 'var(--color-primary)'; statusBg = 'var(--color-secondary)'; }
+              if(item.status === 'Pendente') { statusColor = 'var(--color-warning)'; statusBg = '#fef3c7'; }
+              if(item.status === 'Atrasado') { statusColor = 'var(--color-danger)'; statusBg = '#fee2e2'; }
+              if(item.status === 'Concluído') { statusColor = 'var(--color-success)'; statusBg = '#d1fae5'; }
+
+              return (
+              <div style="display: flex; align-items: center; padding: 1.25rem 1rem; font-size: 0.875rem; border-bottom: 1px solid var(--color-border);">
+                <div style="flex: 2;">
+                  <div style="font-size: 0.95rem; color: var(--color-text); font-weight: 500;">{item.title}</div>
+                </div>
+                <div style="flex: 1;">
+                  <span style="font-size: 0.7rem; font-weight: 600; padding: 0.25rem 0.5rem; background: #f1f5f9; color: var(--color-text-muted); border-radius: 4px;">
+                    {item.tag}
+                  </span>
+                </div>
+                <div style="flex: 1; color: var(--color-text); font-weight: 500;">
+                  {item.deadline}
+                </div>
+                <div style="flex: 1; display: flex; justify-content: center;">
+                  <span style={`font-size: 0.7rem; font-weight: 600; padding: 0.35rem 0.75rem; border-radius: 999px; text-transform: uppercase; background: ${statusBg}; color: ${statusColor};`}>
+                    {item.status}
+                  </span>
+                </div>
+              </div>
+            )})}
+          </div>
+        </div>
+        
+        <div style="margin-top: 1rem; text-align: right;">
+          <a href="#" style="font-size: 0.875rem; color: var(--color-primary); font-weight: 600; text-decoration: none;">Ver Roadmap Completo →</a>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</Layout>

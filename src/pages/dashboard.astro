@@ -1,0 +1,284 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { supabase } from '../lib/supabase';
+import { ClienteMasterService } from '../services/ClienteMasterService';
+
+const supabaseClient = supabase(Astro);
+const { data: { user } } = await supabaseClient.auth.getUser();
+
+if (!user) {
+  return Astro.redirect('/login');
+}
+
+const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, role, empresa_id').eq('id', user.id).single();
+
+// Bloqueio Total para Quem não é SuperAdmin
+if (!perfil || perfil.role !== 'SuperAdmin') {
+  return Astro.redirect('/rh/dashboard');
+}
+
+let userPerfil = { email: user.email, name: perfil.nome };
+
+// Configurações do SSR e Processamento de POST
+const masterService = new ClienteMasterService();
+let msgErro = null;
+let msgSucesso = null;
+
+if (Astro.request.method === "POST") {
+  try {
+    const formData = await Astro.request.formData();
+    await masterService.provisionarNovoCliente({
+      nome_empresa: formData.get("nome_empresa")?.toString() || '',
+      cnpj: formData.get("cnpj")?.toString() || '',
+      nome_admin: formData.get("nome_admin")?.toString() || '',
+      email_admin: formData.get("email_admin")?.toString() || '',
+      senha_provisoria: formData.get("senha_provisoria")?.toString() || '',
+    });
+    msgSucesso = "Cliente e acessos criados com sucesso!";
+  } catch (err: any) {
+    msgErro = err.message || "Erro desconhecido ao provisionar cliente.";
+  }
+}
+
+let clientsDb = [];
+try {
+  clientsDb = await masterService.listarClientes(supabaseClient);
+} catch (e) {
+  console.log("Banco sem empresas ainda ou erro.");
+}
+---
+
+<Layout title="Dashboard Profissional">
+  <div class="app-layout">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div style="padding: 1.5rem 1rem; border-bottom: 1px solid var(--color-border); display: flex; align-items: center; justify-content: space-between;">
+        <h1 style="color: var(--color-primary); font-size: 1.5rem; font-weight: 500; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+          <svg style="width: 24px; height: 24px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+          SaaS NR1
+        </h1>
+        <svg class="icon" style="color: var(--color-primary); cursor: pointer;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"></path></svg>
+      </div>
+      
+      <div style="padding: 1rem; border-bottom: 1px solid var(--color-border); background: #fbfbfc;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted);">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </div>
+          <div>
+            <p style="font-size: 0.8rem; font-weight: 600; color: var(--color-text); margin: 0;">{userPerfil.name}</p>
+            <p style="font-size: 0.7rem; color: var(--color-text-muted); margin: 0;">{userPerfil.email}</p>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="width: 100%; justify-content: center;">ATUALIZAR PERFIL</button>
+      </div>
+
+      <nav style="flex: 1; padding: 1rem 0; overflow-y: auto;">
+        <ul style="list-style: none; margin: 0; padding: 0;">
+          <li>
+            <a href="#" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-text); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
+              <svg class="icon" style="color: var(--color-primary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+              GESTÃO DE ASSESSORIA
+            </a>
+          </li>
+          <li style="background: white; border-left: 3px solid var(--color-primary);">
+            <a href="#" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-primary); text-decoration: none; font-size: 0.8rem; font-weight: 600; gap: 0.75rem;">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              Planos de Ação
+            </a>
+          </li>
+          <li>
+            <a href="#" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-text); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
+              <svg class="icon" style="color: var(--color-primary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+              Avaliações Psicossociais
+            </a>
+          </li>
+          <li>
+            <a href="#" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-text); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
+              <svg class="icon" style="color: var(--color-text-muted);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+              CONFIGURAÇÕES
+            </a>
+          </li>
+        </ul>
+      </nav>
+      <div style="padding: 1rem; border-top: 1px solid var(--color-border);">
+        <a href="#" style="display: flex; align-items: center; color: var(--color-text-muted); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          SAIR
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div style="padding: 2rem 3rem;">
+        
+        {msgErro && (
+          <div style="background: #fee2e2; color: #b91c1c; padding: 1rem; border-radius: var(--radius-md); margin-bottom: 2rem; border: 1px solid #f87171;">
+            <strong>Erro HTTP:</strong> {msgErro}
+          </div>
+        )}
+
+        {msgSucesso && (
+          <div style="background: #d1fae5; color: #047857; padding: 1rem; border-radius: var(--radius-md); margin-bottom: 2rem; border: 1px solid #34d399;">
+            <strong>✅ Operação Sucesso:</strong> {msgSucesso}
+          </div>
+        )}
+
+        <!-- Header area matching reference -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <h2 style="font-size: 1.5rem; color: var(--color-primary); font-weight: 400; margin: 0;">Progresso de Clientes e Planos</h2>
+            <span style="font-size: 0.75rem; padding: 0.25rem 0.75rem; background: #E3D9EE; color: var(--color-primary); border-radius: 999px; font-weight: 600;">{clientsDb.length} clientes ativos</span>
+          </div>
+          <button id="btnNovoCliente" class="btn btn-primary">
+            <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            NOVO CLIENTE
+          </button>
+        </div>
+
+        <!-- Search Bar -->
+        <div style="position: relative; margin-bottom: 2rem; max-width: 600px;">
+          <svg style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--color-text-muted); width: 20px; height: 20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" placeholder="Buscar por cliente, documento ou matriz..." style="width: 100%; padding: 0.75rem 1rem 0.75rem 3rem; border: 1px solid var(--color-border); border-radius: var(--radius-pill); font-family: inherit; font-size: 0.875rem; outline: none;" />
+        </div>
+
+        <!-- Table Content -->
+        <div style="background: white; border-top: 1px solid var(--color-border);">
+          <div style="display: flex; padding: 1rem 0; font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.5px; border-bottom: 1px solid var(--color-border);">
+            <div style="width: 40px; text-align: center;"></div>
+            <div style="flex: 2;">NOME DO CLIENTE / CNPJ</div>
+            <div style="flex: 2; text-align: center;">MÉTRICAS INTEGRADAS</div>
+            <div style="flex: 1; text-align: center;">ID DO TENANT</div>
+            <div style="width: 80px; text-align: center;">AÇÕES</div>
+          </div>
+
+          {clientsDb.length === 0 ? (
+            <div style="padding: 2rem; text-align: center; color: var(--color-text-muted);">
+              Nenhum cliente cadastrado ainda. Use o botão acima para injetar a primeira empresa.
+            </div>
+          ) : clientsDb.map((client) => {
+            const numPlanos = client.planos_de_acao_pgr?.[0]?.count || 0;
+            const numDenuncias = client.denuncias_anonimas?.[0]?.count || 0;
+            const numCampanhas = client.campanhas_pesquisa?.[0]?.count || 0;
+
+            return (
+              <div class="table-row-hover hover:bg-slate-50 transition-colors duration-200" style="display: flex; align-items: center; padding: 1.25rem 0; font-size: 0.875rem; border-bottom: 1px solid #f1f5f9;">
+                <div style="width: 40px; text-align: center;">
+                  <input type="checkbox" style="width: 16px; height: 16px; border: 1px solid var(--color-border); border-radius: 4px;" />
+                </div>
+                <div style="flex: 2;">
+                  <div style="font-size: 0.95rem; color: var(--color-primary); margin-bottom: 0.25rem; font-weight: 600;">{client.nome}</div>
+                  <div style="color: var(--color-text-muted); font-size: 0.75rem;">CNPJ: {client.cnpj}</div>
+                </div>
+                <div style="flex: 2; display: flex; gap: 0.5rem; justify-content: center; align-items: center;">
+                  <span class="badge" title="Planos de Ação (GRO) Abertos" style="background: #e0f2fe; color: #0284c7; font-size: 0.65rem; border-radius: 99px; padding: 0.3rem 0.6rem; display: flex; gap: 0.25rem; align-items: center;">
+                    <svg style="width:12px; height: 12px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    {numPlanos} Planos
+                  </span>
+                  <span class="badge" title="Denúncias Anônimas Registradas" style="background: #fce7f3; color: #be185d; font-size: 0.65rem; border-radius: 99px; padding: 0.3rem 0.6rem; display: flex; gap: 0.25rem; align-items: center;">
+                    <svg style="width: 12px; height: 12px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    {numDenuncias} Alertas
+                  </span>
+                  <span class="badge" title="Campanhas de Pesquisa" style="background: #dcfce7; color: #15803d; font-size: 0.65rem; border-radius: 99px; padding: 0.3rem 0.6rem; display: flex; gap: 0.25rem; align-items: center;">
+                    <svg style="width: 12px; height: 12px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+                    {numCampanhas} Campanhas
+                  </span>
+                </div>
+                <div style="flex: 1; text-align: center; color: var(--color-text-muted); font-family: monospace; font-size: 0.7rem;" title={client.id}>
+                  {client.id.split('-')[0]}...
+                </div>
+                <div style="width: 80px; text-align: center; color: var(--color-primary); cursor: pointer;">
+                  <a href="/login" title="Acessar Área do Cliente via Login" style="display: inline-block; background: transparent; border: 1px solid var(--color-border); padding: 0.4rem; border-radius: var(--radius-md); cursor: pointer; color: var(--color-primary);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                  </a>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </main>
+
+    <!-- HTML Modal de Criação via SSR -->
+    <div id="modalCliente" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+      <div style="background: white; border-radius: var(--radius-lg); width: 100%; max-width: 500px; padding: 2rem; position: relative; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+        <button id="btnFecharModal" style="position: absolute; top: 1rem; right: 1rem; background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-text-muted);">&times;</button>
+        <h2 style="font-size: 1.25rem; color: var(--color-primary); margin-bottom: 0.5rem; font-weight: 600;">Provisionar Novo Cliente</h2>
+        <p style="color: var(--color-text-muted); font-size: 0.8rem; margin-bottom: 1.5rem; line-height: 1.4;">Isso criará o Banco de Dados Virtual (Tenant) e o login via apis do Supabase Auth.</p>
+        
+        <form method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+          <div>
+            <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.2rem; color: var(--color-text-muted);">RAZÃO SOCIAL *</label>
+            <input name="nome_empresa" type="text" required placeholder="SaaS NR1 Solutions" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;" />
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.2rem; color: var(--color-text-muted);">CNPJ *</label>
+            <input name="cnpj" type="text" required placeholder="00.000.000/0001-00" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;" />
+          </div>
+          <div style="border-top: 1px dashed var(--color-border); padding-top: 1rem; margin-top: 0.5rem;">
+            <p style="font-size: 0.8rem; font-weight: 600; color: var(--color-primary); margin-bottom: 1rem;">Setup de Administrador Local (RH)</p>
+            <div style="display: grid; gap: 1rem;">
+              <div>
+                <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.2rem; color: var(--color-text-muted);">NOME DO ADMIN *</label>
+                <input name="nome_admin" type="text" required placeholder="João RH" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;" />
+              </div>
+              <div>
+                <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.2rem; color: var(--color-text-muted);">EMAIL DE ACESSO (Login Auth) *</label>
+                <input name="email_admin" type="email" required placeholder="rh@cliente.com" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;" />
+              </div>
+              <div>
+                <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.2rem; color: var(--color-text-muted);">SENHA PROVISÓRIA *</label>
+                <input name="senha_provisoria" type="text" required placeholder="SenhaSegura@123" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;" />
+              </div>
+            </div>
+          </div>
+          <div style="margin-top: 1rem;">
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">CRIAR CLIENTE NO SUPABASE</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Em Astro, <script> tradicional (sem is:inline) é processado, minificado e empacotado como um Module,
+    // o que permite contornar naturalmente as Políticas Restritivas de CSP (Content Security Policy) sem usar unsafe-inline.
+    
+    function initModal() {
+      const btnAbrir = document.getElementById('btnNovoCliente');
+      const btnFechar = document.getElementById('btnFecharModal');
+      const modal = document.getElementById('modalCliente');
+
+      if (btnAbrir && modal) {
+        btnAbrir.addEventListener('click', () => {
+          modal.style.display = 'flex';
+        });
+      }
+
+      if (btnFechar && modal) {
+        btnFechar.addEventListener('click', () => {
+          modal.style.display = 'none';
+        });
+      }
+
+      if (modal) {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            modal.style.display = 'none';
+          }
+        });
+      }
+    }
+
+    // Aguarda montagem DOM na inicialização primária (ou Astro view transitions)
+    document.addEventListener('DOMContentLoaded', initModal);
+    
+    // Astro ViewTransitions fallback
+    document.addEventListener('astro:page-load', initModal);
+
+    // Call imediato se o script rodar defer via Vite bundle com async fallback.
+    initModal();
+  </script>
+</Layout>

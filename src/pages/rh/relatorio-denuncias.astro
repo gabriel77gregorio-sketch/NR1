@@ -1,0 +1,291 @@
+---
+import { supabase } from '../../lib/supabase';
+
+// SSR: Coletar os Dados Reais
+const supabaseClient = supabase(Astro);
+const { data: { user } } = await supabaseClient.auth.getUser();
+
+let companyName = "Empresa Demonstração LTDA";
+let companyCNPJ = "00.000.000/0001-00";
+let userName = "Comitê de Ética";
+
+if (user) {
+  const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, empresas(nome, id)').eq('id', user.id).single();
+  if (perfil) {
+    if (perfil.empresas) {
+      companyName = perfil.empresas.nome;
+    }
+  }
+}
+
+// Simulando dados de Denúncias oriundos do DB 
+const denuncias = [
+  { protocolo: 'PROT-992A-X8', data: '05/04/2026', severidade: 'Alta', status: 'Em Apuração', relator: 'Anônimo', setor: 'Linha de Montagem' },
+  { protocolo: 'PROT-102B-C2', data: '20/03/2026', severidade: 'Crítica', status: 'Nova Denúncia', relator: 'Anônimo', setor: 'Recursos Humanos' },
+  { protocolo: 'PROT-837L-Y1', data: '10/02/2026', severidade: 'Média', status: 'Resolvida', relator: 'Anônimo', setor: 'Financeiro' },
+];
+
+const currentDate = new Date().toLocaleDateString('pt-BR');
+const currentDateTime = new Date().toLocaleString('pt-BR');
+
+---
+
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Relatório do Canal de Denúncias - {companyName}</title>
+    <!-- Use basic system fonts for clean PDF generation -->
+    <style>
+      :root {
+        --gray-100: #f3f4f6;
+        --gray-200: #e5e7eb;
+        --gray-300: #d1d5db;
+        --gray-600: #4b5563;
+        --gray-800: #1f2937;
+        --border-color: #d1d5db;
+        --primary-red: #991b1b;
+      }
+      
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        margin: 0;
+        padding: 0;
+        color: #000;
+        background: #fff;
+        font-size: 11pt;
+        line-height: 1.4;
+      }
+
+      /* A4 Print Layout rules */
+      @page {
+        size: A4;
+        margin: 1.5cm;
+      }
+      
+      .a4-container {
+        width: 100%;
+        max-width: 21cm;
+        margin: 0 auto;
+        padding: 1cm;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+      
+      .header h1 {
+        font-size: 16pt;
+        margin: 0;
+        color: var(--primary-red);
+        font-weight: 500;
+      }
+      
+      .header-info {
+        display: flex;
+        justify-content: space-between;
+        font-size: 8pt;
+        color: var(--gray-600);
+        margin-top: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.5rem;
+      }
+
+      /* Grid / Table Styles mirroring the PDF Request */
+      .section-title {
+        background-color: var(--gray-200);
+        padding: 0.5rem 1rem;
+        font-weight: bold;
+        font-size: 13pt;
+        border: 1px solid var(--border-color);
+        border-bottom: none;
+        margin-top: 1rem;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        border-top: 1px solid var(--border-color);
+        border-left: 1px solid var(--border-color);
+        margin-bottom: 1.5rem;
+      }
+
+      .info-cell {
+        padding: 0.5rem 1rem;
+        border-right: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
+        font-size: 10pt;
+      }
+
+      .info-cell strong {
+        display: block;
+        font-size: 10pt;
+        color: var(--gray-800);
+        margin-bottom: 0.2rem;
+      }
+
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1.5rem;
+        font-size: 10pt;
+      }
+
+      .data-table th, .data-table td {
+        border: 1px solid var(--border-color);
+        padding: 0.5rem 1rem;
+        text-align: left;
+      }
+
+      .data-table th {
+        background-color: var(--gray-100);
+        font-weight: bold;
+      }
+      
+      .danger-text {
+        color: #dc2626;
+        font-weight: bold;
+      }
+
+      /* Print Utilities */
+      .no-print {
+        text-align: center;
+        padding: 1rem;
+        background: #fef2f2;
+        border-bottom: 1px solid #fecaca;
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+      }
+      .no-print button {
+        background: #991b1b;
+        color: white;
+        border: none;
+        padding: 0.5rem 1.5rem;
+        border-radius: 4px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      
+      @media print {
+        .no-print {
+          display: none !important;
+        }
+        .a4-container {
+          padding: 0;
+        }
+        .section-title, .data-table th {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+
+      .footer {
+        margin-top: 3rem;
+        display: flex;
+        justify-content: space-between;
+        font-size: 7pt;
+        color: var(--gray-600);
+        border-top: 1px solid var(--border-color);
+        padding-top: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    
+    <div class="no-print">
+      <p style="margin: 0; align-self: center; color: #7f1d1d;">Visualização de Relatório Ético. Oculte Margens ao Imprimir.</p>
+      <button onclick="window.print()">GERAR PDF (SIGILOSO)</button>
+    </div>
+
+    <div class="a4-container">
+      
+      <!-- Header do Documento -->
+      <div class="header">
+        <h1>Extrato - Canal de Denúncias (Integridade)</h1>
+        <h2>Avaliação de Relatos Ocupacionais</h2>
+        
+        <div class="header-info">
+          <span>Relatório gerado por: {userName}</span>
+          <span>Em: {currentDateTime}</span>
+        </div>
+      </div>
+
+      <!-- Empresa Responsável -->
+      <div class="section-title">
+        Empresa e Governança
+      </div>
+      <div class="info-grid">
+        <div class="info-cell">
+          <strong>Entidade Avaliada</strong>
+          {companyName}
+        </div>
+        <div class="info-cell">
+          <strong>CNPJ/MF</strong>
+          {companyCNPJ}
+        </div>
+        <div class="info-cell" style="grid-column: span 2;">
+          <strong>Declaração de Confidencialidade</strong>
+          Este documento de governança é de uso restrito, sendo vetada a divulgação de seus dados nos termos da LGPD e políticas internas da corporação.
+        </div>
+      </div>
+
+      <!-- Relacionamento de Casos -->
+      <div class="section-title">
+        Protocolos de Denúncias e Desvios Comportamentais
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 25%;">PROTOCOLO</th>
+            <th style="width: 20%;">ABERTURA</th>
+            <th style="width: 20%; text-align: center;">SEVERIDADE</th>
+            <th style="width: 35%; text-align: center;">STATUS ATUAL DO COMITÊ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {denuncias.length === 0 ? (
+            <tr>
+              <td colspan="4" style="text-align: center; color: var(--gray-600);">Nenhuma denúncia tramitada no período.</td>
+            </tr>
+          ) : denuncias.map(d => (
+            <tr>
+              <td style="font-family: monospace; font-weight: 600;">{d.protocolo}</td>
+              <td>{d.data}</td>
+              <td style="text-align: center;" class={d.severidade === 'Crítica' || d.severidade === 'Alta' ? 'danger-text' : ''}>{d.severidade}</td>
+              <td style="text-align: center;">{d.status}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <!-- Intervenções e Planos -->
+      <div class="section-title">
+        Detalhamento das Classificações (Apenas Abertas)
+      </div>
+      <div class="info-grid">
+        {denuncias.filter(d => d.status !== 'Resolvida').length === 0 ? (
+          <div class="info-cell" style="grid-column: span 2;">O comitê de ética não possui investigações em andamento registradas na plataforma no momento da extração deste parecer.</div>
+        ) : denuncias.filter(d => d.status !== 'Resolvida').map((d, index) => (
+          <>
+            <div class="info-cell" style="grid-column: span 2;">
+              <strong>Investigação Ativa: {d.protocolo}</strong>
+              Ocorrência mapeada envolvendo o setor: {d.setor} | Identificação: {d.relator}
+            </div>
+          </>
+        ))}
+      </div>
+
+      <div class="footer">
+        <span>Canal de Integridade SaaS Módulo Compliance</span>
+        <span>Página 1</span>
+      </div>
+
+    </div>
+
+  </body>
+</html>

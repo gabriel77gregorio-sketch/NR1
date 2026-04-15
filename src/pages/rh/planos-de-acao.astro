@@ -1,0 +1,287 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { supabase } from '../../lib/supabase';
+import { PlanoAcaoService } from '../../services/PlanoAcaoService';
+
+// SSR: Obter cliente do Supabase e validar autenticação
+const supabaseClient = supabase(Astro);
+const { data: { user } } = await supabaseClient.auth.getUser();
+
+// Para demonstração interativa enquanto o login real está mockado, caso não haja User real, caímos para um mock seguro
+let planos = [];
+let data = { user: { email: 'rh@empresa.com', name: 'Acesso Público Dev' }, company: 'Empresa Teste' };
+
+// Autopreenchimento Inteligente vindo do Dashboard (CRIAR PGR)
+const prefillSector = Astro.url.searchParams.get('sector') || '';
+const prefillScore = Astro.url.searchParams.get('score') || '';
+const prefillRisk = Astro.url.searchParams.get('risk') || '';
+const prefillWhy = prefillRisk ? `Nível ${prefillRisk} (Score NR1: ${prefillScore}) mapeado na matriz` : '';
+const autoOpen = prefillSector ? "true" : "false";
+
+if (user) {
+  // Usuário logado
+  const planoAcaoService = new PlanoAcaoService(supabaseClient);
+  
+  // Handlers de formulário POST
+  if (Astro.request.method === "POST") {
+    try {
+      const formData = await Astro.request.formData();
+      await planoAcaoService.criarPlanoDeAcao({
+        what_title: formData.get("what_title")?.toString() || '',
+        why_reason: formData.get("why_reason")?.toString() || '',
+        where_location: formData.get("where_location")?.toString() || '',
+        when_start: new Date().toISOString(), // Default ou usar campo caso exija
+        when_end: formData.get("when_end")?.toString() || '',
+        who_responsible: formData.get("who_responsible")?.toString() || '',
+        how_method: formData.get("how_method")?.toString() || '',
+        how_much_cost: parseFloat(formData.get("how_much_cost")?.toString() || '0'),
+        status: 'Aberto'
+      });
+    } catch (e) {
+      console.error("Erro ao salvar plano 5w2h: ", e);
+    }
+  }
+
+  planos = await planoAcaoService.getPlanosDeAcao();
+  data.user.email = user.email || '';
+  
+  const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome').eq('id', user.id).single();
+  if (perfil) data.user.name = perfil.nome;
+} else {
+  // Fallback Dev se o bypass de login estiver ativo:
+  planos = [
+    { id: 'dev-1', what_title: 'Programa de Prevenção ao Burnout', who_responsible: 'Psicologia Interna', when_end: '2026-11-30', status: 'Em Andamento', where_location: 'Matriz - Administrativo' },
+    { id: 'dev-2', what_title: 'Integração SSMA', who_responsible: 'Ergonomia', when_end: '2026-06-15', status: 'Atrasado', where_location: 'Fábrica 02' }
+  ];
+}
+---
+
+<Layout title="Gestão de Planos de Ação (5W2H) | RH NR1">
+  <div class="app-layout">
+    
+    <!-- Sidebar RH / Empresa -->
+    <aside class="sidebar">
+      <div style="padding: 1.5rem 1rem; border-bottom: 1px solid var(--color-border); display: flex; align-items: center; justify-content: space-between;">
+        <h1 style="color: var(--color-primary); font-size: 1.25rem; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 0.5rem; line-height: 1.2;">
+          <svg style="width: 24px; height: 24px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          {data.company}
+        </h1>
+      </div>
+      
+      <div style="padding: 1rem; border-bottom: 1px solid var(--color-border); background: #fbfbfc;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted);">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </div>
+          <div>
+            <p style="font-size: 0.8rem; font-weight: 600; color: var(--color-text); margin: 0;">{data.user.name}</p>
+            <p style="font-size: 0.7rem; color: var(--color-text-muted); margin: 0;">{data.user.email}</p>
+          </div>
+        </div>
+      </div>
+
+      <nav style="flex: 1; padding: 1rem 0; overflow-y: auto;">
+        <ul style="list-style: none; margin: 0; padding: 0;">
+          <li>
+            <a href="/rh/dashboard" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-text); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+              DASHBOARD MATRIZ
+            </a>
+          </li>
+          <li>
+            <a href="/rh/pesquisas" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-text); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+              DISPAROS DE PESQUISA
+            </a>
+          </li>
+          <li style="background: white; border-left: 3px solid var(--color-primary);">
+            <a href="/rh/planos-de-acao" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-primary); text-decoration: none; font-size: 0.8rem; font-weight: 600; gap: 0.75rem;">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              PLANOS DE AÇÃO (PGR)
+            </a>
+          </li>
+          <li>
+            <a href="/rh/denuncias" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-text); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              CANAL DE DENÚNCIAS
+            </a>
+          </li>
+          <li style="margin-top: 2rem; border-top: 1px solid var(--color-border); padding-top: 0.5rem;">
+            <a href="/rh/configuracoes" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-text); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              CONFIGURAÇÕES
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div style="padding: 2rem 3rem;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+          <div>
+            <h2 style="font-size: 1.5rem; color: var(--color-primary); font-weight: 400; margin: 0;">Planos de Ação (5W2H)</h2>
+            <p style="color: var(--color-text-muted); font-size: 0.875rem; margin-top: 0.25rem;">Planeje e faça a gestão das medidas preventivas exigidas pela NR-1 e pelo mapeamento de riscos.</p>
+          </div>
+          <button id="btnAbrirModal5w2h" class="btn btn-primary">
+            <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            NOVO PLANO 5W2H
+          </button>
+        </div>
+
+        <!-- Tabela -->
+        <div style="background: white; border-top: 1px solid var(--color-border);">
+          <div style="display: flex; padding: 1rem 0; font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.5px; border-bottom: 1px solid var(--color-border);">
+            <div style="width: 40px; text-align: center;"></div>
+            <div style="flex: 2;">AÇÃO PREVENTIVA (WHAT)</div>
+            <div style="flex: 1;">RESPONSÁVEL (WHO)</div>
+            <div style="flex: 1;">ÁREA/SETOR (WHERE)</div>
+            <div style="flex: 1; text-align: center;">PRAZO (WHEN)</div>
+            <div style="flex: 1; text-align: center;">SITUAÇÃO</div>
+            <div style="width: 80px; text-align: center;">AÇÕES</div>
+          </div>
+
+          <div style="display: flex; flex-direction: column;">
+            {planos.length === 0 ? (
+              <div style="padding: 2rem; text-align: center; color: var(--color-text-muted);">
+                Nenhum Plano de Ação cadastrado ainda. Use o botão acima para injetar a primeira matriz.
+              </div>
+            ) : planos.map((plano) => (
+              <div class="table-row-hover hover:bg-slate-50 transition-colors duration-200" style="display: flex; align-items: center; padding: 1.25rem 0; font-size: 0.875rem; border-bottom: 1px solid #f1f5f9;">
+                <div style="width: 40px; text-align: center;">
+                  <input type="checkbox" style="width: 16px; height: 16px; border: 1px solid var(--color-border); border-radius: 4px;" />
+                </div>
+                <div style="flex: 2;">
+                  <div style="font-weight: 600; font-size: 0.95rem; color: var(--color-primary); margin-bottom: 0.25rem;">{plano.what_title}</div>
+                  <div style="font-size: 0.75rem; color: var(--color-text-muted);">Motivador: {plano.why_reason?.substring(0, 50) || 'Não especificado'}...</div>
+                </div>
+                <div style="flex: 1; color: var(--color-text-muted); font-weight: 500;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                     <div style="width: 24px; height: 24px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: var(--color-text-muted);">{plano.who_responsible.substring(0,2).toUpperCase()}</div>
+                     {plano.who_responsible}
+                  </div>
+                </div>
+                <div style="flex: 1; color: var(--color-text-muted);">
+                  {plano.where_location}
+                </div>
+                <div style="flex: 1; text-align: center; color: var(--color-text); font-weight: 500; font-family: monospace;">
+                  {new Date(plano.when_end).toLocaleDateString('pt-BR')}
+                </div>
+                <div style="flex: 1; display: flex; justify-content: center;">
+                  <span style={`font-size: 0.65rem; font-weight: 600; padding: 0.3rem 0.6rem; border-radius: 999px; text-transform: uppercase; background: ${plano.status === 'Atrasado' ? '#fee2e2' : (plano.status === 'Em Andamento' || plano.status === 'Aberto' ? '#e0f2fe' : '#dcfce7')}; color: ${plano.status === 'Atrasado' ? '#b91c1c' : (plano.status === 'Em Andamento' || plano.status === 'Aberto' ? '#0369a1' : '#15803d')};`}>
+                    {plano.status}
+                  </span>
+                </div>
+                <div style="width: 80px; text-align: center; color: var(--color-primary); cursor: pointer;">
+                  <button title="Acompanhar Execução" style="background: transparent; border: 1px solid var(--color-border); padding: 0.4rem; border-radius: var(--radius-md); cursor: pointer; color: var(--color-primary);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Overlay/Modal 5W2H Segura (SSR) -->
+    <div id="modal5w2h" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+      <div style="background: white; border-radius: var(--radius-lg); width: 100%; max-width: 800px; padding: 2.5rem; position: relative; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+        <button id="btnFecharModal5w2h" style="position: absolute; top: 1.5rem; right: 1.5rem; background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-text-muted);">&times;</button>
+        <h2 style="font-size: 1.5rem; color: var(--color-primary); margin-bottom: 0.5rem; font-weight: 600;">Estruturar Novo Plano de Ação</h2>
+        <p style="color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: 2rem;">Preencha a matriz 5W2H conforme diretrizes do PGR e mapa de riscos.</p>
+        
+        <form method="POST" style="display: flex; flex-direction: column; gap: 1.5rem;">
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+             <div>
+               <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-muted);">1. AÇÃO DIRETIVA (WHAT) *</label>
+               <input name="what_title" type="text" placeholder="Ex: Substituição das cadeiras por modelo ergonômico" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; transition: border-color 0.2s;" />
+             </div>
+             <div>
+               <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-muted);">2. JUSTIFICATIVA LEGAL (WHY) *</label>
+               <input name="why_reason" type="text" value={prefillWhy} placeholder="Ex: Risco ergonômico mapeado na Matriz Setor Administrativo" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; transition: border-color 0.2s;" />
+             </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem;">
+             <div>
+               <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-muted);">3. LOCAL IMPACTADO (WHERE) *</label>
+               <input name="where_location" type="text" value={prefillSector} placeholder="Ex: Escritório Sede" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;" />
+             </div>
+             <div>
+               <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-muted);">4. RESPONSÁVEL TÉC. (WHO) *</label>
+               <input name="who_responsible" type="text" placeholder="Ex: João (Eng. Segurança)" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;" />
+             </div>
+             <div>
+               <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-muted);">5. DATA LIMITE (WHEN) *</label>
+               <input name="when_end" type="date" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; font-family: inherit;" />
+             </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+             <div>
+               <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-muted);">6. PROCEDIMENTO OPERACIONAL (HOW) *</label>
+               <textarea name="how_method" rows="2" placeholder="Passo a passo da implementação da medida preventiva..." required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; resize: none; font-family: inherit;"></textarea>
+             </div>
+             <div>
+               <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-muted);">7. ORÇAMENTO (HOW MUCH)</label>
+               <div style="position: relative;">
+                 <span style="position: absolute; left: 1rem; top: 0.75rem; color: var(--color-text-muted); font-weight: 500;">R$</span>
+                 <input name="how_much_cost" type="number" step="0.01" placeholder="0.00" required style="width: 100%; padding: 0.75rem 0.75rem 0.75rem 2.5rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; font-family: monospace; font-size: 1rem;" />
+               </div>
+             </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+            <button type="button" id="btnCancelarModal5w2h" class="btn btn-outline" style="padding: 0.75rem 1.5rem;">CANCELAR</button>
+            <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">
+              <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+              SALVAR MATRIZ DE AÇÃO
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Div oculta para passar variável do astro para o JS interno -->
+    <div id="pgr-data" data-auto-open={autoOpen} style="display: none;"></div>
+
+  </div>
+
+  <script>
+    function initPgrModal() {
+      const modal = document.getElementById('modal5w2h');
+      const btnAbrir = document.getElementById('btnAbrirModal5w2h');
+      const btnFechar = document.getElementById('btnFecharModal5w2h');
+      const btnCancelar = document.getElementById('btnCancelarModal5w2h');
+      const dataStore = document.getElementById('pgr-data');
+
+      if (btnAbrir && modal) {
+        btnAbrir.addEventListener('click', () => { modal.style.display = 'flex'; });
+      }
+
+      const fechar = () => { if(modal) modal.style.display = 'none'; };
+
+      if (btnFechar) btnFechar.addEventListener('click', fechar);
+      if (btnCancelar) btnCancelar.addEventListener('click', fechar);
+
+      if (modal) {
+         modal.addEventListener('click', (e) => {
+            if (e.target === modal) fechar();
+         });
+      }
+      
+      // Auto-open logic using dataset
+      if (dataStore && dataStore.dataset.autoOpen === "true" && modal) {
+         modal.style.display = 'flex';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', initPgrModal);
+    document.addEventListener('astro:page-load', initPgrModal);
+    initPgrModal();
+  </script>
+</Layout>
