@@ -42,7 +42,6 @@ export class MatrizRiscoService {
       // Assim o resultado não flutua loucamente num mesmo dia.
       const s = ((dept.nome.length % 4) + 1); // 1 a 4
       const p = (((dept.id.charCodeAt(0) + dept.nome.length) % 4) + 1); // 1 a 4
-      const score = s * p;
       return this.calcularCategorizacao({
         id: dept.id,
         setor: dept.nome,
@@ -84,7 +83,7 @@ export class MatrizRiscoService {
   /**
    * Função Utilitária para retornar apenas os dados mapeados na Matriz CSS do Dashboard
    */
-  agruparPontosMatriz(grupos: GrupoRisco[]) {
+  agruparPontosMatriz(_grupos: GrupoRisco[]) {
     // Array para os 16 quadrados (P x S). Index = 0 é (P4, S1)...
     // A CSS Grid foi feita em 4 colunas (Severidade) e 4 Linhas (Probabilidade Invertida)
     const points: any[] = [];

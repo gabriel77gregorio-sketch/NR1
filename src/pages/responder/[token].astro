@@ -1,5 +1,5 @@
 ---
-import { supabase } from '../../lib/supabase';
+// import { supabase } from '../../lib/supabase';
 
 // Lógica SSR Segura
 const { token } = Astro.params;
@@ -19,7 +19,7 @@ if (!token || token.length < 10) {
 // Intercepta a Submissão (Finalização da pesquisa)
 if (Astro.request.method === "POST") {
   try {
-    const data = await Astro.request.formData();
+    await Astro.request.formData();
     // Exemplo do que chegará: data.get("q1") // "Nunca", etc
     
     // Aqui fariamos a Query real no DB do Supabase usando a SERVICE KEY para gravar a Array de Respostas,

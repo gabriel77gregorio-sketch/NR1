@@ -33,8 +33,8 @@ export const POST: APIRoute = async ({ request }) => {
     // 2. Inserir Respostas (Em uma tabela de Avaliações - vinculando a metodologia ou formulário se tiver)
     // Devido ao schema atual, vamos colocar em respostas_avaliacoes (Simulando um formulario virtual pela metodologia_id)
     const { error: insertErr } = await supabaseAdmin.from('respostas_avaliacoes').insert({
-      empresa_id: participante.campanha.empresa_id,
-      formulario_id: participante.campanha.metodologia_id, // Usamos metodologia como formulario por compatibilidade
+      empresa_id: (participante.campanha as any).empresa_id,
+      formulario_id: (participante.campanha as any).metodologia_id, // Usamos metodologia como formulario por compatibilidade
       respostas: respostas
     });
 

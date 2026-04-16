@@ -8,7 +8,7 @@ const supabaseClient = supabase(Astro);
 const { data: { user } } = await supabaseClient.auth.getUser();
 
 // Para demonstração interativa enquanto o login real está mockado, caso não haja User real, caímos para um mock seguro
-let planos = [];
+let planos: any[] = [];
 let data = { user: { email: 'rh@empresa.com', name: 'Acesso Público Dev' }, company: 'Empresa Teste' };
 
 // Autopreenchimento Inteligente vindo do Dashboard (CRIAR PGR)
@@ -155,7 +155,7 @@ if (user) {
                 </div>
                 <div style="flex: 2;">
                   <div style="font-weight: 600; font-size: 0.95rem; color: var(--color-primary); margin-bottom: 0.25rem;">{plano.what_title}</div>
-                  <div style="font-size: 0.75rem; color: var(--color-text-muted);">Motivador: {plano.why_reason?.substring(0, 50) || 'Não especificado'}...</div>
+                  <div style="font-size: 0.75rem; color: var(--color-text-muted);">Motivador: {(plano as any).why_reason?.substring(0, 50) || 'Não especificado'}...</div>
                 </div>
                 <div style="flex: 1; color: var(--color-text-muted); font-weight: 500;">
                   <div style="display: flex; align-items: center; gap: 0.5rem;">

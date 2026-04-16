@@ -8,7 +8,7 @@ const resend = new Resend(import.meta.env.RESEND_API_KEY || process.env.RESEND_A
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     const body = await request.json();
-    const { metodologia, dataDisparo, mensagem, selecionados } = body;
+    const { metodologia, dataDisparo, mensagem } = body;
 
     // 1. Validar sessão restrita para recuperar a empresa do gestor
     const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || process.env.PUBLIC_SUPABASE_URL;
@@ -45,7 +45,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     // 3. Criar a campanha principal (Disparo)
     const { data: campanha, error: campErr } = await supabaseAdmin.from('campanhas_pesquisa').insert({
       empresa_id: perfil.empresa_id,
-      metodologia_id: met.id,
+      metodologia_id: met!.id,
       titulo: `Avaliação Psicossocial (${metodologia}) - ${new Date().toLocaleDateString('pt-BR')}`,
       conteudo_email: mensagem || 'Participe da nossa avaliação.',
       data_programada: dataDisparo || new Date().toISOString(),
@@ -79,7 +79,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const emailsToSend = colaboradores.map(c => {
       const part = participantes.find(p => p.colaborador_id === c.id);
       const hostUrl = new URL(request.url).origin;
-      const urlPesquisa = `${hostUrl}/responder/${part.token_acesso}`;
+      const urlPesquisa = `${hostUrl}/responder/${part?.token_acesso || ''}`;
       
       return {
         from: 'NR1 Saúde e Segurança <onboarding@resend.dev>', // Modifique para o domínio autenticado no Resend da Empresa posteriormente

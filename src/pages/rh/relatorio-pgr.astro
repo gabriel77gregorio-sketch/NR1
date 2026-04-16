@@ -23,7 +23,7 @@ if (user) {
   if (perfil) {
     userName = perfil.nome;
     if (perfil.empresas) {
-      companyName = perfil.empresas.nome;
+      companyName = (perfil.empresas as any).nome;
       // Simulando CNPJ para fins do PDF caso nao haja na DB yet
     }
   }

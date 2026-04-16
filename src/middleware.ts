@@ -1,6 +1,6 @@
 import { defineMiddleware } from 'astro:middleware';
 
-export const onRequest = defineMiddleware(async (context, next) => {
+export const onRequest = defineMiddleware(async (_context, next) => {
   // Configuração básica de segurança de CSP e Headers para mitigar XSS/Clickjacking
   const response = await next();
   

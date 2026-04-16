@@ -7,9 +7,10 @@ export const supabase = (context: any) => {
     {
       cookies: {
         getAll() {
-          return parseCookieHeader(context.request.headers.get('Cookie') ?? '');
+          const parsed = parseCookieHeader(context.request.headers.get('Cookie') ?? '');
+          return parsed.map(c => ({ name: c.name, value: c.value ?? '' }));
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
           cookiesToSet.forEach(({ name, value, options }) => {
             try {
               context.cookies.set(name, value, options);
@@ -19,6 +20,6 @@ export const supabase = (context: any) => {
           });
         },
       },
-    }
+    } as any
   );
 };

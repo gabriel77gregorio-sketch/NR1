@@ -88,7 +88,7 @@ export class ClienteMasterService {
   /**
    * Retorna a lista de todos os clientes da plataforma e suas estatísticas vitais
    */
-  async listarClientes(supabaseClient: SupabaseClient) {
+  async listarClientes(_supabaseClient: SupabaseClient) {
      const adminSupabase = this.getSupabaseAdmin();
      // Puxa as empresas e faz um Count Aggregation inteligente via FK relationships
      const { data, error } = await adminSupabase

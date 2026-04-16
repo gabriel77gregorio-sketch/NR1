@@ -14,7 +14,7 @@ if (user) {
   if (perfil) data.user.name = perfil.nome;
 }
 
-let denuncias = [];
+let denuncias: any[] = [];
 if (user) {
   const { data: perfilData } = await supabaseClient.from('perfis_usuarios').select('empresa_id').eq('id', user.id).single();
   if (perfilData) {

@@ -13,7 +13,7 @@ if (user) {
   const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, empresas(nome)').eq('id', user.id).single();
   if (perfil) {
     data.user.name = perfil.nome;
-    if (perfil.empresas) data.company = perfil.empresas.nome;
+    if (perfil.empresas) data.company = (perfil.empresas as any).nome;
   }
 }
 

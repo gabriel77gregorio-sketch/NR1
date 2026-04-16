@@ -19,7 +19,7 @@ if (user) {
   if (perfil) data.user.name = perfil.nome;
 }
 
-let campanhas = [];
+let campanhas: any[] = [];
 if (user) {
   const { data: perfilData } = await supabaseClient.from('perfis_usuarios').select('empresa_id').eq('id', user.id).single();
   if (perfilData) {
@@ -233,9 +233,10 @@ if (user) {
 
       if (selectMetodologia) {
         selectMetodologia.addEventListener('change', (e) => {
-          if (descHse) descHse.style.display = e.target.value === 'hse' ? 'block' : 'none';
-          if (descCopsoq) descCopsoq.style.display = e.target.value === 'copsoq' ? 'block' : 'none';
-          if (descJcq) descJcq.style.display = e.target.value === 'jcq' ? 'block' : 'none';
+          const target = e.target as HTMLSelectElement;
+          if (descHse) descHse.style.display = target.value === 'hse' ? 'block' : 'none';
+          if (descCopsoq) descCopsoq.style.display = target.value === 'copsoq' ? 'block' : 'none';
+          if (descJcq) descJcq.style.display = target.value === 'jcq' ? 'block' : 'none';
         });
       }
 
