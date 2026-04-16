@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
-    "@astrojs/node": "^9.0.0",
     "@astrojs/react": "^4.2.0",
+    "@astrojs/vercel": "^8.2.11",
     "@supabase/ssr": "^0.10.0",
     "@supabase/supabase-js": "^2.102.1",
     "@types/react": "^19.0.0",
