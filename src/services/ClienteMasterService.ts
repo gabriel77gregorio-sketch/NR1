@@ -12,7 +12,7 @@ export class ClienteMasterService {
   // Apenas quem tem a chave de SERVIÇO pode rodar isso
   // Isso permite criar Contas de Auth sem precisar estar logado e sem disparar emails imediatamente
   private getSupabaseAdmin() {
-    const url = import.meta.env.PUBLIC_SUPABASE_URL;
+    const url = import.meta.env.PUBLIC_SUPABASE_URL || process.env.PUBLIC_SUPABASE_URL || '';
     const serviceKey = import.meta.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY;
     
     if (!serviceKey) throw new Error("SUPABASE_SERVICE_KEY nula. Criação de novos Tenants bloqueada.");
