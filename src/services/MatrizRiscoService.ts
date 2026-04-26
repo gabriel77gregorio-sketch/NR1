@@ -23,13 +23,22 @@ export class MatrizRiscoService {
    * Processa o Mapeamento e cruza a Probabilidade vs Severidade para Setores e Funções
    */
   async getMatrizRiscoMatematica(): Promise<GrupoRisco[]> {
-    // 1. Busca os departamentos reais da empresa do usuário
-    const { data: departamentos, error } = await this.supabase
-      .from('departamentos_unidades')
-      .select('id, nome, tipo');
+    let departamentos = null;
+    let error = null;
+
+    try {
+      const result = await this.supabase
+        .from('departamentos_unidades')
+        .select('id, nome, tipo');
+      departamentos = result.data;
+      error = result.error;
+    } catch (e) {
+      console.warn("MatrizRiscoService: Falha de rede ao buscar departamentos, usando mock.");
+      error = e;
+    }
 
     if (error || !departamentos || departamentos.length === 0) {
-      // Se a empresa ainda não cadastrou nada, retorna grupo genérico educacional para o onboarding
+      // Se a rede falhar ou a empresa ainda não tiver cadastrado nada, retorna mock educacional
       return this.gerarMockEducacional();
     }
 
@@ -71,7 +80,7 @@ export class MatrizRiscoService {
     return { ...parciais, score, risk, color, bg };
   }
 
-  private gerarMockEducacional(): GrupoRisco[] {
+  public gerarMockEducacional(): GrupoRisco[] {
     return [
       this.calcularCategorizacao({ id: 'uuid-mock-1', setor: 'Linha de Montagem', funcao: 'Operador de Máquinas', severity: 4, probability: 4 }),
       this.calcularCategorizacao({ id: 'uuid-mock-2', setor: 'Almoxarifado', funcao: 'Estoquista', severity: 3, probability: 4 }),

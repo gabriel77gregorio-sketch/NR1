@@ -1,0 +1,164 @@
+---
+import { supabase } from '../lib/supabase';
+
+export interface Props {
+  activeMenu?: 'inicio' | 'dashboard' | 'pesquisas' | 'planos' | 'denuncias' | 'configuracoes' | 'inteligencia-de-dados' | 'advertencias' | 'avaliacoes-individuais';
+}
+
+const { activeMenu = 'dashboard' } = Astro.props;
+
+// SSR: Obter cliente Supabase Configurado
+const supabaseClient = supabase(Astro);
+let user = null;
+/* bypass de rede para nao deixar lento:
+try {
+  const { data } = await supabaseClient.auth.getUser();
+  user = data.user;
+} catch (e) { }
+*/
+
+// Defaults for mock / dev locally
+let data = { user: { email: 'rh@empresa.com', name: 'Gestor de RH' }, company: 'Indústria Metalúrgica SA' };
+
+let userRole = 'RH';
+let unreadNotifs = 0;
+
+if (user) {
+  data.user.email = user.email || '';
+  const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, empresa_id, role').eq('id', user.id).single();
+  if (perfil) {
+    data.user.name = perfil.nome;
+    userRole = perfil.role;
+    const { data: emp } = await supabaseClient.from('empresas').select('nome').eq('id', perfil.empresa_id).single();
+    if (emp) data.company = emp.nome;
+    
+    // Busca notificações não lidas
+    const { count } = await supabaseClient.from('notificacoes').select('*', { count: 'exact', head: true })
+      .eq('usuario_id', user.id).eq('lida', false);
+    unreadNotifs = count || 0;
+  }
+}
+---
+
+<aside class="sidebar" style="display: flex; flex-direction: column; background: white; border-right: 1px solid var(--color-border); height: 100vh; overflow: hidden;">
+  <div style="padding: 1.5rem 1rem; border-bottom: 1px solid var(--color-border); display: flex; align-items: center; justify-content: space-between;">
+    <h1 style="color: var(--color-primary); font-size: 1.25rem; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 0.5rem; line-height: 1.2;">
+      <svg style="width: 24px; height: 24px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      {data.company}
+    </h1>
+  </div>
+  
+  <div style="padding: 1rem; border-bottom: 1px solid var(--color-border); background: #fbfbfc;">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div style="width: 36px; height: 36px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted);">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        </div>
+        <div>
+          <p style="font-size: 0.8rem; font-weight: 600; color: var(--color-text); margin: 0;">{data.user.name}</p>
+          <p style="font-size: 0.7rem; color: var(--color-text-muted); margin: 0;">{data.user.email}</p>
+        </div>
+      </div>
+      <button title="Notificações" style="position: relative; background: none; border: none; cursor: pointer; color: var(--color-text-muted); display: flex; align-items: center; justify-content: center; padding: 0.25rem;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        {unreadNotifs > 0 && (
+          <span style="position: absolute; top: 0px; right: 0px; background: #ef4444; color: white; border-radius: 50%; font-size: 0.6rem; font-weight: bold; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #fbfbfc;">{unreadNotifs}</span>
+        )}
+      </button>
+    </div>
+  </div>
+
+  <nav style="flex: 1; padding: 1rem 0; overflow-y: auto;">
+    <ul style="list-style: none; margin: 0; padding: 0;">
+      <!-- Início -->
+      <li style={activeMenu === 'inicio' ? "background: white; border-left: 3px solid var(--color-primary);" : ""}>
+        <a href="/rh/inicio" style={`display: flex; align-items: center; padding: 0.75rem 1rem; text-decoration: none; font-size: 0.8rem; font-weight: ${activeMenu === 'inicio' ? '600' : '500'}; gap: 0.75rem; color: ${activeMenu === 'inicio' ? 'var(--color-primary)' : 'var(--color-text)'};`}>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          INÍCIO
+        </a>
+      </li>
+
+      <!-- Dashboard -->
+      <li style={activeMenu === 'dashboard' ? "background: white; border-left: 3px solid var(--color-primary);" : ""}>
+        <a href="/rh/dashboard" style={`display: flex; align-items: center; padding: 0.75rem 1rem; text-decoration: none; font-size: 0.8rem; font-weight: ${activeMenu === 'dashboard' ? '600' : '500'}; gap: 0.75rem; color: ${activeMenu === 'dashboard' ? 'var(--color-primary)' : 'var(--color-text)'};`}>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+          DASHBOARD MATRIZ
+        </a>
+      </li>
+      
+      <!-- Pesquisas -->
+      <li style={activeMenu === 'pesquisas' ? "background: white; border-left: 3px solid var(--color-primary);" : ""}>
+        <a href="/rh/pesquisas" style={`display: flex; align-items: center; padding: 0.75rem 1rem; text-decoration: none; font-size: 0.8rem; font-weight: ${activeMenu === 'pesquisas' ? '600' : '500'}; gap: 0.75rem; color: ${activeMenu === 'pesquisas' ? 'var(--color-primary)' : 'var(--color-text)'};`}>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+          DISPAROS DE PESQUISA
+        </a>
+      </li>
+
+      <!-- Planos de Ação -->
+      <li style={activeMenu === 'planos' ? "background: white; border-left: 3px solid var(--color-primary);" : ""}>
+        <a href="/rh/planos-de-acao" style={`display: flex; align-items: center; padding: 0.75rem 1rem; text-decoration: none; font-size: 0.8rem; font-weight: ${activeMenu === 'planos' ? '600' : '500'}; gap: 0.75rem; color: ${activeMenu === 'planos' ? 'var(--color-primary)' : 'var(--color-text)'};`}>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          PLANOS DE AÇÃO (PGR)
+        </a>
+      </li>
+
+      <!-- Denúncias -->
+      <li style={activeMenu === 'denuncias' ? "background: white; border-left: 3px solid var(--color-primary);" : ""}>
+        <a href="/rh/denuncias" style={`display: flex; align-items: center; padding: 0.75rem 1rem; text-decoration: none; font-size: 0.8rem; font-weight: ${activeMenu === 'denuncias' ? '600' : '500'}; gap: 0.75rem; color: ${activeMenu === 'denuncias' ? 'var(--color-primary)' : 'var(--color-text)'};`}>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          CANAL DE DENÚNCIAS
+        </a>
+      </li>
+
+      <!-- Advertências -->
+      <li style={activeMenu === 'advertencias' ? "background: white; border-left: 3px solid #dc2626;" : ""}>
+        <a href="/rh/advertencias" style={`display: flex; align-items: center; padding: 0.75rem 1rem; text-decoration: none; font-size: 0.8rem; font-weight: ${activeMenu === 'advertencias' ? '600' : '500'}; gap: 0.75rem; color: ${activeMenu === 'advertencias' ? '#dc2626' : 'var(--color-text)'};`}>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          ADVERTÊNCIAS
+        </a>
+      </li>
+
+      <!-- Avaliações Individuais -->
+      <li style={activeMenu === 'avaliacoes-individuais' ? "background: white; border-left: 3px solid var(--color-primary);" : ""}>
+        <a href="/rh/avaliacoes-individuais" style={`display: flex; align-items: center; padding: 0.75rem 1rem; text-decoration: none; font-size: 0.8rem; font-weight: ${activeMenu === 'avaliacoes-individuais' ? '600' : '500'}; gap: 0.75rem; color: ${activeMenu === 'avaliacoes-individuais' ? 'var(--color-primary)' : 'var(--color-text)'};`}>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          AVALIAÇÕES (90D / OFF)
+        </a>
+      </li>
+
+      <!-- Inteligência de Dados -->
+      {['Master', 'Diretoria', 'Segurança_Trabalho', 'RH'].includes(userRole) && (
+        <li style={`margin-top: 1rem; ${activeMenu === 'inteligencia-de-dados' ? "background: #fdf5ff; border-left: 3px solid #d946ef;" : ""}`}>
+          <a href="/rh/inteligencia-de-dados" style={`display: flex; align-items: center; padding: 0.75rem 1rem; text-decoration: none; font-size: 0.8rem; font-weight: ${activeMenu === 'inteligencia-de-dados' ? '600' : '500'}; gap: 0.75rem; color: ${activeMenu === 'inteligencia-de-dados' ? '#d946ef' : 'var(--color-text)'};`}>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2a2 2 0 0 1 2 2c0 1.1-.9 2-2 2s-2-.9-2-2 2-2 2-2z"/>
+              <path d="M19 8a2 2 0 0 1 2 2c0 1.1-.9 2-2 2s-2-.9-2-2 2-2 2-2z"/>
+              <path d="M5 8a2 2 0 0 1 2 2c0 1.1-.9 2-2 2s-2-.9-2-2 2-2 2-2z"/>
+              <path d="M12 16a2 2 0 0 1 2 2c0 1.1-.9 2-2 2s-2-.9-2-2 2-2 2-2z"/>
+              <path d="M12 8v8"/>
+              <path d="M7 10l5 4"/>
+              <path d="M17 10l-5 4"/>
+            </svg>
+            INTELIGÊNCIA DE DADOS
+          </a>
+        </li>
+      )}
+
+      <!-- Configurações -->
+      <li style={`margin-top: 2rem; border-top: 1px solid var(--color-border); padding-top: 0.5rem; ${activeMenu === 'configuracoes' ? "background: white; border-left: 3px solid var(--color-primary);" : ""}`}>
+        <a href="/rh/configuracoes" style={`display: flex; align-items: center; padding: 0.75rem 1rem; text-decoration: none; font-size: 0.8rem; font-weight: ${activeMenu === 'configuracoes' ? '600' : '500'}; gap: 0.75rem; color: ${activeMenu === 'configuracoes' ? 'var(--color-primary)' : 'var(--color-text)'};`}>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          CONFIGURAÇÕES
+        </a>
+      </li>
+      
+      <!-- Sair -->
+      <li>
+        <a href="/login" style={`display: flex; align-items: center; padding: 0.75rem 1rem; text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem; color: var(--color-text-muted);`}>
+           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+           SAIR
+        </a>
+      </li>
+    </ul>
+  </nav>
+</aside>

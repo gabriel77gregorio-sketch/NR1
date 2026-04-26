@@ -1,0 +1,327 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import SidebarRH from '../../components/SidebarRH.astro';
+import { supabase } from '../../lib/supabase';
+import { AvaliacaoIndividualService } from '../../services/AvaliacaoIndividualService';
+
+// Proteção de Rota (Bypass)
+const supabaseClient = supabase(Astro);
+const user = null; // bypassed
+const avaliacaoService = new AvaliacaoIndividualService(supabaseClient);
+
+// Mock Dados
+let avaliacoes = [
+  { id: '1', colaborador: { nome: 'Lucas Ferreira', cargo: 'Estagiário' }, tipo: 'Experiência_45_Dias', status: 'Concluído', data_limite: '2026-04-10' },
+  { id: '2', colaborador: { nome: 'Ana Julia', cargo: 'Assistente Administrativa' }, tipo: 'Experiência_90_Dias', status: 'Em Andamento', data_limite: '2026-04-30' },
+  { id: '3', colaborador: { nome: 'Roberto Alves', cargo: 'Técnico Manutenção' }, tipo: 'Desligamento', status: 'Pendente', data_limite: '2026-04-26' }
+];
+
+let colaboradores = [
+  { id: '104', nome: 'Lucas Ferreira', cargo: 'Estagiário' },
+  { id: '105', nome: 'Ana Julia', cargo: 'Assistente Administrativa' },
+  { id: '106', nome: 'Roberto Alves', cargo: 'Técnico Manutenção' }
+];
+
+if (Astro.request.method === 'POST') {
+  try {
+    const data = await Astro.request.formData();
+    // Inserção Mock
+    const colab = colaboradores.find(c => c.id === data.get('colaborador_id')?.toString());
+    avaliacoes.unshift({
+      id: Math.random().toString(),
+      colaborador: { nome: colab?.nome || 'Desconhecido', cargo: colab?.cargo || '' },
+      tipo: data.get('tipo')?.toString() || '',
+      status: 'Pendente',
+      data_limite: data.get('data_limite')?.toString() || ''
+    });
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function getTipoBadge(tipo: string) {
+  if (tipo === 'Desligamento') return { bg: '#fee2e2', color: '#b91c1c', label: 'Offboarding' };
+  if (tipo === 'Experiência_45_Dias') return { bg: '#e0f2fe', color: '#0369a1', label: 'Check 45 Dias' };
+  if (tipo === 'Experiência_90_Dias') return { bg: '#dbeafe', color: '#1d4ed8', label: 'Check 90 Dias' };
+  return { bg: '#f1f5f9', color: '#475569', label: tipo };
+}
+---
+
+<Layout title="Avaliações de Ciclo de Vida | RH NR1">
+  <div class="app-layout">
+    
+    <!-- Sidebar Modular -->
+    <SidebarRH activeMenu="avaliacoes-individuais" />
+
+    <!-- Main Content -->
+    <main class="main-content" style="background: #fafafa;">
+      <div style="padding: 2.5rem 3.5rem;">
+        
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
+          <div>
+            <h2 style="font-size: 1.5rem; color: var(--color-primary); font-weight: 700; margin: 0;">Avaliações de Ciclo de Vida</h2>
+            <p style="color: var(--color-text-muted); font-size: 0.95rem; margin-top: 0.25rem;">
+              Acompanhamento de período de experiência (45/90 dias) e entrevistas de desligamento.
+            </p>
+          </div>
+          
+          <button id="btnAgendarAvaliacao" class="btn btn-primary" style="padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 2v4M8 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"></path></svg>
+            AGENDAR AVALIAÇÃO
+          </button>
+        </div>
+
+        <!-- Filtros -->
+        <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; display: flex; gap: 1.5rem; align-items: center;">
+          <div style="font-size: 0.85rem; font-weight: 600; color: var(--color-text-muted);">FILTRAR POR:</div>
+          <select id="filtroStatusAv" style="padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 6px; outline: none; font-size: 0.85rem; background: #fbfbfc;">
+             <option value="todas">Status (Todos)</option>
+             <option value="Pendente">Pendentes</option>
+             <option value="Em Andamento">Em Andamento</option>
+             <option value="Concluído">Concluídas</option>
+          </select>
+          <select id="filtroTipoAv" style="padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 6px; outline: none; font-size: 0.85rem; background: #fbfbfc;">
+             <option value="todas">Tipos de Avaliação (Todas)</option>
+             <option value="Experiência_45_Dias">Experiência - 45 Dias</option>
+             <option value="Experiência_90_Dias">Experiência - 90 Dias</option>
+             <option value="Desligamento">Offboarding / Desligamento</option>
+          </select>
+        </div>
+
+        <!-- Grade de Cartões -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;">
+          
+          {avaliacoes.map((av) => {
+            const badge = getTipoBadge(av.tipo);
+            return (
+              <div class="av-card" data-status={av.status} data-tipo={av.tipo} style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                 
+                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                    <span style={`background: ${badge.bg}; color: ${badge.color}; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;`}>
+                      {badge.label}
+                    </span>
+                    
+                    {av.status === 'Pendente' && <span style="font-size: 0.75rem; color: #b45309; font-weight: 600;">PENDENTE</span>}
+                    {av.status === 'Em Andamento' && <span style="font-size: 0.75rem; color: #2563eb; font-weight: 600;">EM ANDAMENTO</span>}
+                    {av.status === 'Concluído' && <span style="font-size: 0.75rem; color: #16a34a; font-weight: 600;">CONCLUÍDO</span>}
+                 </div>
+                 
+                 <div style="flex: 1;">
+                    <h3 style="margin: 0 0 0.2rem 0; font-size: 1.1rem; color: var(--color-text);">{av.colaborador.nome}</h3>
+                    <p style="margin: 0; font-size: 0.85rem; color: var(--color-text-muted);">{av.colaborador.cargo}</p>
+                 </div>
+                 
+                 <div style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border); padding-top: 1rem;">
+                    <div style="font-size: 0.75rem; color: var(--color-text-muted);">
+                       Prazo: <strong style="color: var(--color-text);">{new Date(av.data_limite).toLocaleDateString('pt-BR')}</strong>
+                    </div>
+                    
+                    <button class={`btn btn-outline ${av.status === 'Concluído' ? 'btnVerRelatorio' : 'btnResponderAv'}`} data-nome={av.colaborador.nome} data-cargo={av.colaborador.cargo} data-tipo={av.tipo} style="font-size: 0.75rem; padding: 0.4rem 0.8rem;">
+                       {av.status === 'Concluído' ? 'VER RELATÓRIO' : 'RESPONDER'}
+                    </button>
+                 </div>
+
+              </div>
+            )
+          })}
+
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Modal Novo Agendamento -->
+    <div id="modalAvaliacao" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center;">
+      <div style="background: white; border-radius: 16px; width: 100%; max-width: 500px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+        
+        <div style="padding: 1.5rem; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="margin: 0; font-size: 1.2rem; color: var(--color-text);">Agendar Avaliação Específica</h3>
+          <button id="btnFecharAv" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted);">
+            <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+
+        <form method="POST" style="padding: 1.5rem;">
+          
+          <div style="margin-bottom: 1rem;">
+             <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text);">Colaborador *</label>
+             <select name="colaborador_id" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; outline: none; background: white;">
+               <option value="">Selecione...</option>
+               {colaboradores.map(c => (
+                 <option value={c.id}>{c.nome} - {c.cargo}</option>
+               ))}
+             </select>
+          </div>
+
+          <div style="margin-bottom: 1rem;">
+             <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text);">Tipo de Ciclo *</label>
+             <select name="tipo" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; outline: none; background: white;">
+               <option value="Experiência_45_Dias">Período de Experiência - 45 Dias (Líder/Liderado)</option>
+               <option value="Experiência_90_Dias">Período de Experiência - 90 Dias (Decisão de Efetivação)</option>
+               <option value="Desligamento">Pesquisa de Desligamento / Offboarding</option>
+             </select>
+          </div>
+
+          <div style="margin-bottom: 2rem;">
+             <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text);">Data Limite (Prazo) *</label>
+             <input name="data_limite" type="date" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; outline: none;" />
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+            <button type="button" id="btnCancelarAv" class="btn btn-outline">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Gerar Formulário</button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Responder -->
+    <div id="modalResponder" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center;">
+      <div style="background: white; border-radius: 16px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+        <div style="padding: 1.5rem; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h3 style="margin: 0; font-size: 1.2rem; color: var(--color-primary);">Responder Avaliação</h3>
+            <p style="margin: 0; font-size: 0.85rem; color: var(--color-text-muted);" id="responderInfo"></p>
+          </div>
+          <button id="btnFecharResponder" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted);">
+            <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <div style="padding: 1.5rem;">
+          <div style="background: #f1f5f9; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+            <p style="margin: 0; font-size: 0.85rem; color: var(--color-text);">Simulação de formulário de avaliação. Em produção, este formulário será dinâmico baseado no tipo selecionado (45/90 dias ou Offboarding).</p>
+          </div>
+          <div style="margin-bottom: 1rem;">
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text);">1. Como você avalia a adaptação do colaborador?</label>
+            <select style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; outline: none;">
+               <option>Excelente</option>
+               <option>Boa</option>
+               <option>Regular</option>
+               <option>Insatisfatória</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text);">Observações / Feedback Geral</label>
+            <textarea rows="4" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; outline: none;"></textarea>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+             <button type="button" id="btnSalvarResposta" class="btn btn-primary">Salvar Respostas</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Relatório -->
+    <div id="modalRelatorio" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center;">
+      <div style="background: white; border-radius: 16px; width: 100%; max-width: 600px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+        <div style="padding: 1.5rem; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h3 style="margin: 0; font-size: 1.2rem; color: #16a34a;">Relatório de Avaliação</h3>
+            <p style="margin: 0; font-size: 0.85rem; color: var(--color-text-muted);" id="relatorioInfo"></p>
+          </div>
+          <button id="btnFecharRelatorio" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted);">
+            <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <div style="padding: 1.5rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+             <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid var(--color-border);">
+                <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600; text-transform: uppercase;">Adaptação Geral</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.1rem; color: #16a34a; font-weight: 700;">Excelente</p>
+             </div>
+             <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid var(--color-border);">
+                <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600; text-transform: uppercase;">Decisão Final</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.1rem; color: var(--color-text); font-weight: 700;">Aprovado (Efetivado)</p>
+             </div>
+          </div>
+          <div style="margin-bottom: 1.5rem;">
+             <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600; text-transform: uppercase;">Observações do Gestor</p>
+             <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: var(--color-text); line-height: 1.5; background: #fbfbfc; padding: 1rem; border-radius: 8px; border: 1px solid var(--color-border);">
+                Colaborador demonstrou rápida assimilação das tarefas e se entrosou muito bem com a equipe. Recomendamos o prosseguimento das atividades sem ressalvas.
+             </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const modal = document.getElementById('modalAvaliacao');
+    const btnNovo = document.getElementById('btnAgendarAvaliacao');
+    const btnFechar = document.getElementById('btnFecharAv');
+    const btnCancelar = document.getElementById('btnCancelarAv');
+
+    btnNovo?.addEventListener('click', () => { if(modal) modal.style.display = 'flex'; });
+    const closeModal = () => { if(modal) modal.style.display = 'none'; };
+    btnFechar?.addEventListener('click', closeModal);
+    btnCancelar?.addEventListener('click', closeModal);
+
+    // Lógica para Modais de Resposta e Relatório
+    const modalResponder = document.getElementById('modalResponder');
+    const modalRelatorio = document.getElementById('modalRelatorio');
+    
+    document.getElementById('btnFecharResponder')?.addEventListener('click', () => { if(modalResponder) modalResponder.style.display = 'none'; });
+    document.getElementById('btnFecharRelatorio')?.addEventListener('click', () => { if(modalRelatorio) modalRelatorio.style.display = 'none'; });
+    document.getElementById('btnSalvarResposta')?.addEventListener('click', () => {
+       alert('Avaliação salva com sucesso!');
+       if(modalResponder) modalResponder.style.display = 'none';
+    });
+
+    document.querySelectorAll('.btnResponderAv').forEach(btn => {
+       btn.addEventListener('click', (e) => {
+          const target = e.currentTarget as HTMLButtonElement;
+          const nome = target.getAttribute('data-nome');
+          const tipo = target.getAttribute('data-tipo');
+          const info = document.getElementById('responderInfo');
+          if (info) info.textContent = `${nome} - ${tipo}`;
+          if (modalResponder) modalResponder.style.display = 'flex';
+       });
+    });
+
+    document.querySelectorAll('.btnVerRelatorio').forEach(btn => {
+       btn.addEventListener('click', (e) => {
+          const target = e.currentTarget as HTMLButtonElement;
+          const nome = target.getAttribute('data-nome');
+          const tipo = target.getAttribute('data-tipo');
+          const info = document.getElementById('relatorioInfo');
+          if (info) info.textContent = `${nome} - ${tipo}`;
+          if (modalRelatorio) modalRelatorio.style.display = 'flex';
+       });
+    });
+
+    // Filtros
+    const filtroStatusAv = document.getElementById('filtroStatusAv');
+    const filtroTipoAv = document.getElementById('filtroTipoAv');
+    const cardsAv = document.querySelectorAll('.av-card');
+
+    const aplicarFiltrosAv = () => {
+      const status = (filtroStatusAv as HTMLSelectElement).value;
+      const tipo = (filtroTipoAv as HTMLSelectElement).value;
+
+      cardsAv.forEach(card => {
+        const cardStatus = card.getAttribute('data-status');
+        const cardTipo = card.getAttribute('data-tipo');
+        
+        let matchStatus = false;
+        if (status === 'todas') matchStatus = true;
+        else if (status === cardStatus) matchStatus = true;
+        
+        let matchTipo = false;
+        if (tipo === 'todas') matchTipo = true;
+        else if (tipo === cardTipo) matchTipo = true;
+
+        if (matchStatus && matchTipo) {
+          (card as HTMLElement).style.display = 'flex';
+        } else {
+          (card as HTMLElement).style.display = 'none';
+        }
+      });
+    };
+
+    if (filtroStatusAv) filtroStatusAv.addEventListener('change', aplicarFiltrosAv);
+    if (filtroTipoAv) filtroTipoAv.addEventListener('change', aplicarFiltrosAv);
+  </script>
+</Layout>

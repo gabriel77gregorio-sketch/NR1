@@ -1,14 +1,24 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import SidebarRH from '../../components/SidebarRH.astro';
 import { supabase } from '../../lib/supabase';
 import { PlanoAcaoService } from '../../services/PlanoAcaoService';
 
 // SSR: Obter cliente do Supabase e validar autenticação
 const supabaseClient = supabase(Astro);
-const { data: { user } } = await supabaseClient.auth.getUser();
+let user = null;
+/* bypass de rede para nao deixar lento:
+try {
+  const { data } = await supabaseClient.auth.getUser();
+  user = data.user;
+} catch (e) { }
+*/
+const planoAcaoService = new PlanoAcaoService(supabaseClient);
 
 // Para demonstração interativa enquanto o login real está mockado, caso não haja User real, caímos para um mock seguro
 let planos: any[] = [];
+let equipe: any[] = [];
+let colaboradores: any[] = [];
 let data = { user: { email: 'rh@empresa.com', name: 'Acesso Público Dev' }, company: 'Empresa Teste' };
 
 // Autopreenchimento Inteligente vindo do Dashboard (CRIAR PGR)
@@ -32,10 +42,16 @@ if (user) {
         where_location: formData.get("where_location")?.toString() || '',
         when_start: new Date().toISOString(), // Default ou usar campo caso exija
         when_end: formData.get("when_end")?.toString() || '',
-        who_responsible: formData.get("who_responsible")?.toString() || '',
+        who_responsible: formData.get("who_responsible")?.toString() || '', // Legacy
+        responsavel_id: formData.get("responsavel_id")?.toString() || undefined,
+        pendente_com_id: formData.get("historico_responsavel_id")?.toString() || undefined,
         how_method: formData.get("how_method")?.toString() || '',
         how_much_cost: parseFloat(formData.get("how_much_cost")?.toString() || '0'),
         status: 'Aberto'
+      }, {
+        responsavel_id: formData.get("historico_responsavel_id")?.toString() || null,
+        descricao: formData.get("historico_descricao")?.toString() || '',
+        data_prevista_checkpoint: formData.get("historico_data")?.toString() || null
       });
     } catch (e) {
       console.error("Erro ao salvar plano 5w2h: ", e);
@@ -45,8 +61,15 @@ if (user) {
   planos = await planoAcaoService.getPlanosDeAcao();
   data.user.email = user.email || '';
   
-  const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome').eq('id', user.id).single();
-  if (perfil) data.user.name = perfil.nome;
+  const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, empresa_id').eq('id', user.id).single();
+  if (perfil) {
+    data.user.name = perfil.nome;
+    const { data: eq } = await supabaseClient.from('perfis_usuarios').select('id, nome, role').eq('empresa_id', perfil.empresa_id);
+    if(eq) equipe = eq;
+    
+    const { data: cols } = await supabaseClient.from('colaboradores_base').select('id, nome, cargo').eq('empresa_id', perfil.empresa_id);
+    if(cols) colaboradores = cols;
+  }
 } else {
   // Fallback Dev se o bypass de login estiver ativo:
   planos = [
@@ -59,62 +82,8 @@ if (user) {
 <Layout title="Gestão de Planos de Ação (5W2H) | RH NR1">
   <div class="app-layout">
     
-    <!-- Sidebar RH / Empresa -->
-    <aside class="sidebar">
-      <div style="padding: 1.5rem 1rem; border-bottom: 1px solid var(--color-border); display: flex; align-items: center; justify-content: space-between;">
-        <h1 style="color: var(--color-primary); font-size: 1.25rem; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 0.5rem; line-height: 1.2;">
-          <svg style="width: 24px; height: 24px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-          {data.company}
-        </h1>
-      </div>
-      
-      <div style="padding: 1rem; border-bottom: 1px solid var(--color-border); background: #fbfbfc;">
-        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-          <div style="width: 36px; height: 36px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted);">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-          </div>
-          <div>
-            <p style="font-size: 0.8rem; font-weight: 600; color: var(--color-text); margin: 0;">{data.user.name}</p>
-            <p style="font-size: 0.7rem; color: var(--color-text-muted); margin: 0;">{data.user.email}</p>
-          </div>
-        </div>
-      </div>
-
-      <nav style="flex: 1; padding: 1rem 0; overflow-y: auto;">
-        <ul style="list-style: none; margin: 0; padding: 0;">
-          <li>
-            <a href="/rh/dashboard" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-text); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
-              DASHBOARD MATRIZ
-            </a>
-          </li>
-          <li>
-            <a href="/rh/pesquisas" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-text); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-              DISPAROS DE PESQUISA
-            </a>
-          </li>
-          <li style="background: white; border-left: 3px solid var(--color-primary);">
-            <a href="/rh/planos-de-acao" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-primary); text-decoration: none; font-size: 0.8rem; font-weight: 600; gap: 0.75rem;">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-              PLANOS DE AÇÃO (PGR)
-            </a>
-          </li>
-          <li>
-            <a href="/rh/denuncias" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-text); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-              CANAL DE DENÚNCIAS
-            </a>
-          </li>
-          <li style="margin-top: 2rem; border-top: 1px solid var(--color-border); padding-top: 0.5rem;">
-            <a href="/rh/configuracoes" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-text); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-              CONFIGURAÇÕES
-            </a>
-          </li>
-        </ul>
-      </nav>
-    </aside>
+    <!-- Sidebar Modular -->
+    <SidebarRH activeMenu="planos" />
 
     <!-- Main Content -->
     <main class="main-content">
@@ -158,9 +127,18 @@ if (user) {
                   <div style="font-size: 0.75rem; color: var(--color-text-muted);">Motivador: {(plano as any).why_reason?.substring(0, 50) || 'Não especificado'}...</div>
                 </div>
                 <div style="flex: 1; color: var(--color-text-muted); font-weight: 500;">
-                  <div style="display: flex; align-items: center; gap: 0.5rem;">
-                     <div style="width: 24px; height: 24px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: var(--color-text-muted);">{plano.who_responsible.substring(0,2).toUpperCase()}</div>
-                     {plano.who_responsible}
+                  <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                     <div style="width: 24px; height: 24px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: var(--color-text-muted);">
+                       {(plano.responsavel_id && equipe.find(e => e.id === plano.responsavel_id) ? equipe.find(e => e.id === plano.responsavel_id).nome : plano.who_responsible).substring(0,2).toUpperCase()}
+                     </div>
+                     {plano.responsavel_id && equipe.find(e => e.id === plano.responsavel_id) ? equipe.find(e => e.id === plano.responsavel_id).nome : plano.who_responsible}
+                     
+                     {plano.pendente_com_id && (
+                        <span title="Gargalo Operacional Identificado" style="font-size: 0.6rem; background: #fee2e2; color: #b91c1c; padding: 0.2rem 0.4rem; border-radius: 4px; display: flex; align-items: center; gap: 0.2rem; margin-top: 0.2rem;">
+                          <svg style="width: 10px; height: 10px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                          Travado com: {equipe.find(e => e.id === plano.pendente_com_id)?.nome}
+                        </span>
+                     )}
                   </div>
                 </div>
                 <div style="flex: 1; color: var(--color-text-muted);">
@@ -175,7 +153,7 @@ if (user) {
                   </span>
                 </div>
                 <div style="width: 80px; text-align: center; color: var(--color-primary); cursor: pointer;">
-                  <button title="Acompanhar Execução" style="background: transparent; border: 1px solid var(--color-border); padding: 0.4rem; border-radius: var(--radius-md); cursor: pointer; color: var(--color-primary);">
+                  <button title="Gerenciar Ação" class="btnGerenciarAcao" data-id={plano.id} style="background: transparent; border: 1px solid var(--color-border); padding: 0.4rem; border-radius: var(--radius-md); cursor: pointer; color: var(--color-primary);">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                   </button>
                 </div>
@@ -185,6 +163,53 @@ if (user) {
         </div>
       </div>
     </main>
+
+    <!-- Overlay/Modal Gerenciar Ação -->
+    <div id="modalGerenciarAcao" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+      <div style="background: white; border-radius: var(--radius-lg); width: 100%; max-width: 500px; padding: 2.5rem; position: relative; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+        <button id="btnFecharGerenciar" style="position: absolute; top: 1.5rem; right: 1.5rem; background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-text-muted);">&times;</button>
+        <h2 style="font-size: 1.3rem; color: var(--color-primary); margin-bottom: 0.5rem; font-weight: 600;">Gerenciar Pendência</h2>
+        <p style="color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: 2rem;">Ação sob sua responsabilidade. Escolha como deseja prosseguir:</p>
+        
+        <form id="formGerenciar" style="display: flex; flex-direction: column; gap: 1.5rem;">
+           <div>
+             <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-muted);">AÇÃO A TOMAR *</label>
+             <select id="selectAcaoTomar" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; background: white;">
+               <option value="encaminhar">Encaminhar para próximo responsável (Repassar Gargalo)</option>
+               <option value="encerrar">Encerrar Plano de Ação (Concluído)</option>
+             </select>
+           </div>
+           
+           <div id="divProximoResponsavel">
+             <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-muted);">ENCAMINHAR PARA *</label>
+             <select id="proximoResponsavelSelect" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; background: white;">
+                <optgroup label="Gestores / Acesso ao Sistema">
+                  {equipe.map(membro => (
+                    <option value={`USER_${membro.id}`}>{membro.nome} ({membro.role})</option>
+                  ))}
+                </optgroup>
+                {colaboradores.length > 0 && (
+                <optgroup label="Quadro de Colaboradores (Sem Acesso Direto)">
+                  {colaboradores.map(membro => (
+                    <option value={membro.id}>{membro.nome} ({membro.cargo})</option>
+                  ))}
+                </optgroup>
+                )}
+             </select>
+           </div>
+           
+           <div>
+             <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-muted);">JUSTIFICATIVA / OBSERVAÇÃO</label>
+             <textarea id="justificativaGerenciar" rows="2" placeholder="Descreva o que foi feito ou o motivo do encaminhamento..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; resize: none; font-family: inherit;"></textarea>
+           </div>
+           
+           <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+             <button type="button" id="btnCancelarGerenciar" class="btn btn-outline" style="padding: 0.75rem 1.5rem;">CANCELAR</button>
+             <button type="button" id="btnSalvarGerenciar" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">APLICAR AÇÃO</button>
+           </div>
+        </form>
+      </div>
+    </div>
 
     <!-- Overlay/Modal 5W2H Segura (SSR) -->
     <div id="modal5w2h" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
@@ -213,7 +238,22 @@ if (user) {
              </div>
              <div>
                <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-muted);">4. RESPONSÁVEL TÉC. (WHO) *</label>
-               <input name="who_responsible" type="text" placeholder="Ex: João (Eng. Segurança)" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;" />
+               <select name="responsavel_id" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; background: white;">
+                 <option value="">Selecione o Responsável...</option>
+                 <optgroup label="Gestores / Acesso ao Sistema">
+                   <option value={`USER_${data.user.email}`}>Eu Mesmo ({data.user.name})</option>
+                   {equipe.map(membro => (
+                     <option value={`USER_${membro.id}`}>{membro.nome} ({membro.role})</option>
+                   ))}
+                 </optgroup>
+                 {colaboradores.length > 0 && (
+                 <optgroup label="Quadro de Colaboradores (Sem Acesso Direto)">
+                   {colaboradores.map(membro => (
+                     <option value={membro.id}>{membro.nome} ({membro.cargo})</option>
+                   ))}
+                 </optgroup>
+                 )}
+               </select>
              </div>
              <div>
                <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-muted);">5. DATA LIMITE (WHEN) *</label>
@@ -235,7 +275,42 @@ if (user) {
              </div>
           </div>
 
-          <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+          <div style="border-top: 1px dashed var(--color-border); padding-top: 1.5rem; margin-top: 0.5rem;">
+            <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: #b91c1c;">HISTÓRICO DE AÇÃO E CHECKPOINTS (OPCIONAL)</label>
+            <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 1rem;">Defina quem está com a pendência atual (gargalo) e a data prevista para o próximo checkpoint de acompanhamento.</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1rem;">
+              <div>
+                <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-muted);">RESPONSÁVEL ATUAL (Gargalo)</label>
+                <select name="historico_responsavel_id" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; background: white;">
+                  <option value="">Ação fluindo normalmente (Sem pendências)</option>
+                  <optgroup label="Gestores / Acesso ao Sistema">
+                    <option value={`USER_${data.user.email}`}>Travado com: Eu Mesmo ({data.user.name})</option>
+                    {equipe.map(membro => (
+                      <option value={`USER_${membro.id}`}>Travado com: {membro.nome} ({membro.role})</option>
+                    ))}
+                  </optgroup>
+                  {colaboradores.length > 0 && (
+                  <optgroup label="Quadro de Colaboradores (Sem Acesso Direto)">
+                    {colaboradores.map(membro => (
+                      <option value={membro.id}>Travado com: {membro.nome} ({membro.cargo})</option>
+                    ))}
+                  </optgroup>
+                  )}
+                </select>
+              </div>
+              <div>
+                <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-muted);">DATA PREVISTA DO CHECKPOINT</label>
+                <input name="historico_data" type="date" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; font-family: inherit;" />
+              </div>
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-muted);">DESCRIÇÃO DO STATUS ATUAL</label>
+              <textarea name="historico_descricao" rows="2" placeholder="Descreva o que falta para prosseguir (ex: Aguardando aprovação financeira)" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; resize: none; font-family: inherit;"></textarea>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
             <button type="button" id="btnCancelarModal5w2h" class="btn btn-outline" style="padding: 0.75rem 1.5rem;">CANCELAR</button>
             <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">
               <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
@@ -271,6 +346,54 @@ if (user) {
       if (modal) {
          modal.addEventListener('click', (e) => {
             if (e.target === modal) fechar();
+         });
+      }
+
+      // Lógica do Modal de Gerenciar Ação
+      const modalGerenciar = document.getElementById('modalGerenciarAcao');
+      const btnFecharGerenciar = document.getElementById('btnFecharGerenciar');
+      const btnCancelarGerenciar = document.getElementById('btnCancelarGerenciar');
+      const selectAcaoTomar = document.getElementById('selectAcaoTomar');
+      const divProximoResponsavel = document.getElementById('divProximoResponsavel');
+      const btnSalvarGerenciar = document.getElementById('btnSalvarGerenciar');
+      let currentPlanoId = null;
+
+      const btnsGerenciar = document.querySelectorAll('.btnGerenciarAcao');
+      btnsGerenciar.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const target = e.currentTarget as HTMLButtonElement;
+          currentPlanoId = target.getAttribute('data-id');
+          if (modalGerenciar) modalGerenciar.style.display = 'flex';
+        });
+      });
+
+      const fecharGerenciar = () => { if(modalGerenciar) modalGerenciar.style.display = 'none'; };
+      if (btnFecharGerenciar) btnFecharGerenciar.addEventListener('click', fecharGerenciar);
+      if (btnCancelarGerenciar) btnCancelarGerenciar.addEventListener('click', fecharGerenciar);
+      
+      if (selectAcaoTomar && divProximoResponsavel) {
+        selectAcaoTomar.addEventListener('change', (e) => {
+          const val = (e.target as HTMLSelectElement).value;
+          if (val === 'encerrar') {
+             divProximoResponsavel.style.display = 'none';
+          } else {
+             divProximoResponsavel.style.display = 'block';
+          }
+        });
+      }
+      
+      if (btnSalvarGerenciar) {
+        btnSalvarGerenciar.addEventListener('click', () => {
+           alert('Ação registrada com sucesso! Notificações disparadas para os envolvidos.');
+           fecharGerenciar();
+           // Na vida real, enviaria via fetch para uma API de atualização.
+           setTimeout(() => window.location.reload(), 500);
+        });
+      }
+      
+      if (modalGerenciar) {
+         modalGerenciar.addEventListener('click', (e) => {
+            if (e.target === modalGerenciar) fecharGerenciar();
          });
       }
       

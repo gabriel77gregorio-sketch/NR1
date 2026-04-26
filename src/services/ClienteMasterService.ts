@@ -67,7 +67,7 @@ export class ClienteMasterService {
           id: authData.user.id,
           empresa_id: empresa.id,
           nome: dto.nome_admin,
-          role: 'Admin_RH'
+          role: 'RH'
         }]);
 
       if (perfilErr) {

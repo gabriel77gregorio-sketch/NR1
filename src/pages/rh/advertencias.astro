@@ -1,0 +1,424 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import SidebarRH from '../../components/SidebarRH.astro';
+import { supabase } from '../../lib/supabase';
+import { AdvertenciaService } from '../../services/AdvertenciaService';
+
+// Proteção de Rota (Bypass)
+const supabaseClient = supabase(Astro);
+const user = null; // bypassed
+const advertenciaService = new AdvertenciaService(supabaseClient);
+
+// Mock Dados
+let advertencias = [
+  { id: '1', colaborador: { nome: 'João da Silva', cargo: 'Operador de Máquina' }, tipo: 'Falta de EPI', descricao: 'Foi flagrado operando a prensa sem o uso de protetor auricular, contrariando a ordem de serviço OS-012.', data_ocorrencia: '2026-04-24', status_assinatura: 'Pendente', gestor: { nome: 'Carlos Souza' } },
+  { id: '2', colaborador: { nome: 'Maria Santos', cargo: 'Auxiliar de Logística' }, tipo: 'Comportamento Inadequado', descricao: 'Recusou-se a participar do DDS matinal.', data_ocorrencia: '2026-04-20', status_assinatura: 'Assinado', gestor: { nome: 'Amanda Costa' } }
+];
+
+let colaboradores = [
+  { id: '101', nome: 'João da Silva', cargo: 'Operador de Máquina' },
+  { id: '102', nome: 'Maria Santos', cargo: 'Auxiliar de Logística' },
+  { id: '103', nome: 'Pedro Almeida', cargo: 'Montador' }
+];
+
+if (Astro.request.method === 'POST') {
+  try {
+    const data = await Astro.request.formData();
+    // Em modo produção, chamaríamos:
+    // await advertenciaService.criarAdvertencia({ ... })
+    
+    // Inserção Mock para visualização:
+    const colab = colaboradores.find(c => c.id === data.get('colaborador_id')?.toString());
+    advertencias.unshift({
+      id: Math.random().toString(),
+      colaborador: { nome: colab?.nome || 'Desconhecido', cargo: colab?.cargo || '' },
+      tipo: data.get('tipo')?.toString() || '',
+      descricao: data.get('descricao')?.toString() || '',
+      data_ocorrencia: data.get('data_ocorrencia')?.toString() || '',
+      status_assinatura: 'Pendente',
+      gestor: { nome: 'Gestor Atual' }
+    });
+  } catch (error) {
+    console.error(error);
+  }
+}
+---
+
+<Layout title="Advertências (NR1) | RH NR1">
+  <div class="app-layout">
+    
+    <!-- Sidebar Modular -->
+    <SidebarRH activeMenu="advertencias" />
+
+    <!-- Main Content -->
+    <main class="main-content" style="background: #fafafa;">
+      <div style="padding: 2.5rem 3.5rem;">
+        
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
+          <div>
+            <h2 style="font-size: 1.5rem; color: #dc2626; font-weight: 700; margin: 0;">Registro de Advertências</h2>
+            <p style="color: var(--color-text-muted); font-size: 0.95rem; margin-top: 0.25rem;">
+              Controle disciplinar e respaldo jurídico para descumprimentos de normas de segurança (NR1).
+            </p>
+          </div>
+          
+          <button id="btnNovaAdvertencia" class="btn btn-primary" style="background: #dc2626; border-color: #dc2626; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            NOVA ADVERTÊNCIA
+          </button>
+        </div>
+
+        <!-- Indicadores -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 1.5rem; border-left: 4px solid #dc2626;">
+            <h4 style="font-size: 0.8rem; color: var(--color-text-muted); margin: 0 0 0.5rem 0; text-transform: uppercase;">Total de Advertências</h4>
+            <span style="font-size: 2rem; font-weight: 800; color: var(--color-text);">{advertencias.length}</span>
+          </div>
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 1.5rem; border-left: 4px solid #f59e0b;">
+            <h4 style="font-size: 0.8rem; color: var(--color-text-muted); margin: 0 0 0.5rem 0; text-transform: uppercase;">Pendentes de Assinatura</h4>
+            <span style="font-size: 2rem; font-weight: 800; color: var(--color-text);">{advertencias.filter(a => a.status_assinatura === 'Pendente').length}</span>
+          </div>
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 1.5rem; border-left: 4px solid #3b82f6;">
+            <h4 style="font-size: 0.8rem; color: var(--color-text-muted); margin: 0 0 0.5rem 0; text-transform: uppercase;">Reincidências (Mês)</h4>
+            <span style="font-size: 2rem; font-weight: 800; color: var(--color-text);">0</span>
+          </div>
+        </div>
+
+        <!-- Filtros -->
+        <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; display: flex; gap: 1.5rem; align-items: center;">
+          <div style="font-size: 0.85rem; font-weight: 600; color: var(--color-text-muted);">FILTRAR POR:</div>
+          <select id="filtroStatusAdv" style="padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 6px; outline: none; font-size: 0.85rem; background: #fbfbfc;">
+             <option value="todas">Status de Assinatura (Todos)</option>
+             <option value="Pendente">Pendentes</option>
+             <option value="Assinado">Assinadas</option>
+          </select>
+          <select id="filtroTipoAdv" style="padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 6px; outline: none; font-size: 0.85rem; background: #fbfbfc;">
+             <option value="todas">Todos os Tipos</option>
+             <option value="Falta de EPI">Falta de EPI</option>
+             <option value="Comportamento Inadequado">Comportamento Inadequado</option>
+             <option value="Descumprimento de Normas">Descumprimento de Normas</option>
+             <option value="Falta/Atraso">Falta Não Justificada / Atraso</option>
+          </select>
+        </div>
+
+        <!-- Lista de Advertências -->
+        <div style="background: white; border: 1px solid var(--color-border); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+           <div style="display: flex; padding: 1rem; font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.5px; border-bottom: 1px solid var(--color-border); background: #fbfbfc;">
+              <div style="flex: 2;">COLABORADOR / CARGO</div>
+              <div style="flex: 2;">TIPO / DESCRIÇÃO</div>
+              <div style="flex: 1;">DATA OCORRÊNCIA</div>
+              <div style="flex: 1;">GESTOR / APLICADOR</div>
+              <div style="flex: 1; text-align: center;">STATUS (ASSINATURA)</div>
+              <div style="width: 80px; text-align: center;">AÇÕES</div>
+           </div>
+           
+           <div id="listaAdvertencias" style="display: flex; flex-direction: column;">
+              {advertencias.map((adv) => (
+                 <div class="adv-row" data-id={adv.id} data-status={adv.status_assinatura} data-tipo={adv.tipo} data-nome={adv.colaborador.nome} data-cargo={adv.colaborador.cargo} data-desc={adv.descricao} data-data={adv.data_ocorrencia} style="display: flex; padding: 1rem; border-bottom: 1px solid var(--color-border); align-items: center;">
+                    <div style="flex: 2;">
+                       <div style="font-weight: 600; color: var(--color-text); font-size: 0.9rem;">{adv.colaborador.nome}</div>
+                       <div style="font-size: 0.75rem; color: var(--color-text-muted);">{adv.colaborador.cargo}</div>
+                    </div>
+                    <div style="flex: 2; padding-right: 1rem;">
+                       <div style="font-weight: 600; color: #b91c1c; font-size: 0.85rem;">{adv.tipo}</div>
+                       <div style="font-size: 0.75rem; color: var(--color-text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{adv.descricao}</div>
+                    </div>
+                    <div style="flex: 1; font-size: 0.85rem; color: var(--color-text);">{new Date(adv.data_ocorrencia).toLocaleDateString('pt-BR')}</div>
+                    <div style="flex: 1; font-size: 0.85rem; color: var(--color-text-muted);">{adv.gestor.nome}</div>
+                    <div style="flex: 1; display: flex; justify-content: center;">
+                       {adv.status_assinatura === 'Pendente' ? (
+                          <span style="background: #fef3c7; color: #b45309; padding: 0.25rem 0.5rem; border-radius: 99px; font-size: 0.7rem; font-weight: 600;">PENDENTE</span>
+                       ) : (
+                          <span style="background: #dcfce7; color: #15803d; padding: 0.25rem 0.5rem; border-radius: 99px; font-size: 0.7rem; font-weight: 600;">ASSINADO</span>
+                       )}
+                    </div>
+                    <div style="width: 80px; text-align: center;">
+                      <button class="btn btn-outline btnTratarAdv" style="font-size: 0.65rem; padding: 0.3rem 0.6rem; color: var(--color-text); cursor: pointer;">TRATAR</button>
+                    </div>
+                 </div>
+              ))}
+              
+              {advertencias.length === 0 && (
+                <div style="padding: 3rem; text-align: center; color: var(--color-text-muted);">
+                  Nenhuma advertência registrada.
+                </div>
+              )}
+           </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Modal Nova Advertência -->
+    <div id="modalAdvertencia" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center;">
+      <div style="background: white; border-radius: 16px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+        
+        <div style="padding: 1.5rem; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="margin: 0; font-size: 1.2rem; color: var(--color-text);">Registrar Advertência</h3>
+          <button id="btnFecharModal" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted);">
+            <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+
+        <form method="POST" style="padding: 1.5rem;">
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+             <div>
+               <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text);">Colaborador *</label>
+               <select name="colaborador_id" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; outline: none; background: white;">
+                 <option value="">Selecione...</option>
+                 {colaboradores.map(c => (
+                   <option value={c.id}>{c.nome} - {c.cargo}</option>
+                 ))}
+               </select>
+             </div>
+             <div>
+               <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text);">Data da Ocorrência *</label>
+               <input name="data_ocorrencia" type="date" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; outline: none;" />
+             </div>
+          </div>
+
+          <div style="margin-bottom: 1rem;">
+             <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text);">Motivo Principal (Tipo) *</label>
+             <select name="tipo" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; outline: none; background: white;">
+               <option value="Falta de EPI">Falta de EPI (Ato Inseguro)</option>
+               <option value="Comportamento Inadequado">Comportamento Inadequado / Desrespeito</option>
+               <option value="Descumprimento de Normas">Descumprimento de Normas (Outros)</option>
+               <option value="Falta/Atraso">Falta Não Justificada / Atraso Frequente</option>
+             </select>
+          </div>
+
+          <div style="margin-bottom: 1.5rem;">
+             <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text);">Relatório do Gestor (Descrição Detalhada) *</label>
+             <textarea name="descricao" rows="4" placeholder="Descreva o que ocorreu de forma objetiva para compor o histórico comportamental..." required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; outline: none; resize: vertical;"></textarea>
+          </div>
+          
+          <div style="background: #fffbeb; border: 1px solid #fef3c7; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+             <p style="font-size: 0.8rem; color: #b45309; margin: 0; line-height: 1.5;">
+               <strong>Atenção Jurídica:</strong> O registro desta advertência gerará um Termo PDF que deverá ser impresso e assinado fisicamente pelo colaborador sob supervisão de testemunhas.
+             </p>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+            <button type="button" id="btnCancelarForm" class="btn btn-outline">Cancelar</button>
+            <button type="submit" class="btn btn-primary" style="background: #dc2626; border-color: #dc2626;">Registrar Advertência</button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Tratar Advertência -->
+    <div id="modalTratarAdv" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center;">
+      <div style="background: white; border-radius: 16px; width: 100%; max-width: 500px; padding: 2rem; position: relative; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+        <button id="btnFecharTratarAdv" style="position: absolute; top: 1.5rem; right: 1.5rem; background: none; border: none; cursor: pointer; color: var(--color-text-muted);">
+          <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+        <h3 style="margin: 0 0 0.5rem 0; font-size: 1.2rem; color: #dc2626;">Tratar Advertência</h3>
+        <p style="color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">Colaborador: <strong id="tratarNomeColab" style="color: var(--color-text);"></strong></p>
+
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          <div>
+             <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text);">Status de Assinatura</label>
+             <select id="selectStatusTratar" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; outline: none; background: white;">
+               <option value="Pendente">Pendente de Assinatura</option>
+               <option value="Assinado">Assinatura Coletada (Documento Físico Salvo)</option>
+             </select>
+          </div>
+          
+          <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
+            <button type="button" id="btnSalvarTratativa" class="btn btn-primary" style="background: #15803d; border-color: #15803d; width: 100%;">
+              SALVAR STATUS
+            </button>
+            <button type="button" id="btnImprimirTermo" class="btn btn-outline" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem;">
+              <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+              IMPRIMIR TERMO EM PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Layout de Impressão (invisível na tela normal) -->
+  <style>
+    @media print {
+      body * { visibility: hidden; }
+      #termoImpressao, #termoImpressao * { visibility: visible; }
+      #termoImpressao { position: absolute; left: 0; top: 0; width: 100%; padding: 2rem; }
+      .app-layout { display: none !important; }
+    }
+  </style>
+  <div id="termoImpressao" style="display: none; font-family: serif; line-height: 1.6; color: black; background: white;">
+     <div style="text-align: center; margin-bottom: 2rem; border-bottom: 2px solid black; padding-bottom: 1rem;">
+        <h1 style="font-size: 1.5rem; text-transform: uppercase; font-weight: bold; margin: 0;">ADVERTÊNCIA DISCIPLINAR</h1>
+        <h2 style="font-size: 1.2rem; font-weight: normal; margin: 0.5rem 0 0 0;">Medida Disciplinar - Empresa XYZ</h2>
+     </div>
+     
+     <p style="text-align: right; margin-bottom: 2rem;">Data: <span id="printDataAtual"></span></p>
+
+     <p><strong>AO EMPREGADO(A):</strong> <span id="printNome"></span></p>
+     <p><strong>CARGO:</strong> <span id="printCargo"></span></p>
+
+     <p style="margin-top: 2rem;">Servimo-nos da presente para aplicar-lhe a medida disciplinar de ADVERTÊNCIA, pelos motivos abaixo descritos:</p>
+     
+     <div style="margin: 1.5rem 0; padding: 1rem; border: 1px solid black; min-height: 100px;">
+       <p><strong>TIPO DA INFRAÇÃO:</strong> <span id="printTipo"></span></p>
+       <p><strong>DATA DA OCORRÊNCIA:</strong> <span id="printDataOcorrencia"></span></p>
+       <p style="margin-top: 1rem;"><strong>DESCRIÇÃO DO FATO:</strong></p>
+       <p id="printDescricao" style="text-align: justify;"></p>
+     </div>
+
+     <p style="text-align: justify; margin-top: 2rem;">
+        A presente advertência tem o fito de evitar a reincidência, servindo de alerta para que não se repitam as atitudes ou fatos descritos, 
+        sob pena de medidas disciplinares mais enérgicas, conforme previsto na legislação trabalhista em vigor e nas Normas Regulamentadoras (NR1).
+     </p>
+
+     <p style="margin-top: 2rem;">Favor ciente e assinar a via que lhe é entregue juntamente com esta.</p>
+
+     <div style="margin-top: 5rem; display: flex; justify-content: space-between;">
+        <div style="width: 45%; text-align: center;">
+          <div style="border-top: 1px solid black; margin-bottom: 0.5rem;"></div>
+          <p style="margin: 0; font-size: 0.9rem;">Assinatura do Empregado (Advertido)</p>
+        </div>
+        <div style="width: 45%; text-align: center;">
+          <div style="border-top: 1px solid black; margin-bottom: 0.5rem;"></div>
+          <p style="margin: 0; font-size: 0.9rem;">Assinatura do Gestor / Empresa</p>
+        </div>
+     </div>
+
+     <div style="margin-top: 4rem; display: flex; justify-content: space-between;">
+        <div style="width: 45%; text-align: center;">
+          <div style="border-top: 1px solid black; margin-bottom: 0.5rem;"></div>
+          <p style="margin: 0; font-size: 0.9rem;">Testemunha 1 (Nome legível e CPF)</p>
+        </div>
+        <div style="width: 45%; text-align: center;">
+          <div style="border-top: 1px solid black; margin-bottom: 0.5rem;"></div>
+          <p style="margin: 0; font-size: 0.9rem;">Testemunha 2 (Nome legível e CPF)</p>
+        </div>
+     </div>
+  </div>
+
+  <script>
+    const modal = document.getElementById('modalAdvertencia');
+    const btnNova = document.getElementById('btnNovaAdvertencia');
+    const btnFechar = document.getElementById('btnFecharModal');
+    const btnCancelar = document.getElementById('btnCancelarForm');
+
+    btnNova?.addEventListener('click', () => { if(modal) modal.style.display = 'flex'; });
+    const closeModal = () => { if(modal) modal.style.display = 'none'; };
+    btnFechar?.addEventListener('click', closeModal);
+    btnCancelar?.addEventListener('click', closeModal);
+
+    // Filtros de Advertências
+    const filtroStatusAdv = document.getElementById('filtroStatusAdv');
+    const filtroTipoAdv = document.getElementById('filtroTipoAdv');
+    const rowsAdv = document.querySelectorAll('.adv-row');
+
+    const aplicarFiltrosAdv = () => {
+      const status = (filtroStatusAdv as HTMLSelectElement).value;
+      const tipo = (filtroTipoAdv as HTMLSelectElement).value;
+
+      rowsAdv.forEach(row => {
+        const rowStatus = row.getAttribute('data-status');
+        const rowTipo = row.getAttribute('data-tipo');
+        
+        let matchStatus = false;
+        if (status === 'todas') matchStatus = true;
+        else if (status === rowStatus) matchStatus = true;
+        
+        let matchTipo = false;
+        if (tipo === 'todas') matchTipo = true;
+        // Tratamento especial para "Falta/Atraso" já que no backend/mock os tipos exatos podem variar levemente, mas pelo mock atual bate certinho:
+        else if (rowTipo && rowTipo.includes(tipo)) matchTipo = true;
+
+        if (matchStatus && matchTipo) {
+          (row as HTMLElement).style.display = 'flex';
+        } else {
+          (row as HTMLElement).style.display = 'none';
+        }
+      });
+    };
+
+    if (filtroStatusAdv) filtroStatusAdv.addEventListener('change', aplicarFiltrosAdv);
+    if (filtroTipoAdv) filtroTipoAdv.addEventListener('change', aplicarFiltrosAdv);
+
+    // Lógica do Modal Tratar Advertência e Impressão
+    const modalTratarAdv = document.getElementById('modalTratarAdv');
+    const btnFecharTratarAdv = document.getElementById('btnFecharTratarAdv');
+    const tratarNomeColab = document.getElementById('tratarNomeColab');
+    const selectStatusTratar = document.getElementById('selectStatusTratar');
+    const btnSalvarTratativa = document.getElementById('btnSalvarTratativa');
+    const btnImprimirTermo = document.getElementById('btnImprimirTermo');
+    const termoImpressao = document.getElementById('termoImpressao');
+
+    let advSelecionada = null;
+
+    const btnsTratarAdv = document.querySelectorAll('.btnTratarAdv');
+    btnsTratarAdv.forEach(btn => {
+       btn.addEventListener('click', (e) => {
+         const target = e.currentTarget as HTMLButtonElement;
+         const row = target.closest('.adv-row');
+         if (row) {
+            advSelecionada = {
+               id: row.getAttribute('data-id'),
+               nome: row.getAttribute('data-nome'),
+               cargo: row.getAttribute('data-cargo'),
+               tipo: row.getAttribute('data-tipo'),
+               descricao: row.getAttribute('data-desc'),
+               data: row.getAttribute('data-data'),
+               status: row.getAttribute('data-status')
+            };
+
+            if (tratarNomeColab) tratarNomeColab.textContent = advSelecionada.nome;
+            if (selectStatusTratar) (selectStatusTratar as HTMLSelectElement).value = advSelecionada.status;
+            if (modalTratarAdv) modalTratarAdv.style.display = 'flex';
+         }
+       });
+    });
+
+    const fecharModalTratar = () => { if(modalTratarAdv) modalTratarAdv.style.display = 'none'; };
+    if (btnFecharTratarAdv) btnFecharTratarAdv.addEventListener('click', fecharModalTratar);
+
+    if (btnSalvarTratativa) {
+       btnSalvarTratativa.addEventListener('click', () => {
+          alert('Status da advertência atualizado com sucesso!');
+          fecharModalTratar();
+          // setTimeout(() => window.location.reload(), 500);
+       });
+    }
+
+    if (btnImprimirTermo) {
+       btnImprimirTermo.addEventListener('click', () => {
+          if (!advSelecionada) return;
+          
+          // Preencher dados do layout de impressão
+          const pDataAtual = document.getElementById('printDataAtual');
+          const pNome = document.getElementById('printNome');
+          const pCargo = document.getElementById('printCargo');
+          const pTipo = document.getElementById('printTipo');
+          const pDataOc = document.getElementById('printDataOcorrencia');
+          const pDesc = document.getElementById('printDescricao');
+
+          if (pDataAtual) pDataAtual.textContent = new Date().toLocaleDateString('pt-BR');
+          if (pNome) pNome.textContent = advSelecionada.nome;
+          if (pCargo) pCargo.textContent = advSelecionada.cargo;
+          if (pTipo) pTipo.textContent = advSelecionada.tipo;
+          if (pDataOc) pDataOc.textContent = new Date(advSelecionada.data).toLocaleDateString('pt-BR');
+          if (pDesc) pDesc.textContent = advSelecionada.descricao;
+
+          // Mostrar div de impressão
+          if (termoImpressao) termoImpressao.style.display = 'block';
+          
+          // Imprimir
+          window.print();
+          
+          // Esconder div de impressão logo após abrir o prompt
+          if (termoImpressao) termoImpressao.style.display = 'none';
+       });
+    }
+
+  </script>
+</Layout>

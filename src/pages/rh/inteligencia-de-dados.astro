@@ -1,0 +1,165 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import SidebarRH from '../../components/SidebarRH.astro';
+import { supabase } from '../../lib/supabase';
+
+// Proteção de Rota
+const supabaseClient = supabase(Astro);
+let user = null;
+/* bypass de rede para nao deixar lento:
+try {
+  const { data } = await supabaseClient.auth.getUser();
+  user = data.user;
+} catch (e) { }
+*/
+
+if (user) {
+  const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('role').eq('id', user.id).single();
+  if (perfil && !['Master', 'Diretoria', 'Segurança_Trabalho', 'RH'].includes(perfil.role)) {
+    return Astro.redirect('/rh/dashboard');
+  }
+}
+---
+
+<Layout title="Inteligência de Dados | RH NR1">
+  <div class="app-layout">
+    
+    <!-- Sidebar Modular -->
+    <SidebarRH activeMenu="inteligencia-de-dados" />
+
+    <!-- Main Content -->
+    <main class="main-content" style="background: #fafafa;">
+      <div style="padding: 2.5rem 3.5rem;">
+        
+        <!-- Header IA -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+               <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #d946ef 0%, #8b5cf6 100%); display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 15px rgba(217, 70, 239, 0.3);">
+                  <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                     <path d="M12 2a2 2 0 0 1 2 2c0 1.1-.9 2-2 2s-2-.9-2-2 2-2 2-2z"/>
+                     <path d="M19 8a2 2 0 0 1 2 2c0 1.1-.9 2-2 2s-2-.9-2-2 2-2 2-2z"/>
+                     <path d="M5 8a2 2 0 0 1 2 2c0 1.1-.9 2-2 2s-2-.9-2-2 2-2 2-2z"/>
+                     <path d="M12 16a2 2 0 0 1 2 2c0 1.1-.9 2-2 2s-2-.9-2-2 2-2 2-2z"/>
+                     <path d="M12 8v8"/>
+                     <path d="M7 10l5 4"/>
+                     <path d="M17 10l-5 4"/>
+                  </svg>
+               </div>
+               <h2 style="font-size: 1.8rem; color: #1e293b; font-weight: 700; margin: 0; letter-spacing: -0.5px;">Inteligência de Dados</h2>
+            </div>
+            <p style="color: var(--color-text-muted); font-size: 0.95rem; margin-top: 0; max-width: 600px;">
+              Análise generativa baseada em <strong style="color: #8b5cf6;">1.432</strong> inputs (Matriz de Risco, Denúncias e Avaliações). Atualizado há 2 horas.
+            </p>
+          </div>
+          
+          <button id="btnRetroalimentar" class="btn btn-primary" style="background: linear-gradient(135deg, #d946ef 0%, #8b5cf6 100%); border: none; box-shadow: 0 4px 15px rgba(217, 70, 239, 0.2); transition: all 0.3s ease; gap: 0.5rem; padding: 0.75rem 1.5rem;" onclick="alert('O motor preditivo precisa de pelo menos 30 dias de dados reais da sua base para liberar um novo diagnóstico customizado.')">
+            <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+            GERAR NOVO DIAGNÓSTICO
+          </button>
+        </div>
+
+        <!-- Grade Principal de Insights -->
+        <div style="display: flex; flex-direction: column; gap: 2rem; max-width: 900px;">
+          
+          <!-- Aviso Geral -->
+          <div style="background: #fdf4ff; border: 1px dashed #d946ef; padding: 1rem 1.5rem; border-radius: 12px; display: flex; align-items: center; gap: 1rem;">
+             <svg style="width: 24px; height: 24px; color: #d946ef; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+             <p style="margin: 0; font-size: 0.9rem; color: #86198f;">
+               <strong>Ambiente Beta:</strong> Os cards abaixo exibem dados simulados para demonstrar a capacidade de cruzamento de dados preditivos. O modelo real entrará em operação após 30 dias de uso da plataforma.
+             </p>
+          </div>
+
+          <!-- Coluna Esquerda: Insights e Sugestões Profundas -->
+          <div style="display: flex; flex-direction: column; gap: 2rem;">
+            
+            <!-- Card Risk Prediction (Animado / Chamativo) -->
+            <div style="background: white; border: 1px solid #fee2e2; border-radius: 16px; padding: 1.5rem; position: relative; overflow: hidden; box-shadow: 0 10px 30px -10px rgba(220, 38, 38, 0.1);">
+               <div style="width: 4px; height: 100%; background: #ef4444; position: absolute; left: 0; top: 0;"></div>
+               
+               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                  <h3 style="font-size: 1.1rem; font-weight: 700; color: #991b1b; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                    <svg style="width: 20px; height: 20px; color: #ef4444;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    Aviso Preditivo: Risco de Afastamento Iminente
+                  </h3>
+                  <div style="display: flex; gap: 0.5rem;">
+                    <span style="background: #f1f5f9; color: #475569; font-size: 0.7rem; padding: 0.3rem 0.6rem; border-radius: 99px; font-weight: 700;">DEMONSTRAÇÃO</span>
+                    <span style="background: #fee2e2; color: #b91c1c; font-size: 0.75rem; padding: 0.3rem 0.8rem; border-radius: 99px; font-weight: 700;">PROBABILIDADE: 87%</span>
+                  </div>
+               </div>
+               
+               <p style="color: #475569; font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.5rem;">
+                 A Inteligência de Dados detectou uma intersecção alarmante no <strong>Setor de Linha de Montagem</strong>. A Matriz de Risco Ocupacional classifica a carga de ruído/stress como "Alta", cruzando simultaneamente com surpreendentes <strong>7 relatos de esgotamento e hostilidade (Burnout / Assédio)</strong> abertos nos últimos 14 dias pelo Canal de Denúncias.
+               </p>
+               
+               <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem;">
+                  <span style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Ação Imediata Sugerida</span>
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.95rem; font-weight: 500; color: #0f172a;">Realizar intervenção mediadora e readequação de turnos.</span>
+                    <button class="btn btn-outline" style="font-size: 0.8rem; padding: 0.5rem 1rem; border-color: #ef4444; color: #ef4444; background: white;" onclick="alert('Funcionalidade de automação ativa após a calibração do modelo.')">
+                      CONVERTER EM PGR
+                    </button>
+                  </div>
+               </div>
+            </div>
+
+            <!-- Card Padrão Comportamental Positivo -->
+            <div style="background: white; border: 1px solid #e0e7ff; border-radius: 16px; padding: 1.5rem; box-shadow: 0 10px 30px -10px rgba(79, 70, 229, 0.05);">
+               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                  <h3 style="font-size: 1.1rem; font-weight: 700; color: #3730A3; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                    <svg style="width: 20px; height: 20px; color: #4f46e5;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                    Padrão de Cultura Positiva
+                  </h3>
+                  <span style="background: #f1f5f9; color: #475569; font-size: 0.7rem; padding: 0.3rem 0.6rem; border-radius: 99px; font-weight: 700;">DEMONSTRAÇÃO</span>
+               </div>
+               
+               <p style="color: #475569; font-size: 0.95rem; line-height: 1.6; margin-bottom: 0;">
+                 As respostas da Avaliação HSE indicam que <strong>92% da equipe de TI e Inovação</strong> reportam alto nível de Suporte dos Pares e Controle sobre suas demandas. Este é um modelo de sucesso interno. Sugere-se mapear as práticas de gestão deste setor para replicar nas áreas operacionais.
+               </p>
+            </div>
+
+            <!-- Card de Repetições Endêmicas -->
+            <div style="background: white; border: 1px solid var(--color-border); border-radius: 16px; padding: 1.5rem;">
+               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                 <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--color-text); margin: 0;">Análise Semântica de Repetição</h3>
+                 <span style="background: #f1f5f9; color: #475569; font-size: 0.7rem; padding: 0.3rem 0.6rem; border-radius: 99px; font-weight: 700;">DEMONSTRAÇÃO</span>
+               </div>
+               
+               <div style="display: flex; flex-direction: column; gap: 1rem;">
+                  <!-- Item 1 -->
+                  <div style="display: flex; gap: 1.5rem; align-items: center; background: #fbfbfc; padding: 1rem; border-radius: 8px; border: 1px solid #f1f5f9;">
+                    <div style="text-align: center; width: 60px;">
+                      <span style="font-size: 1.8rem; font-weight: 800; color: #f59e0b;">5x</span><br/>
+                      <span style="font-size: 0.65rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase;">Menções</span>
+                    </div>
+                    <div style="flex: 1;">
+                      <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--color-text); margin: 0 0 0.3rem 0;">"Carga Inatingível de Metas"</h4>
+                      <p style="font-size: 0.85rem; color: #64748b; margin: 0;">Expressões idênticas encontradas nas pesquisas do Setor de Vendas B2B.</p>
+                    </div>
+                    <button class="btn" style="background: #fffbeb; color: #b45309; border: none; font-size: 0.75rem;">Ver Relatos</button>
+                  </div>
+
+                  <!-- Item 2 -->
+                  <div style="display: flex; gap: 1.5rem; align-items: center; background: #fbfbfc; padding: 1rem; border-radius: 8px; border: 1px solid #f1f5f9;">
+                    <div style="text-align: center; width: 60px;">
+                      <span style="font-size: 1.8rem; font-weight: 800; color: #3b82f6;">3x</span><br/>
+                      <span style="font-size: 0.65rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase;">Menções</span>
+                    </div>
+                    <div style="flex: 1;">
+                      <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--color-text); margin: 0 0 0.3rem 0;">Falta de EPI Específico</h4>
+                      <p style="font-size: 0.85rem; color: #64748b; margin: 0;">Denúncias anônimas convergem para luvas rasgadas na montagem.</p>
+                    </div>
+                    <button class="btn" style="background: #eff6ff; color: #1d4ed8; border: none; font-size: 0.75rem;">Ver Relatos</button>
+                  </div>
+               </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+</Layout>

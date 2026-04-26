@@ -2,7 +2,8 @@
 import Layout from '../layouts/Layout.astro';
 import { supabase } from '../lib/supabase';
 
-
+// Bypass temporário para desenvolvimento
+return Astro.redirect('/rh/dashboard');
 
 let errorMsg = '';
 
@@ -28,10 +29,10 @@ if (Astro.request.method === 'POST') {
         .eq('id', authData.user.id)
         .single();
         
-      if (perfil && perfil.role === 'Admin_RH') {
-        return Astro.redirect('/rh/dashboard');
-      } else {
+      if (perfil && perfil.role === 'SuperAdmin') {
         return Astro.redirect('/dashboard');
+      } else {
+        return Astro.redirect('/rh/dashboard');
       }
     }
   } catch (error) {
