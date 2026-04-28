@@ -7,6 +7,17 @@ import { supabase } from '../../lib/supabase';
 const supabaseClient = supabase(Astro);
 let user = null;
 let empresaId = null;
+let userData = {
+  nome: 'Usuário',
+  empresa: 'Carregando...',
+  saudacao: 'Bem-vindo'
+};
+
+// Saudação baseada no horário
+const hora = new Date().getHours();
+if (hora < 12) userData.saudacao = 'Bom dia';
+else if (hora < 18) userData.saudacao = 'Boa tarde';
+else userData.saudacao = 'Boa noite';
 
 try {
   const { data } = await supabaseClient.auth.getUser();

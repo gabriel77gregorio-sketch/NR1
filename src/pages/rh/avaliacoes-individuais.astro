@@ -6,7 +6,11 @@ import { AvaliacaoIndividualService } from '../../services/AvaliacaoIndividualSe
 
 // Proteção de Rota (Bypass)
 const supabaseClient = supabase(Astro);
-const user = null; // bypassed
+let user = null;
+try {
+  const { data: authData } = await supabaseClient.auth.getUser();
+  user = authData?.user;
+} catch (e) { }
 const avaliacaoService = new AvaliacaoIndividualService(supabaseClient);
 
 // Mock Dados

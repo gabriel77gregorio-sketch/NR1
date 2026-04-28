@@ -10,12 +10,10 @@ const { activeMenu = 'dashboard' } = Astro.props;
 // SSR: Obter cliente Supabase Configurado
 const supabaseClient = supabase(Astro);
 let user = null;
-/* bypass de rede para nao deixar lento:
 try {
-  const { data } = await supabaseClient.auth.getUser();
-  user = data.user;
+  const { data: authData } = await supabaseClient.auth.getUser();
+  user = authData?.user;
 } catch (e) { }
-*/
 
 // Defaults for mock / dev locally
 let data = { user: { email: 'rh@empresa.com', name: 'Gestor de RH' }, company: 'Indústria Metalúrgica SA' };

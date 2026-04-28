@@ -4,7 +4,11 @@ import SidebarRH from '../../components/SidebarRH.astro';
 import { supabase } from '../../lib/supabase';
 
 const supabaseClient = supabase(Astro);
-const user = null; // bypassed
+let user = null;
+try {
+  const { data: authData } = await supabaseClient.auth.getUser();
+  user = authData?.user;
+} catch (e) { }
 
 // Mocked data fallback
 const data = { user: { email: 'rh@empresa.com', name: 'Comitê de Ética' }, company: 'Empresa Teste' };
@@ -204,7 +208,7 @@ if (user) {
          rows.forEach(row => {
            const rowStatus = row.getAttribute('data-status');
            const rowDateISO = row.getAttribute('data-date');
-           const rowDate = new Date(rowDateISO);
+           const rowDate = new Date(rowDateISO || '');
            
            // Status Match
            let matchStatus = false;
@@ -252,7 +256,7 @@ if (user) {
             
             if (modalProtocoloText) modalProtocoloText.textContent = protocolo;
             if (modalRelatoCompleto) modalRelatoCompleto.textContent = texto || 'Nenhum texto informado.';
-            if (selectStatusTratamento) (selectStatusTratamento as HTMLSelectElement).value = status;
+            if (selectStatusTratamento) (selectStatusTratamento as HTMLSelectElement).value = status || '';
 
             if (modal) modal.style.display = 'flex';
          });

@@ -5,7 +5,11 @@ import { supabase } from '../../lib/supabase';
 import { ColaboradoresService } from '../../services/ColaboradoresService';
 
 const supabaseClient = supabase(Astro);
-const user = null; // bypassed
+let user = null;
+try {
+  const { data: authData } = await supabaseClient.auth.getUser();
+  user = authData?.user;
+} catch (e) { }
 
 // Fetch dynamic DB info
 const service = new ColaboradoresService(supabaseClient);

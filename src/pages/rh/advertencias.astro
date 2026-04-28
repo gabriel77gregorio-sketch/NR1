@@ -354,7 +354,7 @@ if (Astro.request.method === 'POST') {
     const btnImprimirTermo = document.getElementById('btnImprimirTermo');
     const termoImpressao = document.getElementById('termoImpressao');
 
-    let advSelecionada = null;
+    let advSelecionada: any = null;
 
     const btnsTratarAdv = document.querySelectorAll('.btnTratarAdv');
     btnsTratarAdv.forEach(btn => {

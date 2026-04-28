@@ -2,16 +2,13 @@
 import Layout from '../layouts/Layout.astro';
 import { supabase } from '../lib/supabase';
 
-// Bypass temporário para desenvolvimento
-return Astro.redirect('/rh/dashboard');
-
 let errorMsg = '';
 
 if (Astro.request.method === 'POST') {
   try {
-    const data = await Astro.request.formData();
-    const email = data.get('email')?.toString();
-    const password = data.get('password')?.toString();
+    const formData = await Astro.request.formData();
+    const email = formData.get('email')?.toString();
+    const password = formData.get('password')?.toString();
 
     const supabaseClient = supabase(Astro);
     const { data: authData, error } = await supabaseClient.auth.signInWithPassword({
@@ -21,7 +18,7 @@ if (Astro.request.method === 'POST') {
 
     if (error) {
       errorMsg = error.message;
-    } else if (authData.user) {
+    } else if (authData && authData.user) {
       // Busca o perfil do usuário recém logado para direcionar corretamente
       const { data: perfil } = await supabaseClient
         .from('perfis_usuarios')
@@ -29,16 +26,14 @@ if (Astro.request.method === 'POST') {
         .eq('id', authData.user.id)
         .single();
         
-      if (perfil && perfil.role === 'SuperAdmin') {
+      if (perfil && (perfil as any).role === 'SuperAdmin') {
         return Astro.redirect('/dashboard');
       } else {
         return Astro.redirect('/rh/dashboard');
       }
     }
-  } catch (error) {
-    if (error instanceof Error) {
-      errorMsg = error.message;
-    }
+  } catch (error: any) {
+    errorMsg = error?.message || 'Erro inesperado ao fazer login';
   }
 }
 ---
