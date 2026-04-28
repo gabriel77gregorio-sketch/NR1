@@ -6,36 +6,125 @@ import { supabase } from '../../lib/supabase';
 // Proteção SSR
 const supabaseClient = supabase(Astro);
 let user = null;
+let empresaId = null;
 
-// Mock user para preview visual (bypass temporário de Auth real)
-const userData = {
-  nome: 'Gestor de RH',
-  empresa: 'Indústria Metalúrgica SA',
-  saudacao: 'Bom dia'
-};
+try {
+  const { data } = await supabaseClient.auth.getUser();
+  user = data?.user;
+  
+  if (user) {
+    const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, empresa_id, empresas(nome)').eq('id', user.id).single();
+    if (perfil) {
+      userData.nome = perfil.nome;
+      empresaId = perfil.empresa_id;
+      if (perfil.empresas) userData.empresa = (perfil.empresas as any).nome;
+    }
+  }
+} catch (e) {
+  console.log("Modo de desenvolvimento ou erro de rede. Usando mocks.");
+}
 
-// Hora atual para saudação dinâmica
-const hour = new Date().getHours();
-if (hour >= 12 && hour < 18) userData.saudacao = 'Boa tarde';
-else if (hour >= 18) userData.saudacao = 'Boa noite';
+// -------------------------------------------------------------
+// VARIAVEIS GLOBAIS DE TELA (MOCK DE FALLBACK)
+// -------------------------------------------------------------
+let valAtrasadas = 3;
+let valDenuncias = 1;
+let valAvaliacoes = 5;
+let valPgr = '98%';
 
-// Dados Mockados para o Dashboard
-const kpis = [
-  { titulo: 'Ações Atrasadas (5W2H)', valor: '3', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', color: '#ef4444', bg: '#fee2e2' },
-  { titulo: 'Denúncias Não Lidas', valor: '1', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9', color: '#f59e0b', bg: '#fef3c7' },
-  { titulo: 'Avaliações Pendentes', valor: '5', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01', color: '#3b82f6', bg: '#eff6ff' },
-  { titulo: 'Status do PGR', valor: '98%', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: '#10b981', bg: '#d1fae5', desc: 'Conformidade' }
-];
-
-const agendamentos = [
+let listaAgendamentos: any[] = [
   { id: 1, tipo: 'Avaliação 45 Dias', colaborador: 'Carlos Silva (Soldador)', data: 'Hoje, 14:00', urgencia: 'Alta' },
   { id: 2, tipo: 'Revisão de EPI', colaborador: 'Setor de Usinagem', data: 'Amanhã, 09:30', urgencia: 'Média' },
   { id: 3, tipo: 'Entrevista Desligamento', colaborador: 'Ana Souza', data: '28/04, 10:00', urgencia: 'Baixa' }
 ];
 
-const acoesComigo = [
+let listaAcoes: any[] = [
   { id: 1, plano: 'PGR 2026', acao: 'Comprar novos protetores auriculares', prazo: 'Vence em 2 dias' },
   { id: 2, plano: 'Denúncia #402', acao: 'Apurar relato de falta de EPI no galpão B', prazo: 'Venceu ontem' }
+];
+
+// -------------------------------------------------------------
+// CONSULTAS REAIS NO SUPABASE SE ESTIVER LOGADO
+// -------------------------------------------------------------
+if (user && empresaId) {
+  // 1. Ações Atrasadas (PGR)
+  const hoje = new Date().toISOString();
+  const { count: cAtrasadas } = await supabaseClient.from('planos_de_acao_pgr')
+    .select('*', { count: 'exact', head: true })
+    .eq('empresa_id', empresaId)
+    .neq('status', 'Concluído')
+    .lt('when_end', hoje);
+  if (cAtrasadas !== null) valAtrasadas = cAtrasadas;
+
+  // 2. Denúncias não lidas
+  const { count: cDenuncias } = await supabaseClient.from('denuncias_anonimas')
+    .select('*', { count: 'exact', head: true })
+    .eq('empresa_id', empresaId)
+    .in('status', ['Nova', 'Em Análise']);
+  if (cDenuncias !== null) valDenuncias = cDenuncias;
+
+  // 3. Avaliações Pendentes
+  const { count: cAvaliacoes } = await supabaseClient.from('avaliacoes_individuais')
+    .select('*', { count: 'exact', head: true })
+    .eq('empresa_id', empresaId)
+    .eq('status', 'Pendente');
+  if (cAvaliacoes !== null) valAvaliacoes = cAvaliacoes;
+
+  // 4. Agendamentos Pendentes (Lista)
+  const { data: realAg } = await supabaseClient.from('avaliacoes_individuais')
+    .select('id, tipo, data_limite, colaboradores_base(nome, cargo)')
+    .eq('empresa_id', empresaId)
+    .neq('status', 'Concluído')
+    .order('data_limite', { ascending: true })
+    .limit(4);
+  
+  if (realAg && realAg.length > 0) {
+    listaAgendamentos = realAg.map(ag => {
+      const colabName = ag.colaboradores_base ? `${(ag.colaboradores_base as any).nome} (${(ag.colaboradores_base as any).cargo || 'Sem cargo'})` : 'Colaborador Excluído';
+      const dataObj = new Date(ag.data_limite);
+      const isAtrasado = dataObj < new Date();
+      return {
+        id: ag.id,
+        tipo: ag.tipo,
+        colaborador: colabName,
+        data: dataObj.toLocaleDateString('pt-BR'),
+        urgencia: isAtrasado ? 'Alta' : 'Média'
+      };
+    });
+  } else {
+    listaAgendamentos = [];
+  }
+
+  // 5. Ações Comigo (Gargalos)
+  const { data: realAcoes } = await supabaseClient.from('planos_de_acao_pgr')
+    .select('id, what_title, where_location, when_end')
+    .eq('empresa_id', empresaId)
+    .eq('responsavel_id', user.id)
+    .neq('status', 'Concluído')
+    .order('when_end', { ascending: true })
+    .limit(3);
+    
+  if (realAcoes && realAcoes.length > 0) {
+    listaAcoes = realAcoes.map(ac => {
+      const isAtrasado = new Date(ac.when_end) < new Date();
+      return {
+        id: ac.id,
+        plano: ac.where_location || 'Plano Geral',
+        acao: ac.what_title,
+        prazo: isAtrasado ? 'Atrasado' : `Vence em ${new Date(ac.when_end).toLocaleDateString('pt-BR')}`
+      };
+    });
+  } else {
+    listaAcoes = [];
+  }
+}
+
+// Montagem do Array Final para Renderização
+const kpis = [
+  { titulo: 'Ações Atrasadas (5W2H)', valor: valAtrasadas.toString(), icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', color: '#ef4444', bg: '#fee2e2' },
+  { titulo: 'Denúncias Não Lidas', valor: valDenuncias.toString(), icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9', color: '#f59e0b', bg: '#fef3c7' },
+  { titulo: 'Avaliações Pendentes', valor: valAvaliacoes.toString(), icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01', color: '#3b82f6', bg: '#eff6ff' },
+  { titulo: 'Status do PGR', valor: valPgr, icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: '#10b981', bg: '#d1fae5', desc: 'Conformidade' }
 ];
 ---
 
@@ -96,7 +185,7 @@ const acoesComigo = [
              </div>
              
              <div style="display: flex; flex-direction: column; gap: 1rem;">
-               {agendamentos.map(ag => (
+               {listaAgendamentos.map(ag => (
                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; border: 1px solid var(--color-border); border-radius: 8px; background: #fbfbfc;">
                     <div style="display: flex; gap: 1rem; align-items: center;">
                        <div style={`width: 4px; height: 30px; border-radius: 4px; background: ${ag.urgencia === 'Alta' ? '#ef4444' : ag.urgencia === 'Média' ? '#f59e0b' : '#3b82f6'}`}></div>
@@ -123,7 +212,7 @@ const acoesComigo = [
              </h2>
 
              <div style="display: flex; flex-direction: column; gap: 1rem;">
-               {acoesComigo.map(acao => (
+               {listaAcoes.map(acao => (
                  <div style="padding: 1rem; border: 1px solid #fee2e2; border-radius: 8px; background: #fff5f5; position: relative; overflow: hidden;">
                    <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #ef4444;"></div>
                    <p style="margin: 0 0 0.3rem 0; font-size: 0.75rem; font-weight: 700; color: #b91c1c; text-transform: uppercase;">{acao.plano}</p>

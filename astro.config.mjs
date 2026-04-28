@@ -7,5 +7,8 @@ export default defineConfig({
   adapter: vercel({
     webAnalytics: { enabled: true }
   }),
-  integrations: [react()]
+  integrations: [react()],
+  security: {
+    checkOrigin: false
+  }
 });
