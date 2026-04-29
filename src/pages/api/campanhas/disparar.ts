@@ -103,7 +103,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     // Cruzando e-mail do colaborador com o token gerado:
     const emailsToSend = colaboradores.map(c => {
       const part = participantes.find(p => p.colaborador_id === c.id);
-      const hostUrl = new URL(request.url).origin;
+      // Detecção dinâmica da URL base (Vercel ou Local)
+      let hostUrl = new URL(request.url).origin;
+      if (hostUrl.includes('localhost') && process.env.VERCEL_URL) {
+        hostUrl = `https://${process.env.VERCEL_URL}`;
+      }
+      
       const urlPesquisa = `${hostUrl}/responder/${part?.token_acesso || ''}`;
       
       return {
