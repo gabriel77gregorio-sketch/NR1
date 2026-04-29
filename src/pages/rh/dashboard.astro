@@ -22,30 +22,34 @@ let userRole = 'RH';
 const searchParams = Astro.url.searchParams;
 const filterSetorId = searchParams.get('setorId') || '';
 const filterCicloId = searchParams.get('cicloId') || '';
-
 let ciclos: any[] = [];
+let empresaId = '';
 
 if (user) {
   const matrizService = new MatrizRiscoService(supabaseClient);
   
-  // Buscar Departamentos para o Filtro
-  const { data: depts } = await supabaseClient.from('departamentos_unidades').select('id, nome').order('nome');
+  // Obter Perfil e Empresa
+  const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, role, empresa_id').eq('id', user.id).single();
+  if (perfil) {
+    data.user.name = perfil.nome;
+    userRole = perfil.role;
+    empresaId = perfil.empresa_id;
+  }
+
+  // Buscar Departamentos para o Filtro (Filtrado por empresa via RLS ou explícito)
+  const { data: depts } = await supabaseClient.from('departamentos_unidades').select('id, nome').eq('empresa_id', empresaId).order('nome');
   departamentos = depts || [];
 
-  // Buscar Ciclos para o Filtro
-  const { data: ciclosData } = await supabaseClient.from('ciclos_avaliacao').select('id, nome').order('created_at', { ascending: false });
+  // Buscar Ciclos para o Filtro (APENAS DA EMPRESA LOGADA)
+  const { data: ciclosData } = await supabaseClient.from('ciclos_avaliacao')
+    .select('id, nome')
+    .eq('empresa_id', empresaId)
+    .order('created_at', { ascending: false });
   ciclos = ciclosData || [];
 
   gruposExposicao = await matrizService.getMatrizRiscoMatematica(filterCicloId || undefined);
   // Aplicar filtro nos eixos se houver
   indicadoresEixos = await matrizService.getIndicadoresCopsoqConsolidado(filterSetorId || undefined, filterCicloId || undefined);
-  
-  data.user.email = user.email || '';
-  const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, role').eq('id', user.id).single();
-  if (perfil) {
-    data.user.name = perfil.nome;
-    userRole = perfil.role;
-  }
 } else {
   const matrizServiceMock = new MatrizRiscoService(supabaseClient);
   gruposExposicao = matrizServiceMock.gerarMockEducacional();
