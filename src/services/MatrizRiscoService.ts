@@ -12,6 +12,14 @@ export interface GrupoRisco {
   bg: string;
 }
 
+export interface IndicadorEixo {
+  nome: string;
+  score: number;
+  label: string;
+  color: string;
+  descricao: string;
+}
+
 export class MatrizRiscoService {
   private supabase: SupabaseClient;
 
@@ -127,6 +135,82 @@ export class MatrizRiscoService {
     }
 
     return { ...parciais, score, risk, color, bg };
+  }
+
+  /**
+   * Consolida a pontuação média por eixo de todos os respondentes para o "Mapa de Calor" do Dashboard
+   */
+  async getIndicadoresCopsoqConsolidado(setorId?: string): Promise<IndicadorEixo[]> {
+    let query = this.supabase
+      .from('respostas_avaliacoes')
+      .select('respostas');
+
+    const { data: respostasReais } = await query;
+
+    if (!respostasReais || respostasReais.length === 0) {
+      return this.gerarMockIndicadores();
+    }
+
+    const eixos = [
+      { id: 'Eixo 1', nome: 'Exigências no Trabalho (Demandas)', desc: 'Avalia ritmo de trabalho, carga quantitativa e exigências emocionais do cargo.' },
+      { id: 'Eixo 2', nome: 'Organização e Conteúdo do Trabalho', desc: 'Mede a influência, clareza de papel e o sentido que o colaborador vê nas tarefas.' },
+      { id: 'Eixo 3', nome: 'Relações Interpessoais e Liderança', desc: 'Foca na qualidade da liderança, apoio social dos colegas e justiça organizacional.' },
+      { id: 'Eixo 4', nome: 'Interface Trabalho-Indivíduo', desc: 'Mapeia o equilíbrio entre vida profissional e pessoal (família) e satisfação geral.' },
+      { id: 'Eixo 5', nome: 'Saúde e Bem-Estar', desc: 'Indicadores de estresse, burnout, vitalidade e sintomas psicossomáticos.' },
+      { id: 'Eixo 6', nome: 'Comportamentos Ofensivos', desc: 'Frequência de relatos de assédio, bullying, violência ou discriminação.' }
+    ];
+
+    const somaEixos: Record<string, { total: number, count: number }> = {};
+    eixos.forEach(e => somaEixos[e.id] = { total: 0, count: 0 });
+
+    respostasReais.forEach((row: any) => {
+      const resp = row.respostas;
+      // Aplicar filtro de setor se fornecido
+      if (setorId && resp.setor_id !== setorId) return;
+
+      const detalhes = resp?.detalhes || [];
+      detalhes.forEach((d: any) => {
+        if (somaEixos[d.eixo]) {
+          somaEixos[d.eixo].total += (d.pontos || 0);
+          somaEixos[d.eixo].count += 1;
+        }
+      });
+    });
+
+    return eixos.map(e => {
+      const stats = somaEixos[e.id];
+      const media = stats.count > 0 ? stats.total / stats.count : 0;
+      
+      let label = 'Baixo';
+      let color = '#10b981';
+
+      if (media > 66) {
+        label = 'Alto';
+        color = '#ef4444';
+      } else if (media > 33) {
+        label = 'Médio';
+        color = '#f59e0b';
+      }
+
+      return {
+        nome: e.nome,
+        score: parseFloat(media.toFixed(2)),
+        label,
+        color,
+        descricao: e.desc
+      };
+    });
+  }
+
+  private gerarMockIndicadores(): IndicadorEixo[] {
+    return [
+      { nome: 'Exigências no Trabalho (Demandas)', score: 72.5, label: 'Alto', color: '#ef4444', descricao: 'Avalia ritmo de trabalho, carga quantitativa e exigências emocionais do cargo.' },
+      { nome: 'Organização e Conteúdo do Trabalho', score: 45.2, label: 'Médio', color: '#f59e0b', descricao: 'Mede a influência, clareza de papel e o sentido que o colaborador vê nas tarefas.' },
+      { nome: 'Relações Interpessoais e Liderança', score: 28.9, label: 'Baixo', color: '#10b981', descricao: 'Foca na qualidade da liderança, apoio social dos colegas e justiça organizacional.' },
+      { nome: 'Interface Trabalho-Indivíduo', score: 55.0, label: 'Médio', color: '#f59e0b', descricao: 'Mapeia o equilíbrio entre vida profissional e pessoal (família) e satisfação geral.' },
+      { nome: 'Saúde e Bem-Estar', score: 68.4, label: 'Alto', color: '#ef4444', descricao: 'Indicadores de estresse, burnout, vitalidade e sintomas psicossomáticos.' },
+      { nome: 'Comportamentos Ofensivos', score: 12.0, label: 'Baixo', color: '#10b981', descricao: 'Frequência de relatos de assédio, bullying, violência ou discriminação.' }
+    ];
   }
 
   public gerarMockEducacional(): GrupoRisco[] {

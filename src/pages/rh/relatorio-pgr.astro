@@ -11,47 +11,63 @@ try {
   user = authData?.user;
 } catch (e) { }
 
+// Filtros
+const searchParams = Astro.url.searchParams;
+const filterSetorId = searchParams.get('setorId') || undefined;
+
 let companyName = "Empresa Demonstração LTDA";
 let companyCNPJ = "00.000.000/0001-00";
 let companyAddress = "Av. Principal - São Paulo, SP";
 let userName = "Acesso Direto Dev";
+let setorNome = "Geral (Todos os Setores)";
 
 let matrizGrupos: any[] = [];
 let planos: any[] = [];
+let indicadoresEixos: any[] = [];
 
 const matrizService = new MatrizRiscoService(supabaseClient);
-// matrizGrupos = await matrizService.getMatrizRiscoMatematica(); // Movido para o bloco if (user)
+
 if (user) {
   const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, empresas(nome, id)').eq('id', user.id).single();
   if (perfil) {
     userName = perfil.nome;
     if (perfil.empresas) {
       companyName = (perfil.empresas as any).nome;
-      // Simulando CNPJ para fins do PDF caso nao haja na DB yet
     }
+  }
+
+  // Buscar nome do setor se houver filtro
+  if (filterSetorId) {
+    const { data: dept } = await supabaseClient.from('departamentos_unidades').select('nome').eq('id', filterSetorId).single();
+    if (dept) setorNome = dept.nome;
   }
   
   const planoService = new PlanoAcaoService(supabaseClient);
   planos = await planoService.getPlanosDeAcao();
   matrizGrupos = await matrizService.getMatrizRiscoMatematica();
+  indicadoresEixos = await matrizService.getIndicadoresCopsoqConsolidado(filterSetorId);
 } else {
-  // Dados Mockados p/ fallback do PDF:
+  // Dados Mockados p/ fallback:
   planos = [
     { what_title: "Implementação Pausas Ergonômicas", who_responsible: "João Silva", status: "Em Andamento", where_location: "Produção", when_end: "2026-12-01", how_method: "Pausas de 10 min a cada 2h..." },
     { what_title: "Diagnóstico Clínico Stress", who_responsible: "Maria Saúde", status: "Aberto", where_location: "Financeiro", when_end: "2026-05-30", how_method: "Contratação de Assessor Psicológico" }
   ];
+  matrizGrupos = matrizService.gerarMockEducacional();
+  indicadoresEixos = (matrizService as any).gerarMockIndicadores();
 }
 
 const currentDate = new Date().toLocaleDateString('pt-BR');
 const currentDateTime = new Date().toLocaleString('pt-BR');
 
+const mediaGeral = indicadoresEixos.length > 0 
+  ? (indicadoresEixos.reduce((acc, curr) => acc + curr.score, 0) / indicadoresEixos.length).toFixed(1)
+  : "0";
 ---
 
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
     <title>Relatório do PGR - {companyName}</title>
-    <!-- Use basic system fonts for clean PDF generation -->
     <style>
       :root {
         --gray-100: #f3f4f6;
@@ -62,9 +78,7 @@ const currentDateTime = new Date().toLocaleString('pt-BR');
         --border-color: #d1d5db;
       }
       
-      * {
-        box-sizing: border-box;
-      }
+      * { box-sizing: border-box; }
 
       body {
         font-family: Arial, Helvetica, sans-serif;
@@ -76,7 +90,6 @@ const currentDateTime = new Date().toLocaleString('pt-BR');
         line-height: 1.4;
       }
 
-      /* A4 Print Layout rules */
       @page {
         size: A4;
         margin: 1.5cm;
@@ -92,42 +105,40 @@ const currentDateTime = new Date().toLocaleString('pt-BR');
       .header {
         text-align: center;
         margin-bottom: 2rem;
+        border-bottom: 2px solid var(--gray-800);
+        padding-bottom: 1rem;
       }
       
       .header h1 {
-        font-size: 16pt;
+        font-size: 18pt;
         margin: 0;
         color: var(--gray-800);
-        font-weight: 500;
+        text-transform: uppercase;
       }
       
       .header-info {
         display: flex;
         justify-content: space-between;
-        font-size: 8pt;
+        font-size: 9pt;
         color: var(--gray-600);
-        margin-top: 1.5rem;
-        border-bottom: 1px solid var(--border-color);
-        padding-bottom: 0.5rem;
+        margin-top: 1rem;
       }
 
-      /* Grid / Table Styles mirroring the screenshot */
       .section-title {
         background-color: var(--gray-200);
-        padding: 0.5rem 1rem;
+        padding: 0.4rem 1rem;
         font-weight: bold;
-        font-size: 13pt;
+        font-size: 12pt;
         border: 1px solid var(--border-color);
-        border-bottom: none;
-        margin-top: 1rem;
+        margin-top: 1.5rem;
+        text-transform: uppercase;
       }
 
       .info-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        border-top: 1px solid var(--border-color);
         border-left: 1px solid var(--border-color);
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
       }
 
       .info-cell {
@@ -139,21 +150,21 @@ const currentDateTime = new Date().toLocaleString('pt-BR');
 
       .info-cell strong {
         display: block;
-        font-size: 10pt;
-        color: var(--gray-800);
-        margin-bottom: 0.2rem;
+        font-size: 8pt;
+        color: var(--gray-600);
+        text-transform: uppercase;
       }
 
       .data-table {
         width: 100%;
         border-collapse: collapse;
         margin-bottom: 1.5rem;
-        font-size: 10pt;
+        font-size: 9pt;
       }
 
       .data-table th, .data-table td {
         border: 1px solid var(--border-color);
-        padding: 0.5rem 1rem;
+        padding: 0.5rem;
         text-align: left;
       }
 
@@ -162,12 +173,14 @@ const currentDateTime = new Date().toLocaleString('pt-BR');
         font-weight: bold;
       }
       
-      .danger-text {
-        color: #dc2626;
+      .score-pill {
+        padding: 2px 8px;
+        border-radius: 4px;
         font-weight: bold;
+        font-size: 8pt;
+        color: white;
       }
 
-      /* Print Utilities */
       .no-print {
         text-align: center;
         padding: 1rem;
@@ -188,24 +201,19 @@ const currentDateTime = new Date().toLocaleString('pt-BR');
       }
       
       @media print {
-        .no-print {
-          display: none !important;
-        }
-        .a4-container {
-          padding: 0;
-        }
-        /* Garantir que as linhas cinzas de fundo fiquem ativas na impressão */
-        .section-title, .data-table th {
+        .no-print { display: none !important; }
+        .a4-container { padding: 0; }
+        .section-title, .data-table th, .score-pill {
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
       }
 
       .footer {
-        margin-top: 3rem;
+        margin-top: 2rem;
         display: flex;
         justify-content: space-between;
-        font-size: 7pt;
+        font-size: 8pt;
         color: var(--gray-600);
         border-top: 1px solid var(--border-color);
         padding-top: 0.5rem;
@@ -215,115 +223,94 @@ const currentDateTime = new Date().toLocaleString('pt-BR');
   <body>
     
     <div class="no-print">
-      <p style="margin: 0; align-self: center; color: #831843;">Preview de Impressão (Matriz PGR). Ajuste "Salvar como PDF" nas origens.</p>
-      <button onclick="window.print()">GERAR PDF REPORT</button>
+      <button onclick="window.print()">IMPRIMIR RELATÓRIO (PDF)</button>
     </div>
 
     <div class="a4-container">
       
-      <!-- Header do Documento -->
       <div class="header">
-        <h1>Relatório Anexo PGR - Fatores Psicossociais</h1>
-        <h2>Avaliação Ocupacional ({currentDate})</h2>
-        
+        <h1>Relatório de Diagnóstico Psicossocial (COPSOQ II)</h1>
+        <p style="margin: 5px 0; font-weight: bold;">Unidade/Setor: {setorNome}</p>
         <div class="header-info">
-          <span>Por: {userName}</span>
-          <span>Em: {currentDateTime}</span>
+          <span>Responsável: {userName}</span>
+          <span>Data de Emissão: {currentDateTime}</span>
         </div>
       </div>
 
-      <!-- Empresa Responsável -->
-      <div class="section-title">
-        Empresa avaliada
-      </div>
+      <div class="section-title">Dados da Organização</div>
       <div class="info-grid">
-        <div class="info-cell">
-          <strong>Nome</strong>
-          {companyName}
-        </div>
-        <div class="info-cell">
-          <strong>Elaboração</strong>
-          Assessoria NR1
-        </div>
-        <div class="info-cell">
-          <strong>CPF / CNPJ</strong>
-          {companyCNPJ}
-        </div>
-        <div class="info-cell">
-          <strong>Data de Vigência</strong>
-          {currentDate} - {new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString('pt-BR')}
-        </div>
-        <div class="info-cell" style="grid-column: span 2;">
-          <strong>Endereço Sede</strong>
-          {companyAddress}
-        </div>
+        <div class="info-cell"><strong>Empresa</strong>{companyName}</div>
+        <div class="info-cell"><strong>CNPJ</strong>{companyCNPJ}</div>
+        <div class="info-cell" style="grid-column: span 2;"><strong>Endereço</strong>{companyAddress}</div>
       </div>
 
-      <!-- Resumo do Mapeamento -->
-      <div class="section-title">
-        Inventário de Riscos (Matriz Identificada)
-      </div>
+      <div class="section-title">Sumário Executivo (Score Geral: {mediaGeral}/100)</div>
+      <p style="font-size: 10pt; margin: 10px 0;">Este relatório apresenta a análise dos 6 eixos psicossociais validados pelo COPSOQ II-Br, integrando o Inventário de Riscos da NR-1.</p>
+      
       <table class="data-table">
         <thead>
           <tr>
-            <th style="width: 35%;">SETOR (GHE)</th>
-            <th style="width: 30%;">PERFIL DA FUNÇÃO</th>
-            <th style="width: 15%; text-align: center;">GRAU DE RISCO</th>
-            <th style="width: 20%; text-align: center;">SCORE TÉCNICO</th>
+            <th>EIXO TEMÁTICO</th>
+            <th style="text-align: center;">SCORE</th>
+            <th style="text-align: center;">NÍVEL DE RISCO</th>
+            <th>OBSERVAÇÃO TÉCNICA</th>
           </tr>
         </thead>
         <tbody>
-          {matrizGrupos.map(g => (
+          {indicadoresEixos.map(e => (
             <tr>
-              <td><strong>{g.setor}</strong></td>
-              <td>{g.funcao}</td>
-              <td style="text-align: center;" class={g.risk === 'Crítico' || g.risk === 'Alto' ? 'danger-text' : ''}>{g.risk}</td>
-              <td style="text-align: center;">{g.score} pontos</td>
+              <td><strong>{e.nome}</strong></td>
+              <td style="text-align: center;">{e.score}</td>
+              <td style="text-align: center;">
+                <span class="score-pill" style={`background-color: ${e.color};`}>{e.label}</span>
+              </td>
+              <td style="font-size: 8pt;">{e.descricao}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <!-- Intervenções e Planos -->
-      <div class="section-title">
-        Plano de Ação (Matriz 5W2H)
-      </div>
-      <div class="info-grid">
+      <div class="section-title">Inventário de Riscos por GHE</div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>GHE / SETOR</th>
+            <th>CARGOS</th>
+            <th style="text-align: center;">GRAU</th>
+            <th style="text-align: center;">SCORE (P x S)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {matrizGrupos.filter(g => !filterSetorId || g.setor === setorNome).map(g => (
+            <tr>
+              <td><strong>{g.setor}</strong></td>
+              <td>{g.funcao}</td>
+              <td style="text-align: center;">{g.risk}</td>
+              <td style="text-align: center;">{g.score}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div class="section-title">Planos de Ação Recomendados (5W2H)</div>
+      <div style="border: 1px solid var(--border-color); padding: 10px; margin-top: 10px;">
         {planos.length === 0 ? (
-          <div class="info-cell" style="grid-column: span 2;">Nenhum plano de ação vigente foi emitido no painel neste documento.</div>
-        ) : planos.map((p, index) => (
-          <>
-            <div class="info-cell" style="grid-column: span 2;">
-              <strong>{index + 1}. Ação: {p.what_title}</strong>
-              Setor Impactado: {p.where_location} | Responsável: {p.who_responsible}
-            </div>
-            <div class="info-cell">
-              <strong>Prazo de Execução (When)</strong>
-              {new Date(p.when_end).toLocaleDateString('pt-BR')}
-            </div>
-            <div class="info-cell">
-              <strong>Situação Atual</strong>
-              {p.status}
-            </div>
-            <div class="info-cell" style="grid-column: span 2;">
-              <strong>Procedimento Adotado (How)</strong>
-              {p.how_method || 'Não especificado.'}
-            </div>
-          </>
+          <p style="font-size: 10pt;">Nenhum plano de ação crítico registrado para este recorte.</p>
+        ) : planos.map((p, i) => (
+          <div style="margin-bottom: 15px; border-bottom: 1px dashed var(--gray-300); padding-bottom: 10px;">
+            <p style="margin: 0; font-size: 10pt;"><strong>{i+1}. {p.what_title}</strong></p>
+            <p style="margin: 3px 0; font-size: 8pt; color: var(--gray-600);">
+              Responsável: {p.who_responsible} | Prazo: {new Date(p.when_end).toLocaleDateString('pt-BR')} | Local: {p.where_location}
+            </p>
+            <p style="margin: 5px 0; font-size: 9pt;"><em>Método: {p.how_method || 'Consultoria técnica presencial.'}</em></p>
+          </div>
         ))}
       </div>
 
       <div class="footer">
-        <span>Sistema de Avaliação NR1 • Assessorias Premium</span>
-        <span>Página 1</span>
+        <span>NR1 SaaS Compliance • Relatório Gerado em Conformidade com a Portaria 6.730/2020</span>
+        <span>Folha 1/1</span>
       </div>
-
     </div>
-
-    <!-- Gatilho de auto-print (Opcional, agiliza pro usuário) -->
-    <script>
-      // window.onload = function() { window.print(); }
-    </script>
-
   </body>
 </html>

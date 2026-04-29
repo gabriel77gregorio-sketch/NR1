@@ -11,15 +11,27 @@ try {
   const { data: authData } = await supabaseClient.auth.getUser();
   user = authData?.user;
 } catch (e) { }
+
 let data = { user: { email: 'rh@empresa.com', name: 'Gestão PGR' }, company: 'Empresa Teste / Mock' };
 let gruposExposicao: any[] = [];
-
+let indicadoresEixos: any[] = [];
+let departamentos: any[] = [];
 let userRole = 'RH';
 
+// Filtro de Setor
+const searchParams = Astro.url.searchParams;
+const filterSetorId = searchParams.get('setorId') || '';
+
 if (user) {
-  // Usuário Autenticado
   const matrizService = new MatrizRiscoService(supabaseClient);
+  
+  // Buscar Departamentos para o Filtro
+  const { data: depts } = await supabaseClient.from('departamentos_unidades').select('id, nome').order('nome');
+  departamentos = depts || [];
+
   gruposExposicao = await matrizService.getMatrizRiscoMatematica();
+  // Aplicar filtro nos eixos se houver
+  indicadoresEixos = await matrizService.getIndicadoresCopsoqConsolidado(filterSetorId || undefined);
   
   data.user.email = user.email || '';
   const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, role').eq('id', user.id).single();
@@ -28,147 +40,200 @@ if (user) {
     userRole = perfil.role;
   }
 } else {
-  // Fallback para quem acessa localmente sem autenticar (dev mode)
   const matrizServiceMock = new MatrizRiscoService(supabaseClient);
   gruposExposicao = matrizServiceMock.gerarMockEducacional();
+  indicadoresEixos = (matrizServiceMock as any).gerarMockIndicadores();
+  departamentos = [
+    { id: 'uuid-mock-1', nome: 'Linha de Montagem' },
+    { id: 'uuid-mock-2', nome: 'Almoxarifado' },
+    { id: 'uuid-mock-3', nome: 'Financeiro' }
+  ];
 }
 
-function getRiskColor(score: number, currentP: number) {
-  if (score >= 12) return '#f87171'; // Crítico
-  if (score >= 8) return '#fed7aa'; // Alto
-  if (score >= 4) return '#fef08a'; // Médio
-  if (score <= 3 && currentP > 2) return '#bbf7d0'; // visual gradients
-  return '#4ade80';
-}
+const mediaGeral = indicadoresEixos.length > 0 
+  ? (indicadoresEixos.reduce((acc, curr) => acc + curr.score, 0) / indicadoresEixos.length).toFixed(1)
+  : "0";
+
+let labelGeral = 'Risco Baixo';
+let colorGeral = '#10b981';
+const numMedia = parseFloat(mediaGeral);
+if (numMedia > 66) { labelGeral = 'Risco Alto'; colorGeral = '#ef4444'; }
+else if (numMedia > 33) { labelGeral = 'Risco Médio'; colorGeral = '#f59e0b'; }
+
+const currentSetorName = departamentos.find(d => d.id === filterSetorId)?.nome || 'Todos os Setores';
 ---
 
 <Layout title="Dashboard Matriz de Risco | RH NR1">
   <div class="app-layout">
-    
-    <!-- Sidebar RH / Empresa -->
-    <!-- Sidebar Modular -->
     <SidebarRH activeMenu="dashboard" />
 
-    <!-- Main Content -->
     <main class="main-content">
       <div style="padding: 2rem 3rem;">
         
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2.5rem;">
           <div>
-            <h2 style="font-size: 1.5rem; color: var(--color-primary); font-weight: 400; margin: 0;">Matriz de Risco Ocupacional</h2>
-            <p style="color: var(--color-text-muted); font-size: 0.875rem; margin-top: 0.25rem;">Cruzamento estatístico e classificação (Probabilidade x Severidade) gerados pelas respostas do mapeamento.</p>
+            <h2 style="font-size: 1.8rem; color: var(--color-primary); font-weight: 700; margin: 0; letter-spacing: -0.5px;">Matriz de Risco Psicossocial</h2>
+            <p style="color: var(--color-text-muted); font-size: 0.95rem; margin-top: 0.25rem;">Análise dinâmica baseada nos eixos do COPSOQ II. Exibindo: <strong>{currentSetorName}</strong></p>
           </div>
-          <div style="display: flex; gap: 1rem;">
-             <a href="/rh/relatorio-pgr" target="_blank" class="btn btn-outline" style="border-color: var(--color-primary); color: var(--color-primary); text-decoration: none; display: flex; align-items: center;">
+          
+          <div style="display: flex; gap: 1rem; align-items: center;">
+            <!-- Filtro de Setor -->
+            <form method="GET" style="display: flex; align-items: center; gap: 0.5rem; background: white; padding: 0.4rem 0.75rem; border-radius: 8px; border: 1px solid var(--color-border);">
+              <label for="setorId" style="font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted);">FILTRAR POR SETOR:</label>
+              <select name="setorId" id="setorId" onchange="this.form.submit()" style="border: none; font-size: 0.85rem; font-weight: 600; color: var(--color-text); cursor: pointer; outline: none;">
+                <option value="">Todos os Setores</option>
+                {departamentos.map(dept => (
+                  <option value={dept.id} selected={filterSetorId === dept.id}>{dept.nome}</option>
+                ))}
+              </select>
+            </form>
+
+             <a href={`/rh/relatorio-pgr?setorId=${filterSetorId}`} target="_blank" class="btn btn-outline" style="border-color: var(--color-primary); color: var(--color-primary); text-decoration: none; display: flex; align-items: center; font-weight: 600;">
               <svg style="width: 16px; height: 16px; margin-right: 0.5rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              EXPORTAR RELATÓRIO DO PGR
+              EXPORTAR RELATÓRIO
             </a>
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; margin-bottom: 2rem;">
-          <!-- Heatmap/Matriz Visual Simulator -->
-          {['Master', 'Diretoria', 'Segurança_Trabalho', 'RH'].includes(userRole) && (
-          <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.5rem;">
-            <h3 style="font-size: 0.9rem; font-weight: 600; color: var(--color-text); margin-bottom: 1.5rem; text-align: center;">GRAU DE RISCO CONSOLIDADO</h3>
-            
-            <div style="display: flex; gap: 1rem; align-items: stretch;">
-              <!-- Y Axis Label -->
-              <div style="writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; font-size: 0.7rem; font-weight: 600; color: var(--color-text-muted); letter-spacing: 2px;">
-                PROBABILIDADE
-              </div>
-              
-              <div style="flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;">
-                {/* 4x4 Risk Matrix generation. Top to bottom: P=4 to P=1. Left to right: S=1 to S=4 */}
-                {[...Array(4)].map((_, pIndex) => (
-                  [...Array(4)].map((_, sIndex) => {
-                    const currentP = 4 - pIndex;
-                    const currentS = sIndex + 1;
-                    const score = currentP * currentS;
+        <!-- Seção de Resultado Geral e Heatmap -->
+        <div style="background: white; border: 1px solid var(--color-border); border-radius: 16px; padding: 2rem; margin-bottom: 3rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+           <div style="margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid #f1f5f9;">
+             <p style="margin:0; font-size: 0.8rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Resultado {filterSetorId ? 'do Setor' : 'Geral'}</p>
+             <p style="margin:0.25rem 0 0 0; font-size: 0.85rem; color: var(--color-text-muted);">Score médio consolidado das 6 dimensões analisadas</p>
+             <div style="display: flex; align-items: center; gap: 1.5rem; margin-top: 1.5rem;">
+                <h3 style="margin:0; font-size: 3rem; font-weight: 900; color: var(--color-text); letter-spacing: -1px;">{mediaGeral}</h3>
+                <span style={`background: ${colorGeral}15; color: ${colorGeral}; padding: 0.6rem 1.2rem; border-radius: 99px; font-weight: 800; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; border: 1px solid ${colorGeral}40;`}>
+                  <div style={`width: 10px; height: 10px; border-radius: 50%; background: ${colorGeral};`}></div>
+                  {labelGeral}
+                </span>
+                <span style="color: var(--color-text-muted); font-size: 0.9rem; font-weight: 500;">Dados processados em {new Date().toLocaleDateString('pt-BR')}</span>
+             </div>
+           </div>
+
+           <div>
+             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
+               <div>
+                 <h4 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--color-text);">Mapa de Calor — Fatores de Risco</h4>
+                 <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--color-text-muted);">Passe o mouse sobre os cards para entender cada dimensão.</p>
+               </div>
+             </div>
+             
+             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+                {indicadoresEixos.map(eixo => (
+                  <div style={`background: ${eixo.color}; color: white; padding: 1.75rem; border-radius: 14px; position: relative; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); transition: all 0.3s ease; cursor: help;`} class="risk-card">
+                    <!-- Overlay Tooltip -->
+                    <div class="card-tooltip">
+                       <p style="margin: 0; font-size: 0.85rem; line-height: 1.4;">{eixo.descricao}</p>
+                    </div>
+
+                    <div style="position: absolute; right: -15px; bottom: -15px; opacity: 0.15;" class="card-icon">
+                      <svg width="120" height="120" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    </div>
                     
-                    // Determine background color using the helper funtion from frontmatter to avoid Astro parser tags issues
-                    const bgCol = getRiskColor(score, currentP);
-
-                    // Find how many groups fall into this exact square
-                    const groupsInSquare = gruposExposicao.filter(g => g.severity === currentS && g.probability === currentP);
-
-                    return (
-                      <div style={`aspect-ratio: 1; background: ${bgCol}; position: relative; border-radius: 2px;`} title={`Probabilidade: ${currentP} | Severidade: ${currentS}`}>
-                        {groupsInSquare.length > 0 && (
-                          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display:flex; justify-content:center; align-items:center; width:22px; height:22px; background:white; border-radius:50%; font-size:0.65rem; font-weight:800; color:#374151; box-shadow: 0 2px 4px rgba(0,0,0,0.3); border: 2px solid var(--color-primary);">
-                            {groupsInSquare.length}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
+                    <p style="margin: 0; font-size: 0.75rem; font-weight: 700; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px;">{eixo.nome}</p>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 0.75rem;">
+                      <h5 style="margin: 0; font-size: 1.6rem; font-weight: 800;">{eixo.label}</h5>
+                      <p style="margin: 0; font-size: 1.1rem; font-weight: 800; font-family: 'Inter', sans-serif;">{eixo.score}</p>
+                    </div>
+                  </div>
                 ))}
-              </div>
-            </div>
-            
-            <div style="font-size: 0.7rem; font-weight: 600; color: var(--color-text-muted); letter-spacing: 2px; text-align: center; margin-top: 1rem; margin-left: 2rem;">
-              SEVERIDADE / IMPACTO
-            </div>
-          </div>
-          )}
+             </div>
+           </div>
+        </div>
 
-          <!-- Group Breakdown -->
-          <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden;">
-            <div style="display: flex; padding: 1rem; font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.5px; border-bottom: 1px solid var(--color-border); background: #fbfbfc;">
-              <div style="flex: 1.5;">GHE / SETOR AVALIADO</div>
-              <div style="flex: 1; text-align: center;">CARGOS</div>
+        <!-- Detalhamento por Setor -->
+        <div style="margin-top: 3rem;">
+          <h3 style="font-size: 1.3rem; color: var(--color-primary); font-weight: 700; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            Detalhamento por Setor (GHE)
+          </h3>
+          
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display: flex; padding: 1.25rem 1.5rem; font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted); letter-spacing: 1px; border-bottom: 1px solid var(--color-border); background: #f8fafc; text-transform: uppercase;">
+              <div style="flex: 2;">GHE / SETOR AVALIADO</div>
+              <div style="flex: 1.5; text-align: center;">CARGOS REPRESENTADOS</div>
               <div style="flex: 1; text-align: center;">SCORE (P x S)</div>
               <div style="flex: 1; text-align: center;">GRAU DE RISCO</div>
-              <div style="flex: 1; text-align: center;">STATUS PGR</div>
-              <div style="width: 80px; text-align: center;">AÇÕES</div>
+              <div style="width: 120px; text-align: center;">AÇÕES</div>
             </div>
 
             <div style="display: flex; flex-direction: column;">
               {gruposExposicao.map((grupo) => (
-                <div style="display: flex; align-items: center; padding: 1rem; font-size: 0.875rem; border-bottom: 1px solid var(--color-border);">
-                  <div style="flex: 1.5;">
-                    <div style="font-weight: 600; color: var(--color-text);">{grupo.setor}</div>
+                <div style="display: flex; align-items: center; padding: 1.25rem 1.5rem; font-size: 0.95rem; border-bottom: 1px solid var(--color-border); transition: background 0.15s;" class="table-row">
+                  <div style="flex: 2;">
+                    <div style="font-weight: 700; color: var(--color-text);">{grupo.setor}</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.25rem;">NR-1 Compliance ativo</div>
                   </div>
-                  <div style="flex: 1; text-align: center; color: var(--color-text-muted);">
+                  <div style="flex: 1.5; text-align: center; color: var(--color-text-muted); font-size: 0.85rem;">
                     {grupo.funcao}
                   </div>
-                  <div style="flex: 1; text-align: center; font-family: monospace; font-size: 1rem; font-weight: 600; color: var(--color-text);">
+                  <div style="flex: 1; text-align: center; font-family: monospace; font-size: 1.1rem; font-weight: 700; color: var(--color-text);">
                     {grupo.score}
                   </div>
                   <div style="flex: 1; display: flex; justify-content: center;">
-                    <span style={`font-size: 0.7rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 999px; text-transform: uppercase; background: ${grupo.bg}; color: ${grupo.color};`}>
+                    <span style={`font-size: 0.75rem; font-weight: 700; padding: 0.35rem 0.75rem; border-radius: 999px; text-transform: uppercase; background: ${grupo.bg}; color: ${grupo.color}; border: 1px solid currentColor;`}>
                       {grupo.risk}
                     </span>
                   </div>
-                  <div style="flex: 1; display: flex; justify-content: center; align-items: center;">
-                     {grupo.risk === 'Crítico' || grupo.risk === 'Alto' ? (
-                        <span style="font-size: 0.65rem; font-weight: 600; padding: 0.2rem 0.5rem; background: #fee2e2; color: #b91c1c; border-radius: 4px; display: inline-flex; align-items: center; gap: 0.25rem;">
-                          <svg style="width: 12px; height: 12px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                          AÇÃO EXIGIDA
-                        </span>
-                     ) : (
-                        <span style="font-size: 0.65rem; font-weight: 600; padding: 0.2rem 0.5rem; background: #e0f2fe; color: #0284c7; border-radius: 4px; display: inline-flex; align-items: center; gap: 0.25rem;">
-                          <svg style="width: 12px; height: 12px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                          MONITORADO
-                        </span>
-                     )}
-                  </div>
-                  <div style="width: 80px; text-align: center;">
+                  <div style="width: 120px; text-align: center;">
                     {grupo.risk === 'Crítico' || grupo.risk === 'Alto' ? (
-                      <a href={`/rh/planos-de-acao?sector=${encodeURIComponent(grupo.setor)}&score=${grupo.score}&risk=${encodeURIComponent(grupo.risk)}`} class="btn btn-primary" style="font-size: 0.65rem; padding: 0.3rem 0.5rem; white-space: nowrap;">CRIAR PGR</a>
+                      <a href={`/rh/planos-de-acao?sector=${encodeURIComponent(grupo.setor)}&score=${grupo.score}&risk=${encodeURIComponent(grupo.risk)}`} class="btn btn-primary" style="font-size: 0.7rem; padding: 0.5rem 0.8rem; white-space: nowrap; font-weight: 700; box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);">GERAR AÇÃO</a>
                     ) : (
-                      <span style="font-size: 0.65rem; color: var(--color-text-muted);">Isento</span>
+                      <span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600;">Monitoramento</span>
                     )}
                   </div>
                 </div>
               ))}
             </div>
-            
           </div>
         </div>
 
       </div>
     </main>
-
   </div>
 </Layout>
+
+<style>
+  .risk-card {
+    position: relative;
+    z-index: 1;
+  }
+  
+  .risk-card:hover {
+    transform: translateY(-5px);
+  }
+
+  .card-tooltip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 10;
+    border-radius: 14px;
+    text-align: center;
+  }
+
+  .risk-card:hover .card-tooltip {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .risk-card:hover .card-icon {
+    transform: scale(1.1);
+    opacity: 0.05;
+  }
+
+  .table-row:hover {
+    background: #fbfbfc;
+  }
+</style>
