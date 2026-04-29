@@ -114,23 +114,27 @@ if (Astro.request.method === 'POST') {
                     <div style="text-align: right;">
                       <p style="margin: 0; font-size: 0.7rem; font-weight: 600; color: var(--color-text-muted);">ÍNDICE GERAL</p>
                       {(() => {
-                        // Cálculo simples de engajamento (respondidos / total)
                         let total = 0;
                         let respondidos = 0;
+                        
                         ciclo.campanhas_pesquisa?.forEach((camp: any) => {
-                          const count = camp.campanhas_participantes?.[0]?.count || 0;
-                          total += count;
-                          // Em uma query real, buscaríamos o count de respondido_em IS NOT NULL
-                          // Por enquanto, vamos usar a contagem de respostas vinculadas se disponíveis
+                          total += camp.participantes_total?.[0]?.count || 0;
+                          respondidos += camp.participantes_respondidos?.[0]?.count || 0;
                         });
                         
-                        // Exibindo status baseado em dados reais (Mockando apenas o cálculo se o join for complexo, mas buscando a base real)
-                        const hasData = ciclo.campanhas_pesquisa.some((c: any) => c.campanhas_participantes?.[0]?.count > 0);
+                        if (total === 0) {
+                          return <p style="margin: 0; font-size: 0.875rem; font-weight: 600; color: var(--color-text-muted);">AGUARDANDO DISPARO</p>;
+                        }
                         
-                        return hasData ? (
-                           <p style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--color-text);">78% <span style="font-size: 0.8rem; color: #10b981;">↑ 4%</span></p>
-                        ) : (
-                           <p style="margin: 0; font-size: 0.875rem; font-weight: 600; color: var(--color-text-muted);">AGUARDANDO DADOS</p>
+                        const taxaEngajamento = Math.round((respondidos / total) * 100);
+                        
+                        return (
+                           <p style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--color-text);">
+                            {taxaEngajamento}% 
+                            <span style={`font-size: 0.8rem; color: ${taxaEngajamento >= 50 ? '#10b981' : '#f59e0b'}; margin-left: 0.5rem;`}>
+                              {respondidos}/{total} respostas
+                            </span>
+                           </p>
                         );
                       })()}
                     </div>
@@ -163,13 +167,21 @@ if (Astro.request.method === 'POST') {
                           </div>
                           <div>
                             <p style="margin: 0; font-weight: 600; color: var(--color-text);">{camp.titulo}</p>
-                            <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted);">{new Date(camp.data_programada).toLocaleDateString('pt-BR')} • {camp.campanhas_participantes?.[0]?.count || 0} destinatários</p>
+                            <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted);">{new Date(camp.data_programada).toLocaleDateString('pt-BR')} • {camp.participantes_total?.[0]?.count || 0} destinatários</p>
                           </div>
                         </div>
                         <div style="display: flex; align-items: center; gap: 1rem;">
-                          <span style={`font-size: 0.65rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 999px; text-transform: uppercase; background: ${camp.status === 'Em Andamento' ? '#dbeafe' : '#f1f5f9'}; color: ${camp.status === 'Em Andamento' ? '#1e40af' : '#475569'};`}>
-                            {camp.status}
-                          </span>
+                          {(() => {
+                            const total = camp.participantes_total?.[0]?.count || 0;
+                            const respondidos = camp.participantes_respondidos?.[0]?.count || 0;
+                            const isConcluido = total > 0 && respondidos >= total;
+                            
+                            return (
+                              <span style={`font-size: 0.65rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 999px; text-transform: uppercase; background: ${isConcluido ? '#dcfce7' : '#e0f2fe'}; color: ${isConcluido ? '#166534' : '#0369a1'};`}>
+                                {isConcluido ? 'CONCLUÍDO' : 'EM ANDAMENTO'}
+                              </span>
+                            );
+                          })()}
                           <button class="btn btn-outline" style="padding: 0.4rem; border-radius: 8px;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1-2.83 0l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                           </button>
