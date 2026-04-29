@@ -3,6 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import SidebarRH from '../../components/SidebarRH.astro';
 import { supabase } from '../../lib/supabase';
 import { ColaboradoresService } from '../../services/ColaboradoresService';
+import { CicloService } from '../../services/CicloService';
 
 const supabaseClient = supabase(Astro);
 let user = null;
@@ -11,157 +12,190 @@ try {
   user = authData?.user;
 } catch (e) { }
 
-// Fetch dynamic DB info
-const service = new ColaboradoresService(supabaseClient);
-const setores = user ? await service.getSetores() : [];
+const colabService = new ColaboradoresService(supabaseClient);
+const cicloService = new CicloService(supabaseClient);
 
-// Mocked data for HR context
-const data = { user: { email: 'rh@metalurgica.com.br', name: 'Gestor de RH' }, company: 'Indústria Metalúrgica SA' };
+const setores = user ? await colabService.getSetores() : [];
+setores; // Suprime aviso se não for usado no template mas necessário para o script
+let ciclos: any[] = [];
+let empresaId = '';
 
 if (user) {
-  data.user.email = user.email || '';
-  const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome').eq('id', user.id).single();
-  if (perfil) data.user.name = perfil.nome;
+  const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('empresa_id').eq('id', user.id).single();
+  if (perfil) {
+    empresaId = perfil.empresa_id;
+    ciclos = await cicloService.getCiclos(empresaId);
+  }
 }
 
-let campanhas: any[] = [];
-if (user) {
-  const { data: perfilData } = await supabaseClient.from('perfis_usuarios').select('empresa_id').eq('id', user.id).single();
-  if (perfilData) {
-    const { data: dbCampanhas } = await supabaseClient
-      .from('campanhas_pesquisa')
-      .select(`
-        id, 
-        titulo, 
-        data_programada, 
-        status, 
-        campanhas_participantes(count)
-      `)
-      .eq('empresa_id', perfilData.empresa_id)
-      .order('created_at', { ascending: false });
+// Lógica de manipulação de formulário via SSR (Criação de Ciclo)
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const action = formData.get('action');
 
-    if (dbCampanhas) {
-      campanhas = dbCampanhas.map(c => ({
-        id: c.id,
-        titulo: c.titulo,
-        data: c.data_programada ? new Date(c.data_programada).toLocaleDateString('pt-BR') : '-',
-        status: c.status,
-        participantes: c.campanhas_participantes?.[0]?.count || 0
-      }));
+    if (action === 'create_ciclo') {
+      const nome = formData.get('ciclo_nome')?.toString();
+      if (nome && empresaId) {
+        await cicloService.createCiclo(empresaId, nome);
+        // Recarregar ciclos após criação
+        ciclos = await cicloService.getCiclos(empresaId);
+        message = "Ciclo criado com sucesso!";
+      }
     }
+  } catch (err: any) {
+    message = "Erro: " + err.message;
   }
 }
 ---
 
-<Layout title="Pesquisas Validadas | RH NR1">
+<Layout title="Ciclos de Pesquisa | RH NR1">
   <div class="app-layout">
-    
-    <!-- Sidebar Modular -->
     <SidebarRH activeMenu="pesquisas" />
 
-    <!-- Main Content -->
     <main class="main-content">
       <div style="padding: 2rem 3rem;">
         
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
           <div>
-            <h2 style="font-size: 1.5rem; color: var(--color-primary); font-weight: 400; margin: 0;">Disparo de Pesquisas NR1</h2>
-            <p style="color: var(--color-text-muted); font-size: 0.875rem; margin-top: 0.25rem;">Gerencie o envio de avaliações psicossociais validadas para os colaboradores.</p>
+            <h2 style="font-size: 1.5rem; color: var(--color-primary); font-weight: 600; margin: 0;">Ciclos de Avaliação Psicossocial</h2>
+            <p style="color: var(--color-text-muted); font-size: 0.875rem; margin-top: 0.25rem;">Agrupe seus disparos em ciclos para comparar indicadores e medir a evolução da empresa.</p>
           </div>
-          <button id="btnAbrirModal" class="btn btn-primary">
-            <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            NOVO DISPARO
-          </button>
+          <div style="display: flex; gap: 1rem;">
+            <button id="btnAbrirModalCiclo" class="btn btn-outline" style="border-color: var(--color-primary); color: var(--color-primary);">
+              + NOVO CICLO
+            </button>
+            <button id="btnAbrirModalPesquisa" class="btn btn-primary" disabled={ciclos.length === 0}>
+              <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              NOVO DISPARO
+            </button>
+          </div>
         </div>
 
-        <!-- Table Content -->
-        <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--color-text);">Campanhas Cadastradas</h3>
-        <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden;">
-          <div style="display: flex; padding: 1rem; font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.5px; border-bottom: 1px solid var(--color-border); background: #fbfbfc;">
-            <div style="flex: 2;">TÍTULO DA PESQUISA</div>
-            <div style="flex: 1; text-align: center;">DATA DO DISPARO</div>
-            <div style="flex: 1; text-align: center;">PARTICIPANTES (EMAILS)</div>
-            <div style="flex: 1; text-align: center;">STATUS</div>
-            <div style="width: 80px; text-align: center;">AÇÕES</div>
+        {ciclos.length === 0 ? (
+          <div style="background: white; border: 1px dashed var(--color-border); border-radius: 12px; padding: 4rem; text-align: center; color: var(--color-text-muted);">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📋</div>
+            <h3 style="font-size: 1.25rem; color: var(--color-text); margin-bottom: 0.5rem;">Nenhum ciclo ativo</h3>
+            <p style="max-width: 400px; margin: 0 auto 2rem auto;">Para começar a coletar dados, você precisa criar um Ciclo de Avaliação (ex: Ciclo 2025).</p>
+            <button onclick="document.getElementById('modalNovoCiclo').style.display = 'flex'" class="btn btn-primary">CRIAR MEU PRIMEIRO CICLO</button>
           </div>
+        ) : (
+          <div style="display: flex; flex-direction: column; gap: 2.5rem;">
+            {ciclos.map((ciclo) => (
+              <section style="background: white; border: 1px solid var(--color-border); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                <header style="padding: 1.5rem 2rem; border-bottom: 1px solid var(--color-border); background: #fbfbfc; display: flex; justify-content: space-between; align-items: center;">
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                      <h3 style="margin: 0; font-size: 1.25rem; color: var(--color-primary); font-weight: 700;">{ciclo.nome}</h3>
+                      <span style={`font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; text-transform: uppercase; background: ${ciclo.status === 'Ativo' ? '#d1fae5' : '#f1f5f9'}; color: ${ciclo.status === 'Ativo' ? '#065f46' : '#475569'};`}>
+                        {ciclo.status}
+                      </span>
+                    </div>
+                    <p style="margin: 0.25rem 0 0 0; font-size: 0.8rem; color: var(--color-text-muted);">Iniciado em {new Date(ciclo.data_inicio).toLocaleDateString('pt-BR')}</p>
+                  </div>
+                  
+                  <!-- Comparativo Mock -->
+                  <div style="display: flex; gap: 2rem; align-items: center;">
+                    <div style="text-align: right;">
+                      <p style="margin: 0; font-size: 0.7rem; font-weight: 600; color: var(--color-text-muted);">ÍNDICE GERAL</p>
+                      <p style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--color-text);">78% <span style="font-size: 0.8rem; color: #10b981;">↑ 4%</span></p>
+                    </div>
+                    <div style="width: 1px; height: 30px; background: var(--color-border);"></div>
+                    <button class="btn btn-outline" style="font-size: 0.75rem; padding: 0.5rem 1rem;">RELATÓRIO DO CICLO</button>
+                  </div>
+                </header>
 
-          <div style="display: flex; flex-direction: column;">
-            {campanhas.map((campanha) => (
-              <div class="table-row-hover hover:bg-slate-50 transition-colors duration-200" style="display: flex; align-items: center; padding: 1.25rem 1rem; font-size: 0.875rem; border-bottom: 1px solid var(--color-border);">
-                <div style="flex: 2;">
-                  <div style="font-weight: 500; color: var(--color-text);">{campanha.titulo}</div>
-                  <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.2rem;">Metodologia Validada</div>
+                <div style="padding: 1.5rem 2rem;">
+                  <h4 style="font-size: 0.875rem; color: var(--color-text-muted); font-weight: 600; margin-bottom: 1rem;">Disparos Realizados</h4>
+                  <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    {ciclo.campanhas_pesquisa.length === 0 && (
+                      <div style="padding: 2rem; text-align: center; color: var(--color-text-muted); font-size: 0.875rem; background: #f8fafc; border-radius: 8px; border: 1px dashed var(--color-border);">
+                        Nenhuma pesquisa disparada neste ciclo ainda.
+                      </div>
+                    )}
+                    {ciclo.campanhas_pesquisa.map((camp: any) => (
+                      <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; border: 1px solid var(--color-border); border-radius: 12px; background: white; transition: all 0.2s;" class="survey-item">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                          <div style="width: 40px; height: 40px; border-radius: 8px; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                          </div>
+                          <div>
+                            <p style="margin: 0; font-weight: 600; color: var(--color-text);">{camp.titulo}</p>
+                            <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted);">{new Date(camp.data_programada).toLocaleDateString('pt-BR')} • {camp.campanhas_participantes?.[0]?.count || 0} destinatários</p>
+                          </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                          <span style={`font-size: 0.65rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 999px; text-transform: uppercase; background: ${camp.status === 'Em Andamento' ? '#dbeafe' : '#f1f5f9'}; color: ${camp.status === 'Em Andamento' ? '#1e40af' : '#475569'};`}>
+                            {camp.status}
+                          </span>
+                          <button class="btn btn-outline" style="padding: 0.4rem; border-radius: 8px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div style="flex: 1; text-align: center; color: var(--color-text); font-weight: 500;">
-                  {campanha.data}
-                </div>
-                <div style="flex: 1; text-align: center;">
-                  <span style="font-weight: 600; color: var(--color-primary); background: var(--color-secondary); padding: 0.15rem 0.5rem; border-radius: 999px;">
-                    {campanha.participantes} destinatários
-                  </span>
-                </div>
-                <div style="flex: 1; display: flex; justify-content: center;">
-                  <span style={`font-size: 0.7rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 999px; text-transform: uppercase; background: ${campanha.status === 'Agendado' ? '#fef3c7' : '#d1fae5'}; color: ${campanha.status === 'Agendado' ? 'var(--color-warning)' : 'var(--color-success)'};`}>
-                    {campanha.status}
-                  </span>
-                </div>
-                <div style="width: 80px; text-align: center; color: var(--color-primary); cursor: pointer;">
-                  <button title="Gerenciar" style="background: transparent; border: 1px solid var(--color-border); padding: 0.4rem; border-radius: var(--radius-md); cursor: pointer; color: var(--color-primary);">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                  </button>
-                </div>
-              </div>
+              </section>
             ))}
           </div>
-        </div>
+        )}
       </div>
     </main>
 
-    <!-- Overlay/Modal mock para Nova Pesquisa -->
+    <!-- Modal Novo Ciclo -->
+    <div id="modalNovoCiclo" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+      <div style="background: white; border-radius: 16px; width: 100%; max-width: 450px; padding: 2rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+        <h2 style="font-size: 1.25rem; color: var(--color-primary); margin-bottom: 1.5rem; font-weight: 700;">Novo Ciclo de Avaliação</h2>
+        <form method="POST">
+          <input type="hidden" name="action" value="create_ciclo" />
+          <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">Nome do Ciclo *</label>
+            <input type="text" name="ciclo_nome" placeholder="Ex: Ciclo Anual 2025" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; outline: none;" />
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+            <button type="button" onclick="document.getElementById('modalNovoCiclo').style.display = 'none'" class="btn btn-outline">CANCELAR</button>
+            <button type="submit" class="btn btn-primary">CRIAR CICLO</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Novo Disparo (Refatorado) -->
     <div id="modalNovaPesquisa" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-      <div style="background: white; border-radius: var(--radius-lg); width: 100%; max-width: 600px; padding: 2rem; position: relative; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+      <div style="background: white; border-radius: var(--radius-lg); width: 100%; max-width: 650px; padding: 2rem; position: relative; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
         <button id="btnFecharModal" style="position: absolute; top: 1rem; right: 1rem; background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-text-muted);">&times;</button>
-        <h2 style="font-size: 1.25rem; color: var(--color-primary); margin-bottom: 1.5rem; font-weight: 600;">Configurar Novo Disparo de E-mail</h2>
+        <h2 style="font-size: 1.25rem; color: var(--color-primary); margin-bottom: 1.5rem; font-weight: 600;">Configurar Novo Disparo</h2>
         
-        <form style="display: flex; flex-direction: column; gap: 1rem;">
-          <div>
-            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text-muted);">1. METODOLOGIA (APROVADO CIENTIFICAMENTE)</label>
-            <select id="metodologiaSelect" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; margin-bottom: 0.5rem;">
-              <option value="hse">HSE Management Standards (Recomendado)</option>
-              <option value="copsoq">COPSOQ II (Copenhagen Psychosocial Questionnaire)</option>
-              <option value="jcq">Job Content Questionnaire (JCQ - Karasek)</option>
-            </select>
-            
-            <div style="background: #f8fafc; padding: 0.75rem; border-radius: var(--radius-md); font-size: 0.75rem; color: var(--color-text); border: 1px solid #e2e8f0; line-height: 1.4;">
-              <p id="desc-hse" style="margin: 0; color: #334155;"><strong>HSE Management Standards:</strong> O mais indicado para fins normativos e de auditoria. Foi desenhado como um sistema de gestão: ele não apenas identifica o risco, mas já classifica em "áreas de controle", facilitando a criação do Plano de Ação exigido pela NR 01.</p>
-              <p id="desc-copsoq" style="margin: 0; display: none; color: #334155;"><strong>COPSOQ II:</strong> Excelente se a empresa for grande e você precisar de dados muito robustos para justificar investimentos em saúde mental, pois ele cobre desde o ambiente físico até a confiança vertical na diretoria.</p>
-              <p id="desc-jcq" style="margin: 0; display: none; color: #334155;"><strong>JCQ (Karasek):</strong> Funciona bem como uma triagem rápida para setores específicos (ex: produção ou call center), mas pode ser "raso" para um inventário de riscos completo da NR 01.</p>
+        <form id="formDisparo" style="display: flex; flex-direction: column; gap: 1.5rem;">
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">1. SELECIONAR CICLO</label>
+              <select id="cicloSelect" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;">
+                {ciclos.filter(c => c.status === 'Ativo').map(c => (
+                  <option value={c.id}>{c.nome}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">2. METODOLOGIA</label>
+              <select id="metodologiaSelect" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;">
+                <option value="hse">HSE Management Standards</option>
+                <option value="copsoq">COPSOQ II</option>
+                <option value="jcq">Job Content Questionnaire</option>
+              </select>
             </div>
           </div>
-          <div style="display: flex; gap: 1rem;">
-             <div style="flex: 1;">
-               <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text-muted);">2. DATA DO DISPARO</label>
-               <input type="datetime-local" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;" />
-             </div>
-             <div style="flex: 1;">
-               <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text-muted);">3. DEPARTAMENTOS/FILIAIS ALVO</label>
-               <div style="border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 0.75rem; max-height: 120px; overflow-y: auto; background: white;">
-                 <label style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; font-size: 0.875rem; border-bottom: 1px dashed var(--color-border); padding-bottom: 0.5rem;"><input type="checkbox" checked /> <strong>Todos os Setores (Empresa Inteira)</strong></label>
-                 {setores.length === 0 && <span style="font-size: 0.8rem; color: var(--color-text-muted);">Configure os setores em "Configurações".</span>}
-                 {setores.map(s => (
-                   <label style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.4rem; font-size: 0.875rem; color: var(--color-text);"><input type="checkbox" /> {s.nome}</label>
-                 ))}
-               </div>
-             </div>
-          </div>
+
           <div>
-            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text-muted);">4. TEXTO PADRÃO DO E-MAIL</label>
-            <textarea id="textoEmail" rows="4" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; resize: none; font-family: inherit;">Olá, [Nome]&#13;&#10;Sua saúde e bem-estar no trabalho são importantes para nós. Convidamos você a participar da nossa avaliação de risco psicossocial anual, de caráter confidencial.&#13;&#10;Clique no link abaixo para preencher o questionário.</textarea>
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">3. MENSAGEM DO E-MAIL</label>
+            <textarea id="textoEmail" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; font-family: inherit;">Olá, [Nome]&#13;&#10;Convidamos você a participar da nossa avaliação de risco psicossocial. Suas respostas são confidenciais.</textarea>
           </div>
 
-          <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+          <div style="display: flex; justify-content: flex-end; gap: 1rem;">
             <button type="button" id="btnCancelarModal" class="btn btn-outline">CANCELAR</button>
-            <button type="button" id="btnSalvarModal" class="btn btn-primary">CRIAR E AGENDAR CAMPANHA</button>
+            <button type="button" id="btnSalvarModal" class="btn btn-primary">DISPARAR AGORA</button>
           </div>
         </form>
       </div>
@@ -169,76 +203,65 @@ if (user) {
 
   </div>
 
+  <style>
+    .survey-item:hover {
+      border-color: var(--color-primary) !important;
+      background: #f0f7ff !important;
+      transform: translateX(4px);
+    }
+  </style>
+
   <script>
-    function initPesquisasModal() {
-      const modal = document.getElementById('modalNovaPesquisa');
-      const btnAbrir = document.getElementById('btnAbrirModal');
-      const btnFechar = document.getElementById('btnFecharModal');
-      const btnCancelar = document.getElementById('btnCancelarModal');
-      const btnSalvar = document.getElementById('btnSalvarModal');
-
-      const selectMetodologia = document.getElementById('metodologiaSelect');
-      const descHse = document.getElementById('desc-hse');
-      const descCopsoq = document.getElementById('desc-copsoq');
-      const descJcq = document.getElementById('desc-jcq');
-
-      if (selectMetodologia) {
-        selectMetodologia.addEventListener('change', (e) => {
-          const target = e.target as HTMLSelectElement;
-          if (descHse) descHse.style.display = target.value === 'hse' ? 'block' : 'none';
-          if (descCopsoq) descCopsoq.style.display = target.value === 'copsoq' ? 'block' : 'none';
-          if (descJcq) descJcq.style.display = target.value === 'jcq' ? 'block' : 'none';
-        });
-      }
-
-      if (btnAbrir && modal) {
-        btnAbrir.addEventListener('click', () => { modal.style.display = 'flex'; });
-      }
-
-      const fechar = () => { if(modal) modal.style.display = 'none'; };
-
-      if (btnFechar) btnFechar.addEventListener('click', fechar);
-      if (btnCancelar) btnCancelar.addEventListener('click', fechar);
+    function initPesquisas() {
+      const modalPesquisa = document.getElementById('modalNovaPesquisa');
+      const modalCiclo = document.getElementById('modalNovoCiclo');
       
+      const btnAbrirPesquisa = document.getElementById('btnAbrirModalPesquisa');
+      const btnAbrirCiclo = document.getElementById('btnAbrirModalCiclo');
+      
+      const btnFecharPesquisa = document.getElementById('btnFecharModal');
+      const btnCancelarPesquisa = document.getElementById('btnCancelarModal');
+      
+      if (btnAbrirPesquisa) btnAbrirPesquisa.addEventListener('click', () => { if(modalPesquisa) modalPesquisa.style.display = 'flex'; });
+      if (btnAbrirCiclo) btnAbrirCiclo.addEventListener('click', () => { if(modalCiclo) modalCiclo.style.display = 'flex'; });
+
+      const fecharPesquisa = () => { if(modalPesquisa) modalPesquisa.style.display = 'none'; };
+      if (btnFecharPesquisa) btnFecharPesquisa.addEventListener('click', fecharPesquisa);
+      if (btnCancelarPesquisa) btnCancelarPesquisa.addEventListener('click', fecharPesquisa);
+
+      const btnSalvar = document.getElementById('btnSalvarModal');
       if (btnSalvar) {
         btnSalvar.addEventListener('click', async () => {
-          btnSalvar.innerHTML = 'AGUARDE... DISPARANDO E-MAILS';
-          btnSalvar.setAttribute('disabled', 'true');
+          const btn = btnSalvar as HTMLButtonElement;
+          btn.innerHTML = 'AGUARDE...';
+          btn.disabled = true;
           
-          const metodologiaSelect = document.getElementById('metodologiaSelect') as HTMLSelectElement;
-          const textoEmail = document.getElementById('textoEmail') as HTMLTextAreaElement;
+          const cicloId = (document.getElementById('cicloSelect') as HTMLSelectElement).value;
+          const metodologia = (document.getElementById('metodologiaSelect') as HTMLSelectElement).value;
+          const mensagem = (document.getElementById('textoEmail') as HTMLTextAreaElement).value;
           
           try {
             const resp = await fetch('/api/campanhas/disparar', {
                method: 'POST',
                headers: {'Content-Type': 'application/json'},
-               body: JSON.stringify({
-                  metodologia: metodologiaSelect ? metodologiaSelect.value : 'hse',
-                  mensagem: textoEmail ? textoEmail.value : ''
-               })
+               body: JSON.stringify({ cicloId, metodologia, mensagem })
             });
             const dat = await resp.json();
             if(!resp.ok) throw new Error(dat.error);
-            alert('Sucesso! ' + dat.message);
-            fechar();
+            alert('Pesquisas enviadas com sucesso!');
+            window.location.reload();
           } catch(e:any) {
-             alert('Erro ao disparar pesquisa: ' + e.message);
+             alert('Erro: ' + e.message);
           } finally {
-             btnSalvar.removeAttribute('disabled');
-             btnSalvar.innerHTML = 'CRIAR E AGENDAR CAMPANHA';
+             btn.disabled = false;
+             btn.innerHTML = 'DISPARAR AGORA';
           }
         });
       }
-
-      if (modal) {
-         modal.addEventListener('click', (e) => {
-            if (e.target === modal) fechar();
-         });
-      }
     }
 
-    document.addEventListener('DOMContentLoaded', initPesquisasModal);
-    document.addEventListener('astro:page-load', initPesquisasModal);
-    initPesquisasModal();
+    document.addEventListener('DOMContentLoaded', initPesquisas);
+    document.addEventListener('astro:page-load', initPesquisas);
+    initPesquisas();
   </script>
 </Layout>
