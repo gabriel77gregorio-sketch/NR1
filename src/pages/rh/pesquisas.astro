@@ -171,7 +171,7 @@ if (Astro.request.method === 'POST') {
       </div>
     </div>
 
-    <!-- Modal Novo Disparo (Refatorado) -->
+    <!-- Modal Novo Disparo -->
     <div id="modalNovaPesquisa" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
       <div style="background: white; border-radius: var(--radius-lg); width: 100%; max-width: 650px; padding: 2rem; position: relative; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
         <button id="btnFecharModal" style="position: absolute; top: 1rem; right: 1rem; background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-text-muted);">&times;</button>
@@ -183,46 +183,54 @@ if (Astro.request.method === 'POST') {
             <div>
               <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">1. SELECIONAR CICLO</label>
               <select id="cicloSelect" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;">
-                {ciclos.filter(c => c.status === 'Ativo').map(c => (
+                {ciclos.filter((c: any) => c.status === 'Ativo').map((c: any) => (
                   <option value={c.id}>{c.nome}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">2. METODOLOGIA</label>
-              <select id="metodologiaSelect" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;">
-                <option value="copsoq">COPSOQ II-Br (Versão Curta)</option>
-                <option value="hse" disabled>HSE Management Standards (Inativo)</option>
-                <option value="jcq" disabled>Job Content Questionnaire (Inativo)</option>
+              <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">2. CANAL DE ENVIO</label>
+              <select id="canalEnvio" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;">
+                <option value="email">📧 E-mail Corporativo (Resend)</option>
+                <option value="whatsapp">💬 WhatsApp (Link Direto)</option>
               </select>
             </div>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
             <div>
-              <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">3. FILTRAR POR SETOR (OPCIONAL)</label>
+              <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">3. METODOLOGIA</label>
+              <select id="metodologiaSelect" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;">
+                <option value="copsoq">COPSOQ II-Br (Versão Curta)</option>
+                <option value="hse" disabled>HSE Management Standards (Inativo)</option>
+                <option value="jcq" disabled>Job Content Questionnaire (Inativo)</option>
+              </select>
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">4. FILTRAR POR SETOR</label>
               <select id="setorSelect" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;">
-                <option value="">Todos os Setores (Empresa Toda)</option>
+                <option value="">Todos os Setores</option>
                 {setores.map((s: any) => (
                   <option value={s.id}>{s.nome}</option>
                 ))}
               </select>
             </div>
-            <div>
-              <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">4. LINK DE RESPOSTA</label>
-              <input type="text" id="linkResposta" value="https://nr1.app/responder" placeholder="https://seu-link.com" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; background: #f8fafc;" />
-            </div>
           </div>
 
           <div>
-            <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">5. MENSAGEM DO E-MAIL</label>
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">5. LINK DE RESPOSTA</label>
+            <input type="text" id="linkResposta" value="https://nr1.app/responder" placeholder="https://seu-link.com" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; background: #f8fafc;" />
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">6. MENSAGEM DO E-MAIL/WHATSAPP</label>
             <textarea id="textoEmail" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; font-family: inherit;">Olá, [Nome]&#13;&#10;Convidamos você a participar da nossa avaliação de risco psicossocial. Suas respostas são confidenciais.</textarea>
           </div>
 
           <div style="background: #f0f7ff; border: 1px solid #dbeafe; padding: 1rem; border-radius: 12px; display: flex; gap: 0.75rem; align-items: center;">
             <div style="background: #3b82f6; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.75rem; font-weight: 800;">i</div>
             <p style="margin: 0; font-size: 0.8rem; color: #1e40af; line-height: 1.4;">
-              <strong>Privacidade Garantida:</strong> Cada colaborador receberá um <strong>token de acesso único</strong> via e-mail. Isso garante que cada um responda apenas uma vez e protege o anonimato dos dados sensíveis.
+              <strong>Privacidade Garantida:</strong> Cada colaborador receberá um <strong>token de acesso único</strong> via e-mail ou WhatsApp. Isso garante que cada um responda apenas uma vez e protege o anonimato dos dados sensíveis.
             </p>
           </div>
 
@@ -275,12 +283,13 @@ if (Astro.request.method === 'POST') {
           const metodologia = (document.getElementById('metodologiaSelect') as HTMLSelectElement).value;
           const mensagem = (document.getElementById('textoEmail') as HTMLTextAreaElement).value;
           const setorId = (document.getElementById('setorSelect') as HTMLSelectElement).value;
+          const canal = (document.getElementById('canalEnvio') as HTMLSelectElement).value;
           
           try {
             const resp = await fetch('/api/campanhas/disparar', {
                method: 'POST',
                headers: {'Content-Type': 'application/json'},
-               body: JSON.stringify({ cicloId, metodologia, mensagem, setorId })
+               body: JSON.stringify({ cicloId, metodologia, mensagem, setorId, canal })
             });
             const dat = await resp.json();
             if(!resp.ok) throw new Error(dat.error);

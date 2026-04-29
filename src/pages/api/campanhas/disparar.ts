@@ -8,7 +8,7 @@ const resend = new Resend(import.meta.env.RESEND_API_KEY || process.env.RESEND_A
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     const body = await request.json();
-    const { metodologia, dataDisparo, mensagem, cicloId, setorId } = body;
+    const { metodologia, dataDisparo, mensagem, cicloId, setorId, canal } = body;
 
     // 1. Validar sessão restrita para recuperar a empresa do gestor
     const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || process.env.PUBLIC_SUPABASE_URL;
@@ -91,6 +91,14 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (partErr) throw new Error('Falha ao associar colaboradores: ' + partErr.message);
 
+    if (canal === 'whatsapp') {
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: 'Tokens gerados com sucesso! Os links individuais estão prontos para envio via WhatsApp.',
+        count: participantes.length
+      }));
+    }
+
     // 6. Preparar disparos de e-mail (Iterar e acionar a API Resend com BATCH ou FOR)
     // Cruzando e-mail do colaborador com o token gerado:
     const emailsToSend = colaboradores.map(c => {
@@ -123,7 +131,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: 'Campanha e Tokens gerados! Disparo em lote executado com sucesso.',
+      message: 'Campanha e Tokens gerados! Disparo em lote via E-mail executado com sucesso.',
       resendData: resendResponse 
     }));
 

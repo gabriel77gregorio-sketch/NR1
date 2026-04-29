@@ -45,8 +45,9 @@ if (Astro.request.method === 'POST') {
       const email = formData.get('colab_email')?.toString();
       const cargo = formData.get('colab_cargo')?.toString();
       const setorId = formData.get('colab_setor')?.toString();
+      const whatsapp = formData.get('colab_whatsapp')?.toString();
       if (nome && email && cargo) {
-        await service.addColaborador(nome, email, cargo, setorId || null);
+        await service.addColaborador(nome, email, cargo, setorId || null, whatsapp || null);
         message = "Colaborador adicionado com sucesso!";
       }
     } else if (action === 'del_colaborador') {
@@ -164,6 +165,11 @@ const colaboradores = user ? await service.getColaboradores() : [];
                      </select>
                    </div>
                    
+                   <div>
+                     <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--color-text-muted);">WhatsApp (com DDD) *</label>
+                     <input type="text" name="colab_whatsapp" placeholder="Ex: 11988887777" style="width: 100%; padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 4px; outline: none; font-size: 0.875rem;" />
+                   </div>
+
                    <div style="grid-column: span 2; display: flex; justify-content: flex-end; margin-top: 0.5rem;">
                      <button type="submit" class="btn btn-primary" style="padding: 0.4rem 1.5rem; font-size: 0.75rem;">+ REGISTRAR COLABORADOR</button>
                    </div>
@@ -192,6 +198,7 @@ const colaboradores = user ? await service.getColaboradores() : [];
                          <td style="padding: 0.75rem 1rem;">
                            <div style="color: var(--color-text);">{c.cargo}</div>
                            <div style="font-size: 0.75rem; color: var(--color-primary);">{c.departamentos_unidades?.nome || 'Sem Setor'}</div>
+                           {c.telefone && <div style="font-size: 0.7rem; color: #16a34a; font-weight: 600;">📱 {c.telefone}</div>}
                          </td>
                          <td style="padding: 0.75rem 1rem; text-align: right;">
                            <form method="POST" style="margin: 0; display: inline-block;">

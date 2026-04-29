@@ -72,7 +72,7 @@ export class ColaboradoresService {
     return data;
   }
 
-  async addColaborador(nome: string, email: string, cargo: string, departamento_id: string | null) {
+  async addColaborador(nome: string, email: string, cargo: string, departamento_id: string | null, telefone: string | null = null) {
     const { data: { user } } = await this.supabase.auth.getUser();
     if (!user) throw new Error("Usuário não autenticado");
 
@@ -89,6 +89,7 @@ export class ColaboradoresService {
       nome,
       email,
       cargo,
+      telefone,
       ativo: true
     };
     if (departamento_id) {
