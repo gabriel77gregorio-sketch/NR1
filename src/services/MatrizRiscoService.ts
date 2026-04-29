@@ -30,7 +30,7 @@ export class MatrizRiscoService {
   /**
    * Processa o Mapeamento e cruza a Probabilidade vs Severidade para Setores e Funções
    */
-  async getMatrizRiscoMatematica(): Promise<GrupoRisco[]> {
+  async getMatrizRiscoMatematica(cicloId?: string): Promise<GrupoRisco[]> {
     let departamentos = null;
     let error = null;
 
@@ -51,9 +51,13 @@ export class MatrizRiscoService {
     }
 
     // 2. Buscar Respostas Reais do Banco
-    const { data: respostasReais } = await this.supabase
+    let queryRespostas = this.supabase
       .from('respostas_avaliacoes')
-      .select('respostas');
+      .select('respostas, ciclo_id');
+      
+    if (cicloId) queryRespostas = queryRespostas.eq('ciclo_id', cicloId);
+
+    const { data: respostasReais } = await queryRespostas;
 
     // 3. Processar médias por Setor
     const setoresMap: Record<string, { totalPontos: number, totalRedFlags: number, count: number }> = {};
@@ -140,10 +144,12 @@ export class MatrizRiscoService {
   /**
    * Consolida a pontuação média por eixo de todos os respondentes para o "Mapa de Calor" do Dashboard
    */
-  async getIndicadoresCopsoqConsolidado(setorId?: string): Promise<IndicadorEixo[]> {
+  async getIndicadoresCopsoqConsolidado(setorId?: string, cicloId?: string): Promise<IndicadorEixo[]> {
     let query = this.supabase
       .from('respostas_avaliacoes')
       .select('respostas');
+
+    if (cicloId) query = query.eq('ciclo_id', cicloId);
 
     const { data: respostasReais, error: errorResp } = await query;
 

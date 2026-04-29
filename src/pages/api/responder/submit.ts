@@ -18,7 +18,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     // 1. Validar Token Existente e Não Consumido
     const { data: participante, error: partErr } = await supabaseAdmin.from('campanhas_participantes')
-      .select('id, campanha_id, status_resposta, campanha:campanha_id(empresa_id, metodologia_id)')
+      .select('id, campanha_id, status_resposta, campanha:campanha_id(empresa_id, metodologia_id, ciclo_id)')
       .eq('token_acesso', token)
       .single();
 
@@ -30,11 +30,11 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response(JSON.stringify({ error: 'Esta pesquisa já foi respondida e o link foi bloqueado por segurança.' }), { status: 403 });
     }
 
-    // 2. Inserir Respostas (Em uma tabela de Avaliações - vinculando a metodologia ou formulário se tiver)
-    // Devido ao schema atual, vamos colocar em respostas_avaliacoes (Simulando um formulario virtual pela metodologia_id)
+    // 2. Inserir Respostas (Vinculando ao Ciclo se existir)
     const { error: insertErr } = await supabaseAdmin.from('respostas_avaliacoes').insert({
       empresa_id: (participante.campanha as any).empresa_id,
-      formulario_id: (participante.campanha as any).metodologia_id, // Usamos metodologia como formulario por compatibilidade
+      ciclo_id: (participante.campanha as any).ciclo_id, // Nova coluna vinculada
+      formulario_id: (participante.campanha as any).metodologia_id, 
       respostas: respostas
     });
 

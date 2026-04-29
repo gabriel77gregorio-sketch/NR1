@@ -18,9 +18,12 @@ let indicadoresEixos: any[] = [];
 let departamentos: any[] = [];
 let userRole = 'RH';
 
-// Filtro de Setor
+// Filtros
 const searchParams = Astro.url.searchParams;
 const filterSetorId = searchParams.get('setorId') || '';
+const filterCicloId = searchParams.get('cicloId') || '';
+
+let ciclos: any[] = [];
 
 if (user) {
   const matrizService = new MatrizRiscoService(supabaseClient);
@@ -29,9 +32,13 @@ if (user) {
   const { data: depts } = await supabaseClient.from('departamentos_unidades').select('id, nome').order('nome');
   departamentos = depts || [];
 
-  gruposExposicao = await matrizService.getMatrizRiscoMatematica();
+  // Buscar Ciclos para o Filtro
+  const { data: ciclosData } = await supabaseClient.from('ciclos_avaliacao').select('id, nome').order('created_at', { ascending: false });
+  ciclos = ciclosData || [];
+
+  gruposExposicao = await matrizService.getMatrizRiscoMatematica(filterCicloId || undefined);
   // Aplicar filtro nos eixos se houver
-  indicadoresEixos = await matrizService.getIndicadoresCopsoqConsolidado(filterSetorId || undefined);
+  indicadoresEixos = await matrizService.getIndicadoresCopsoqConsolidado(filterSetorId || undefined, filterCicloId || undefined);
   
   data.user.email = user.email || '';
   const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, role').eq('id', user.id).single();
@@ -77,15 +84,27 @@ const currentSetorName = departamentos.find(d => d.id === filterSetorId)?.nome |
           </div>
           
           <div style="display: flex; gap: 1rem; align-items: center;">
-            <!-- Filtro de Setor -->
-            <form method="GET" style="display: flex; align-items: center; gap: 0.5rem; background: white; padding: 0.4rem 0.75rem; border-radius: 8px; border: 1px solid var(--color-border);">
-              <label for="setorId" style="font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted);">FILTRAR POR SETOR:</label>
-              <select name="setorId" id="setorId" onchange="this.form.submit()" style="border: none; font-size: 0.85rem; font-weight: 600; color: var(--color-text); cursor: pointer; outline: none;">
-                <option value="">Todos os Setores</option>
-                {departamentos.map(dept => (
-                  <option value={dept.id} selected={filterSetorId === dept.id}>{dept.nome}</option>
-                ))}
-              </select>
+            <!-- Filtros -->
+            <form method="GET" style="display: flex; align-items: center; gap: 1rem; background: white; padding: 0.4rem 0.75rem; border-radius: 8px; border: 1px solid var(--color-border);">
+              <div style="display: flex; align-items: center; gap: 0.5rem; border-right: 1px solid #f1f5f9; padding-right: 1rem;">
+                <label for="cicloId" style="font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted);">CICLO:</label>
+                <select name="cicloId" id="cicloId" onchange="this.form.submit()" style="border: none; font-size: 0.85rem; font-weight: 600; color: var(--color-text); cursor: pointer; outline: none;">
+                  <option value="">Todos os Ciclos</option>
+                  {ciclos.map(ciclo => (
+                    <option value={ciclo.id} selected={filterCicloId === ciclo.id}>{ciclo.nome}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <label for="setorId" style="font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted);">SETOR:</label>
+                <select name="setorId" id="setorId" onchange="this.form.submit()" style="border: none; font-size: 0.85rem; font-weight: 600; color: var(--color-text); cursor: pointer; outline: none;">
+                  <option value="">Todos os Setores</option>
+                  {departamentos.map(dept => (
+                    <option value={dept.id} selected={filterSetorId === dept.id}>{dept.nome}</option>
+                  ))}
+                </select>
+              </div>
             </form>
 
              <a href={`/rh/relatorio-pgr?setorId=${filterSetorId}`} target="_blank" class="btn btn-outline" style="border-color: var(--color-primary); color: var(--color-primary); text-decoration: none; display: flex; align-items: center; font-weight: 600;">
