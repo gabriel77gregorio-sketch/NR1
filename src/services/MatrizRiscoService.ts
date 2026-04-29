@@ -145,9 +145,10 @@ export class MatrizRiscoService {
       .from('respostas_avaliacoes')
       .select('respostas');
 
-    const { data: respostasReais } = await query;
+    const { data: respostasReais, error: errorResp } = await query;
 
-    if (!respostasReais || respostasReais.length === 0) {
+    if (errorResp || !respostasReais || respostasReais.length === 0) {
+      console.log("Sem respostas reais, usando mock de indicadores.");
       return this.gerarMockIndicadores();
     }
 
