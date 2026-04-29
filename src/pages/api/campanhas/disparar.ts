@@ -70,7 +70,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     let queryColab = supabaseAdmin.from('colaboradores_base').select('id, nome, email').eq('empresa_id', perfil.empresa_id);
     
     if (setorId) {
-      queryColab = queryColab.eq('setor_id', setorId);
+      queryColab = queryColab.eq('departamento_id', setorId);
     }
     
     const { data: colaboradores } = await queryColab;
