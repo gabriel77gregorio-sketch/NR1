@@ -171,9 +171,12 @@ export class MatrizRiscoService {
 
       const detalhes = resp?.detalhes || [];
       detalhes.forEach((d: any) => {
-        if (somaEixos[d.eixo]) {
-          somaEixos[d.eixo].total += (d.pontos || 0);
-          somaEixos[d.eixo].count += 1;
+        // Busca a chave correspondente (ex: "Eixo 1" em "Eixo 1: Exigências...")
+        const eixoChave = Object.keys(somaEixos).find(key => d.eixo?.startsWith(key));
+        
+        if (eixoChave) {
+          somaEixos[eixoChave].total += (d.pontos || 0);
+          somaEixos[eixoChave].count += 1;
         }
       });
     });
