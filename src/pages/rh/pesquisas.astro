@@ -401,10 +401,9 @@ if (Astro.request.method === 'POST') {
           btnSubmit.disabled = false;
           btnSubmit.innerText = "DISPARAR AGORA";
         }
-  }
-        });
-      }
+      });
     }
+  }
 
     document.addEventListener('astro:page-load', initPesquisas);
     // Garantir execução imediata se não houver transição de página (ex: F5)
