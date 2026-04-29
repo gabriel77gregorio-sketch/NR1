@@ -1,21 +1,188 @@
 ---
 import Layout from '../../../layouts/Layout.astro';
 import SidebarRH from '../../../components/SidebarRH.astro';
+import { supabase } from '../../../lib/supabase';
 
 const { id } = Astro.params;
+
+// Proteção de Rota
+const supabaseClient = supabase(Astro);
+let user = null;
+try {
+  const { data: authData } = await supabaseClient.auth.getUser();
+  user = authData?.user;
+} catch (e) { }
+
+if (!user) return Astro.redirect('/login');
+
+// --- BUSCA DE DADOS EM ETAPAS (MAIS ROBUSTO) ---
+
+// 1. Buscar Ciclo
+const { data: ciclo } = await supabaseClient
+  .from('ciclos_avaliacao')
+  .select('*')
+  .eq('id', id)
+  .single();
+
+if (!ciclo) return Astro.redirect('/rh/pesquisas?error=not_found');
+
+// 2. Buscar Campanhas deste Ciclo
+const { data: campanhas = [] } = await supabaseClient
+  .from('campanhas_pesquisa')
+  .select('*')
+  .eq('ciclo_id', id);
+
+// 3. Buscar Participantes e Respostas (todas as campanhas do ciclo)
+const campanhaIds = (campanhas || []).map(c => c.id);
+let participantes: any[] = [];
+
+if (campanhaIds.length > 0) {
+  const { data: partsData } = await supabaseClient
+    .from('campanhas_participantes')
+    .select('*')
+    .in('campanha_id', campanhaIds);
+  participantes = partsData || [];
+}
+
+// --- PROCESSAMENTO DE MÉTRICAS ---
+
+let totalEnviados = participantes.length;
+let totalRespondidos = participantes.filter(p => p.respondido_em).length;
+let somaTempoResposta = 0;
+let contagemTempo = 0;
+
+participantes.forEach(p => {
+  if (p.respondido_em) {
+    const inicio = new Date(p.created_at).getTime();
+    const fim = new Date(p.respondido_em).getTime();
+    somaTempoResposta += (fim - inicio);
+    contagemTempo++;
+  }
+});
+
+const taxaEngajamento = totalEnviados > 0 ? Math.round((totalRespondidos / totalEnviados) * 100) : 0;
+const tempoMedioMinutos = contagemTempo > 0 ? Math.round((somaTempoResposta / contagemTempo) / 60000) : 0;
+
+// Agrupar por canal (baseado nas campanhas)
+const performanceCanais = {
+  email: { total: 0, resp: 0 },
+  whatsapp: { total: 0, resp: 0 }
+};
+
+campanhas.forEach(camp => {
+  const canal = (camp.canal || 'email').toLowerCase();
+  const partsCamp = participantes.filter(p => p.campanha_id === camp.id);
+  
+  if (performanceCanais[canal]) {
+    performanceCanais[canal].total += partsCamp.length;
+    performanceCanais[canal].resp += partsCamp.filter(p => p.respondido_em).length;
+  }
+});
+
 ---
 
-<Layout title="Teste Relatório">
+<Layout title={`Relatório: ${ciclo.nome} | RH NR1`}>
   <div class="app-layout">
     <SidebarRH activeMenu="pesquisas" />
-    <main class="main-content" style="padding: 2rem;">
-      <h1>Teste de Acesso ao Relatório</h1>
-      <p>ID do Ciclo: {id}</p>
-      <a href="/rh/pesquisas" class="btn btn-primary">Voltar</a>
+
+    <main class="main-content" style="background: #f8fafc;">
+      <div style="padding: 2rem 3rem;">
+        
+        <!-- Header -->
+        <div style="margin-bottom: 2.5rem;">
+          <nav style="display: flex; gap: 0.5rem; font-size: 0.8rem; color: #64748b; margin-bottom: 1rem;">
+            <a href="/rh/pesquisas" style="color: inherit; text-decoration: none;">Pesquisas</a>
+            <span>/</span>
+            <span style="color: var(--color-primary); font-weight: 600;">Relatório Macro</span>
+          </nav>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h1 style="font-size: 1.875rem; color: #1e293b; font-weight: 800; margin: 0;">{ciclo.nome}</h1>
+              <p style="color: #64748b; margin-top: 0.25rem;">Visão Gerencial de Engajamento e Adesão</p>
+            </div>
+            <button class="btn btn-outline" style="background: white;" onclick="window.print()">
+              EXPORTAR PDF
+            </button>
+          </div>
+        </div>
+
+        <!-- KPIs -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2.5rem;">
+          <div style="background: white; padding: 1.5rem; border-radius: 16px; border: 1px solid #e2e8f0;">
+            <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Taxa de Engajamento</span>
+            <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.5rem;">
+              <span style="font-size: 2rem; font-weight: 800; color: #1e293b;">{taxaEngajamento}%</span>
+              <span style="color: #16a34a; font-weight: 600;">{totalRespondidos}/{totalEnviados}</span>
+            </div>
+          </div>
+
+          <div style="background: white; padding: 1.5rem; border-radius: 16px; border: 1px solid #e2e8f0;">
+            <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Tempo Médio de Resposta</span>
+            <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.5rem;">
+              <span style="font-size: 2rem; font-weight: 800; color: #1e293b;">{tempoMedioMinutos}</span>
+              <span style="color: #64748b; font-weight: 600;">minutos</span>
+            </div>
+          </div>
+
+          <div style="background: white; padding: 1.5rem; border-radius: 16px; border: 1px solid #e2e8f0;">
+            <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Campanhas</span>
+            <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.5rem;">
+              <span style="font-size: 2rem; font-weight: 800; color: #1e293b;">{campanhas.length}</span>
+              <span style="color: #64748b; font-weight: 600;">disparos</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seções Inferiores -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+          
+          <div style="background: white; border-radius: 20px; border: 1px solid #e2e8f0; padding: 2rem;">
+            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem;">Desempenho por Canal</h3>
+            
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+              <!-- E-mail -->
+              <div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                  <span style="font-weight: 600;">E-mail</span>
+                  <span style="font-weight: 700;">{performanceCanais.email.total > 0 ? Math.round((performanceCanais.email.resp / performanceCanais.email.total) * 100) : 0}%</span>
+                </div>
+                <div style="height: 8px; background: #f1f5f9; border-radius: 999px; overflow: hidden;">
+                  <div style={`width: ${performanceCanais.email.total > 0 ? (performanceCanais.email.resp / performanceCanais.email.total) * 100 : 0}%; height: 100%; background: #3b82f6;`}></div>
+                </div>
+              </div>
+
+              <!-- WhatsApp -->
+              <div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                  <span style="font-weight: 600;">WhatsApp</span>
+                  <span style="font-weight: 700;">{performanceCanais.whatsapp.total > 0 ? Math.round((performanceCanais.whatsapp.resp / performanceCanais.whatsapp.total) * 100) : 0}%</span>
+                </div>
+                <div style="height: 8px; background: #f1f5f9; border-radius: 999px; overflow: hidden;">
+                  <div style={`width: ${performanceCanais.whatsapp.total > 0 ? (performanceCanais.whatsapp.resp / performanceCanais.whatsapp.total) * 100 : 0}%; height: 100%; background: #22c55e;`}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="background: #1e293b; border-radius: 20px; padding: 2rem; color: white; display: flex; flex-direction: column; justify-content: center;">
+            <h3 style="font-size: 1rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 1rem;">Status de Coleta</h3>
+            <p style="font-size: 1.1rem; line-height: 1.6;">
+              {taxaEngajamento >= 100 
+                ? "Ciclo finalizado com 100% de adesão. Todos os dados já estão disponíveis para análise técnica na Matriz de Risco." 
+                : "A coleta de dados continua ativa. Recomendamos manter o ciclo aberto até atingir pelo menos 80% de engajamento para maior precisão estatística."
+              }
+            </p>
+          </div>
+
+        </div>
+
+      </div>
     </main>
   </div>
 </Layout>
 
 <style>
-  .btn-primary { background: #3b82f6; color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; }
+  .btn { padding: 0.6rem 1.25rem; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; border: 1px solid transparent; }
+  .btn-outline { border-color: #e2e8f0; color: #475569; }
 </style>
