@@ -140,7 +140,7 @@ if (Astro.request.method === 'POST') {
                       })()}
                     </div>
                     <div style="width: 1px; height: 30px; background: var(--color-border);"></div>
-                    <button class="btn btn-outline" style="font-size: 0.75rem; padding: 0.5rem 1rem;">RELATÓRIO DO CICLO</button>
+                    <a href={`/rh/relatorio-ciclo/${ciclo.id}`} class="btn btn-outline" style="font-size: 0.75rem; padding: 0.5rem 1rem;">RELATÓRIO DO CICLO</a>
                     
                     <form method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este ciclo e todos os dados vinculados? Esta ação é irreversível.');" style="margin: 0;">
                       <input type="hidden" name="action" value="delete_ciclo" />
