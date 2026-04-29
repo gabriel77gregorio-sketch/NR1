@@ -20,12 +20,22 @@ setores; // Suprime aviso se não for usado no template mas necessário para o s
 let ciclos: any[] = [];
 let empresaId = '';
 
+let message = "";
+
 if (user) {
   const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('empresa_id').eq('id', user.id).single();
   if (perfil) {
     empresaId = perfil.empresa_id;
-    ciclos = await cicloService.getCiclos(empresaId);
   }
+}
+
+// Fallback para desenvolvimento (NR1 Admin)
+if (!empresaId) {
+  empresaId = '53294cef-d9b3-4b0e-ae68-d2b7a437bb17';
+}
+
+if (empresaId) {
+  ciclos = await cicloService.getCiclos(empresaId);
 }
 
 // Lógica de manipulação de formulário via SSR (Criação de Ciclo)
@@ -181,9 +191,9 @@ if (Astro.request.method === 'POST') {
             <div>
               <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">2. METODOLOGIA</label>
               <select id="metodologiaSelect" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;">
-                <option value="hse">HSE Management Standards</option>
-                <option value="copsoq">COPSOQ II</option>
-                <option value="jcq">Job Content Questionnaire</option>
+                <option value="copsoq">COPSOQ II-Br (Versão Curta)</option>
+                <option value="hse" disabled>HSE Management Standards (Inativo)</option>
+                <option value="jcq" disabled>Job Content Questionnaire (Inativo)</option>
               </select>
             </div>
           </div>
@@ -253,6 +263,7 @@ if (Astro.request.method === 'POST') {
             alert('Pesquisas enviadas com sucesso!');
             window.location.reload();
           } catch(e:any) {
+             console.error('Erro no disparo:', e);
              alert('Erro: ' + e.message);
           } finally {
              btn.disabled = false;
@@ -262,8 +273,10 @@ if (Astro.request.method === 'POST') {
       }
     }
 
-    document.addEventListener('DOMContentLoaded', initPesquisas);
     document.addEventListener('astro:page-load', initPesquisas);
-    initPesquisas();
+    // Garantir execução imediata se não houver transição de página (ex: F5)
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      initPesquisas();
+    }
   </script>
 </Layout>

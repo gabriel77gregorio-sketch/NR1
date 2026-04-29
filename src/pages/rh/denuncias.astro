@@ -85,9 +85,22 @@ if (user) {
             <div style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600;">EM APURAÇÃO</div>
             <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-warning);">1</div>
           </div>
-          <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1rem 1.5rem; flex: 1;">
-            <div style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600;">RESOLVIDAS</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-text);">1</div>
+        </div>
+        
+        <!-- Link de Divulgação do Canal -->
+        <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; gap: 2rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: #fee2e2; display: flex; align-items: center; justify-content: center; color: #ef4444; flex-shrink: 0;">
+              <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+            </div>
+            <div>
+              <h3 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: #1e293b;">Link Público do Canal de Denúncia</h3>
+              <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: #64748b;">Este link deve ser divulgado em canais oficiais (E-mail, Mural, WhatsApp).</p>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.75rem; background: #f8fafc; padding: 0.5rem 0.5rem 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; flex: 1; max-width: 500px;">
+            <code id="canalLink" style="font-size: 0.85rem; color: #ef4444; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">/canal-de-denuncia</code>
+            <button id="btnCopiarLink" class="btn" style="padding: 0.5rem 1rem; font-size: 0.75rem; background: #ef4444; color: white; border: none; white-space: nowrap; font-weight: 700; border-radius: 6px; cursor: pointer;">COPIAR LINK</button>
           </div>
         </div>
 
@@ -271,6 +284,24 @@ if (user) {
          btnSalvar.addEventListener('click', () => {
            alert('Status da denúncia atualizado e ações registradas no histórico confidencial.');
            fecharModal();
+         });
+       }
+
+       // Cópia do Link do Canal
+       const btnCopiar = document.getElementById('btnCopiarLink');
+       const linkCode = document.getElementById('canalLink');
+       if (btnCopiar && linkCode) {
+         btnCopiar.addEventListener('click', () => {
+           const urlCompleta = window.location.origin + linkCode.textContent;
+           navigator.clipboard.writeText(urlCompleta).then(() => {
+             const originalText = btnCopiar.textContent;
+             btnCopiar.textContent = 'COPIADO!';
+             btnCopiar.style.background = '#10b981';
+             setTimeout(() => {
+               btnCopiar.textContent = originalText;
+               btnCopiar.style.background = '#ef4444';
+             }, 2000);
+           });
          });
        }
     });

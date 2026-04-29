@@ -42,19 +42,68 @@ export class MatrizRiscoService {
       return this.gerarMockEducacional();
     }
 
-    // 2. Transforma cada departamento/unidade num GHE e calcula sua nota baseado em algoritmos analíticos
-    // Como ainda não ligamos o App do Colaborador respondendo o forms ativamente:
-    // Nós faremos um Algoritmo de "Predição baseada em setorização" que finge as respostas para poder preencher o gráfico
+    // 2. Buscar Respostas Reais do Banco
+    const { data: respostasReais } = await this.supabase
+      .from('respostas_avaliacoes')
+      .select('respostas');
+
+    // 3. Processar médias por Setor
+    const setoresMap: Record<string, { totalPontos: number, totalRedFlags: number, count: number }> = {};
     
+    respostasReais?.forEach((row: any) => {
+      const resp = row.respostas;
+      const sid = resp.setor_id;
+      if (!sid) return;
+
+      if (!setoresMap[sid]) {
+        setoresMap[sid] = { totalPontos: 0, totalRedFlags: 0, count: 0 };
+      }
+      
+      // Calcular média de pontos dessa resposta específica
+      const detalhes = resp.detalhes || [];
+      const somaLocal = detalhes.reduce((acc: number, curr: any) => acc + (curr.pontos || 0), 0);
+      const mediaLocal = detalhes.length > 0 ? somaLocal / detalhes.length : 0;
+
+      setoresMap[sid].totalPontos += mediaLocal;
+      setoresMap[sid].totalRedFlags += (resp.red_flags || 0);
+      setoresMap[sid].count += 1;
+    });
+
+    // 4. Mapear departamentos para o formato da Matriz
     return departamentos.map(dept => {
-      // Usando o tamanho da string/id para randomizar fixamente (seed pseudo-randômica natural)
-      // Assim o resultado não flutua loucamente num mesmo dia.
-      const s = ((dept.nome.length % 4) + 1); // 1 a 4
-      const p = (((dept.id.charCodeAt(0) + dept.nome.length) % 4) + 1); // 1 a 4
+      const stats = setoresMap[dept.id];
+      
+      if (!stats) {
+        // Se não houver dados para este setor, mantemos um score neutro/baixo para não poluir
+        return this.calcularCategorizacao({
+          id: dept.id,
+          setor: dept.nome,
+          funcao: 'Aguardando Respostas',
+          severity: 1,
+          probability: 1,
+        });
+      }
+
+      const mediaGeralSetor = stats.totalPontos / stats.count;
+      const mediaRedFlags = stats.totalRedFlags / stats.count;
+
+      // Conversão 0-100 para escala 1-4
+      // Severidade: Média de pontos (Impacto Psicológico)
+      let s = 1;
+      if (mediaGeralSetor > 75) s = 4;
+      else if (mediaGeralSetor > 50) s = 3;
+      else if (mediaGeralSetor > 25) s = 2;
+
+      // Probabilidade: Presença de Comportamentos Ofensivos (Red Flags)
+      let p = 1;
+      if (mediaRedFlags > 2) p = 4; // Muitos comportamentos ofensivos recorrentes
+      else if (mediaRedFlags > 1) p = 3;
+      else if (mediaRedFlags > 0) p = 2;
+
       return this.calcularCategorizacao({
         id: dept.id,
         setor: dept.nome,
-        funcao: 'Empregados Multidiscplinares', // Será cruzado via DB em breve
+        funcao: 'Empregados Multidisciplinares',
         severity: s,
         probability: p,
       });
