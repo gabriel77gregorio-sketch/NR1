@@ -8,7 +8,7 @@ const resend = new Resend(import.meta.env.RESEND_API_KEY || process.env.RESEND_A
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     const body = await request.json();
-    const { metodologia, dataDisparo, mensagem, cicloId } = body;
+    const { metodologia, dataDisparo, mensagem, cicloId, setorId } = body;
 
     // 1. Validar sessão restrita para recuperar a empresa do gestor
     const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || process.env.PUBLIC_SUPABASE_URL;
@@ -66,12 +66,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (campErr) throw new Error('Erro ao criar campanha: ' + campErr.message);
 
-    // 4. Buscar colaboradores aptos para receber os e-mails (Baseado nos setores selecionados ou se vazio pega todos)
-    // Para simplificar este MVP e segurança, pegamos todos da empresa temporariamente se 'selecionados' não vier
-    const { data: colaboradores } = await supabaseAdmin.from('colaboradores_base').select('id, nome, email').eq('empresa_id', perfil.empresa_id);
+    // 4. Buscar colaboradores aptos para receber os e-mails (Filtrar por setor se solicitado)
+    let queryColab = supabaseAdmin.from('colaboradores_base').select('id, nome, email').eq('empresa_id', perfil.empresa_id);
+    
+    if (setorId) {
+      queryColab = queryColab.eq('setor_id', setorId);
+    }
+    
+    const { data: colaboradores } = await queryColab;
     
     if (!colaboradores || colaboradores.length === 0) {
-      return new Response(JSON.stringify({ error: 'Nenhum funcionário cadastrado para receber a pesquisa!' }), { status: 400 });
+      return new Response(JSON.stringify({ error: 'Nenhum funcionário encontrado no setor selecionado!' }), { status: 400 });
     }
 
     // 5. Associar participantes gerando Tokens (A própria tabela gera o UUID default=uuid_generate_v4())
