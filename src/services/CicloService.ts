@@ -13,8 +13,10 @@ export class CicloService {
           titulo,
           data_programada,
           status,
-          participantes_total:campanhas_participantes(count),
-          participantes_respondidos:campanhas_participantes(count).filter(respondido_em.not.is.null)
+          campanhas_participantes (
+            id,
+            respondido_em
+          )
         )
       `)
       .eq('empresa_id', empresaId)

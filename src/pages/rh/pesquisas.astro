@@ -118,8 +118,9 @@ if (Astro.request.method === 'POST') {
                         let respondidos = 0;
                         
                         ciclo.campanhas_pesquisa?.forEach((camp: any) => {
-                          total += camp.participantes_total?.[0]?.count || 0;
-                          respondidos += camp.participantes_respondidos?.[0]?.count || 0;
+                          const parts = camp.campanhas_participantes || [];
+                          total += parts.length;
+                          respondidos += parts.filter((p: any) => p.respondido_em).length;
                         });
                         
                         if (total === 0) {
@@ -167,13 +168,13 @@ if (Astro.request.method === 'POST') {
                           </div>
                           <div>
                             <p style="margin: 0; font-weight: 600; color: var(--color-text);">{camp.titulo}</p>
-                            <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted);">{new Date(camp.data_programada).toLocaleDateString('pt-BR')} • {camp.participantes_total?.[0]?.count || 0} destinatários</p>
+                            <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted);">{new Date(camp.data_programada).toLocaleDateString('pt-BR')} • {camp.campanhas_participantes?.length || 0} destinatários</p>
                           </div>
                         </div>
                         <div style="display: flex; align-items: center; gap: 1rem;">
                           {(() => {
-                            const total = camp.participantes_total?.[0]?.count || 0;
-                            const respondidos = camp.participantes_respondidos?.[0]?.count || 0;
+                            const total = camp.campanhas_participantes?.length || 0;
+                            const respondidos = camp.campanhas_participantes?.filter((p: any) => p.respondido_em).length || 0;
                             const isConcluido = total > 0 && respondidos >= total;
                             
                             return (
