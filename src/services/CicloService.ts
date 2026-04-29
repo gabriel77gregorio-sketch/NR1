@@ -47,4 +47,13 @@ export class CicloService {
 
     if (error) throw error;
   }
+
+  async deleteCiclo(cicloId: string) {
+    const { error } = await this.supabase
+      .from('ciclos_avaliacao')
+      .delete()
+      .eq('id', cicloId);
+
+    if (error) throw error;
+  }
 }
