@@ -30,20 +30,17 @@ const { data: ciclo, error: errorCiclo } = await supabaseClient
         id,
         colaborador_id,
         respondido_em,
-        created_at,
-        colaboradores_base (
-          id,
-          nome,
-          departamento_id,
-          departamentos_unidades (nome)
-        )
+        created_at
       )
     )
   `)
   .eq('id', id)
   .single();
 
-if (errorCiclo || !ciclo) return Astro.redirect('/rh/pesquisas');
+if (errorCiclo || !ciclo) {
+  console.error("Erro ao carregar ciclo:", errorCiclo);
+  return Astro.redirect('/rh/pesquisas?error=not_found');
+}
 
 // --- CÁLCULO DE MÉTRICAS REAIS ---
 
@@ -67,8 +64,8 @@ ciclo.campanhas_pesquisa.forEach(camp => {
     // Canais
     if (canaisAdesao[canal]) canaisAdesao[canal].total++;
     
-    // Setores
-    const setorNome = part.colaboradores_base?.departamentos_unidades?.nome || 'Não Definido';
+    // Setores (Removido temporariamente join complexo para garantir abertura)
+    const setorNome = 'Geral'; 
     if (!setoresAdesao[setorNome]) setoresAdesao[setorNome] = { total: 0, respondidos: 0 };
     setoresAdesao[setorNome].total++;
 
