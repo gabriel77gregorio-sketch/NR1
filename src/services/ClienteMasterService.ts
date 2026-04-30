@@ -67,7 +67,7 @@ export class ClienteMasterService {
           id: authData.user.id,
           empresa_id: empresa.id,
           nome: dto.nome_admin,
-          role: 'RH'
+          role: 'Admin_RH'
         }]);
 
       if (perfilErr) {
@@ -88,7 +88,7 @@ export class ClienteMasterService {
   /**
    * Retorna a lista de todos os clientes da plataforma e suas estatísticas vitais
    */
-  async listarClientes(_supabaseClient: SupabaseClient) {
+  async listarClientes() {
      const adminSupabase = this.getSupabaseAdmin();
      // Puxa as empresas e faz um Count Aggregation inteligente via FK relationships
      const { data, error } = await adminSupabase

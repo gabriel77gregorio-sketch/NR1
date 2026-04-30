@@ -113,9 +113,17 @@ body {
 .text-sm { font-size: 0.875rem; }
 .text-xs { font-size: 0.75rem; }
 
-/* SVG Icons */
 .icon {
   width: 1.25rem;
   height: 1.25rem;
-  fill: currentColor;
+  fill: none;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }

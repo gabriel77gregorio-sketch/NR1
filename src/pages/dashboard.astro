@@ -4,11 +4,10 @@ import { supabase } from '../lib/supabase';
 import { ClienteMasterService } from '../services/ClienteMasterService';
 
 const supabaseClient = supabase(Astro);
-let user = null; // bypassed
+const { data: { user } } = await supabaseClient.auth.getUser();
 let userPerfil = { email: 'superadmin@nr1.com.br', name: 'Master Admin' };
-let isBypass = true;
+let isBypass = false;
 
-/*
 if (!user && !isBypass) {
   return Astro.redirect('/login');
 }
@@ -22,7 +21,6 @@ if (user) {
   }
   userPerfil = { email: user.email, name: perfil.nome };
 }
-*/
 
 // Configurações do SSR e Processamento de POST
 const masterService = new ClienteMasterService();
@@ -54,7 +52,7 @@ try {
       { id: 'uuid-2', nome: 'Logística TransNacional', cnpj: '98.765.432/0001-10', planos_de_acao_pgr: [{ count: 4 }], denuncias_anonimas: [{ count: 0 }], campanhas_pesquisa: [{ count: 2 }] }
     ];
   } else {
-    clientsDb = await masterService.listarClientes(supabaseClient);
+    clientsDb = await masterService.listarClientes();
   }
 } catch (e) {
   console.log("Banco sem empresas ainda ou erro.");
@@ -228,7 +226,7 @@ try {
           </div>
           <div>
             <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.2rem; color: var(--color-text-muted);">CNPJ *</label>
-            <input name="cnpj" type="text" required placeholder="00.000.000/0001-00" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;" />
+            <input id="inputCnpj" name="cnpj" type="text" required placeholder="00.000.000/0001-00" maxlength="18" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;" />
           </div>
           <div style="border-top: 1px dashed var(--color-border); padding-top: 1rem; margin-top: 0.5rem;">
             <p style="font-size: 0.8rem; font-weight: 600; color: var(--color-primary); margin-bottom: 1rem;">Setup de Administrador Local (RH)</p>
@@ -248,7 +246,13 @@ try {
             </div>
           </div>
           <div style="margin-top: 1rem;">
-            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">CRIAR CLIENTE NO SUPABASE</button>
+            <button id="btnSubmitProvisionar" type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+              <span id="labelSubmit">CRIAR CLIENTE NO SUPABASE</span>
+              <span id="labelLoading" style="display: none; align-items: center; gap: 0.5rem;">
+                <svg class="animate-spin" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M4 12a8 8 0 0 1 8-8" stroke-opacity="1"></path></svg>
+                PROVISIONANDO...
+              </span>
+            </button>
           </div>
         </form>
       </div>
@@ -263,6 +267,11 @@ try {
       const btnAbrir = document.getElementById('btnNovoCliente');
       const btnFechar = document.getElementById('btnFecharModal');
       const modal = document.getElementById('modalCliente');
+      const form = modal?.querySelector('form');
+      const inputCnpj = document.getElementById('inputCnpj') as HTMLInputElement;
+      const btnSubmit = document.getElementById('btnSubmitProvisionar') as HTMLButtonElement;
+      const labelSubmit = document.getElementById('labelSubmit');
+      const labelLoading = document.getElementById('labelLoading');
 
       if (btnAbrir && modal) {
         btnAbrir.addEventListener('click', () => {
@@ -280,6 +289,32 @@ try {
         modal.addEventListener('click', (e) => {
           if (e.target === modal) {
             modal.style.display = 'none';
+          }
+        });
+      }
+
+      if (inputCnpj) {
+        inputCnpj.addEventListener('input', (e) => {
+          let value = (e.target as HTMLInputElement).value.replace(/\D/g, '');
+          if (value.length > 14) value = value.slice(0, 14);
+          
+          let maskedValue = '';
+          if (value.length <= 2) maskedValue = value;
+          else if (value.length <= 5) maskedValue = `${value.slice(0, 2)}.${value.slice(2)}`;
+          else if (value.length <= 8) maskedValue = `${value.slice(0, 2)}.${value.slice(2, 5)}.${value.slice(5)}`;
+          else if (value.length <= 12) maskedValue = `${value.slice(0, 2)}.${value.slice(2, 5)}.${value.slice(5, 8)}/${value.slice(8)}`;
+          else maskedValue = `${value.slice(0, 2)}.${value.slice(2, 5)}.${value.slice(5, 8)}/${value.slice(8, 12)}-${value.slice(12)}`;
+          
+          (e.target as HTMLInputElement).value = maskedValue;
+        });
+      }
+
+      if (form) {
+        form.addEventListener('submit', () => {
+          if (btnSubmit && labelSubmit && labelLoading) {
+            btnSubmit.disabled = true;
+            labelSubmit.style.display = 'none';
+            labelLoading.style.display = 'flex';
           }
         });
       }
