@@ -79,9 +79,9 @@ const pontosCriticos = Object.entries(eixosStats)
     titulo: nome.split(':').slice(1).join(':').trim(),
     media: Math.round(stats.soma / stats.count)
   }))
-  .filter(e => e.media > 50) // Só mostra o que é relevante/preocupante
+  .filter(e => e.media > 30) // Baixado threshold para mostrar mais informações de atenção
   .sort((a, b) => b.media - a.media)
-  .slice(0, 3);
+  .slice(0, 5); // Aumentado para até 5 pontos críticos
 
 participantes.forEach(p => {
   if (p.respondido_em) {
