@@ -44,12 +44,44 @@ if (campanhaIds.length > 0) {
   participantes = partsData || [];
 }
 
-// --- PROCESSAMENTO DE MÉTRICAS ---
+// 4. Buscar Respostas Reais (JSON) para análise de pontos críticos
+const { data: respostasReais = [] } = await supabaseClient
+  .from('respostas_avaliacoes')
+  .select('*')
+  .eq('ciclo_id', id);
+
+// --- PROCESSAMENTO DE MÉTRICAS AVANÇADAS ---
 
 let totalEnviados = participantes.length;
 let totalRespondidos = participantes.filter(p => p.respondido_em).length;
 let somaTempoResposta = 0;
 let contagemTempo = 0;
+let totalRedFlags = 0;
+
+// Análise por Eixo
+const eixosStats: Record<string, { soma: number, count: number }> = {};
+
+respostasReais.forEach(row => {
+  const resp = (row as any).respostas;
+  totalRedFlags += (resp.red_flags || 0);
+  
+  (resp.detalhes || []).forEach((d: any) => {
+    if (!eixosStats[d.eixo]) eixosStats[d.eixo] = { soma: 0, count: 0 };
+    eixosStats[d.eixo].soma += (d.pontos || 0);
+    eixosStats[d.eixo].count += 1;
+  });
+});
+
+// Identificar os 3 eixos mais críticos (maior pontuação média)
+const pontosCriticos = Object.entries(eixosStats)
+  .map(([nome, stats]) => ({
+    nome: nome.split(':')[0], // Pega apenas "Eixo X"
+    titulo: nome.split(':').slice(1).join(':').trim(),
+    media: Math.round(stats.soma / stats.count)
+  }))
+  .filter(e => e.media > 50) // Só mostra o que é relevante/preocupante
+  .sort((a, b) => b.media - a.media)
+  .slice(0, 3);
 
 participantes.forEach(p => {
   if (p.respondido_em) {
@@ -126,13 +158,35 @@ campanhas.forEach(camp => {
           </div>
 
           <div style="background: white; padding: 1.5rem; border-radius: 16px; border: 1px solid #e2e8f0;">
-            <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Campanhas</span>
+            <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Red Flags Detectadas</span>
             <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.5rem;">
-              <span style="font-size: 2rem; font-weight: 800; color: #1e293b;">{campanhas.length}</span>
-              <span style="color: #64748b; font-weight: 600;">disparos</span>
+              <span style={`font-size: 2rem; font-weight: 800; color: ${totalRedFlags > 0 ? '#ef4444' : '#1e293b'};`}>{totalRedFlags}</span>
+              <span style="color: #64748b; font-weight: 600;">incidentes</span>
             </div>
           </div>
         </div>
+
+        <!-- Seção de Pontos Críticos -->
+        {pontosCriticos.length > 0 && (
+          <div style="background: #fff1f2; border: 1px solid #fda4af; border-radius: 20px; padding: 2rem; margin-bottom: 2.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+              <svg style="width: 24px; height: 24px; color: #e11d48;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              <h3 style="font-size: 1.25rem; font-weight: 800; color: #9f1239; margin: 0;">Diagnóstico: Pontos Críticos do Ciclo</h3>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+              {pontosCriticos.map(ponto => (
+                <div style="background: white; padding: 1.25rem; border-radius: 12px; border: 1px solid #fecdd3; box-shadow: 0 4px 6px -1px rgba(159, 18, 57, 0.05);">
+                  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                    <span style="background: #fff1f2; color: #e11d48; font-size: 0.7rem; font-weight: 800; padding: 0.25rem 0.6rem; border-radius: 99px; text-transform: uppercase;">{ponto.nome}</span>
+                    <span style="font-weight: 800; color: #e11d48;">{ponto.media} pts</span>
+                  </div>
+                  <h4 style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 0; line-height: 1.4;">{ponto.titulo}</h4>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <!-- Seções Inferiores -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
