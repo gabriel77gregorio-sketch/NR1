@@ -80,6 +80,66 @@ if (user) {
     <!-- Sidebar Modular -->
     <SidebarRH activeMenu="planos" />
 
+    <!-- Overlay/Modal Detalhes e Linha do Tempo -->
+    <div id="modalDetalhesPlano" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1100; align-items: center; justify-content: center; padding: 1rem;">
+      <div id="printableArea" style="background: white; border-radius: var(--radius-lg); width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; position: relative; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+        
+        <!-- Header Modal -->
+        <div style="padding: 2rem; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: flex-start; background: #f8fafc; border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
+          <div>
+            <div id="detalheStatus" style="font-size: 0.65rem; font-weight: 700; padding: 0.25rem 0.75rem; border-radius: 999px; text-transform: uppercase; margin-bottom: 0.5rem; display: inline-block;">STATUS</div>
+            <h2 id="detalheTitulo" style="font-size: 1.5rem; color: var(--color-primary); font-weight: 700; margin: 0;">Título da Ação</h2>
+            <p id="detalheSubtitulo" style="color: var(--color-text-muted); font-size: 0.875rem; margin-top: 0.25rem;">Setor • Prazo Final: 00/00/0000</p>
+          </div>
+          <div style="display: flex; gap: 0.75rem;" class="no-print">
+            <button id="btnImprimirPlano" style="background: white; border: 1px solid var(--color-border); padding: 0.5rem 1rem; border-radius: var(--radius-md); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; font-weight: 600; color: var(--color-text);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+              IMPRIMIR
+            </button>
+            <button id="btnFecharDetalhes" style="background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-text-muted);">&times;</button>
+          </div>
+        </div>
+
+        <div style="padding: 2rem; display: grid; grid-template-columns: 1fr 300px; gap: 2.5rem;">
+          <!-- Coluna 1: Informações Gerais -->
+          <div>
+            <section style="margin-bottom: 2rem;">
+              <h3 style="font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; margin-bottom: 1rem; letter-spacing: 0.05em;">Definição 5W2H</h3>
+              <div style="display: grid; gap: 1.25rem;">
+                <div>
+                  <label style="display: block; font-size: 0.7rem; color: var(--color-text-muted); font-weight: 600;">O QUÊ (WHAT)</label>
+                  <p id="infoWhat" style="font-weight: 500; color: var(--color-text); margin-top: 0.25rem;"></p>
+                </div>
+                <div>
+                  <label style="display: block; font-size: 0.7rem; color: var(--color-text-muted); font-weight: 600;">POR QUÊ (WHY)</label>
+                  <p id="infoWhy" style="font-size: 0.9rem; color: var(--color-text); margin-top: 0.25rem;"></p>
+                </div>
+                <div>
+                  <label style="display: block; font-size: 0.7rem; color: var(--color-text-muted); font-weight: 600;">COMO (HOW)</label>
+                  <p id="infoHow" style="font-size: 0.9rem; background: #f1f5f9; padding: 1rem; border-radius: 8px; border-left: 3px solid var(--color-primary); color: var(--color-text); margin-top: 0.5rem;"></p>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- Coluna 2: Linha do Tempo -->
+          <div style="border-left: 1px solid var(--color-border); padding-left: 2rem;">
+            <h3 style="font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; margin-bottom: 1.5rem; letter-spacing: 0.05em;">Linha do Tempo (Rastreabilidade)</h3>
+            
+            <div id="timelineContainer" style="display: flex; flex-direction: column; gap: 1.5rem; position: relative;">
+               <!-- Linha vertical decorativa -->
+               <div style="position: absolute; left: 7px; top: 0; bottom: 0; width: 2px; background: #e2e8f0; z-index: 0;"></div>
+               
+               <!-- Items da Timeline serão inseridos aqui -->
+               <div id="timelineLoading" style="text-align: center; padding: 1rem; color: var(--color-text-muted); font-size: 0.875rem;">
+                 Carregando histórico...
+               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Main Content -->
     <main class="main-content">
       <div style="padding: 2rem 3rem;">
@@ -147,8 +207,11 @@ if (user) {
                     {plano.status}
                   </span>
                 </div>
-                <div style="width: 80px; text-align: center; color: var(--color-primary); cursor: pointer;">
-                  <button title="Gerenciar Ação" class="btnGerenciarAcao" data-id={plano.id} style="background: transparent; border: 1px solid var(--color-border); padding: 0.4rem; border-radius: var(--radius-md); cursor: pointer; color: var(--color-primary);">
+                <div style="width: 80px; text-align: center; color: var(--color-primary); cursor: pointer; display: flex; gap: 0.5rem; justify-content: center;">
+                  <button title="Ver Detalhes e Timeline" class="btnVerDetalhes" data-plano={JSON.stringify(plano)} style="background: transparent; border: 1px solid var(--color-border); padding: 0.4rem; border-radius: var(--radius-md); cursor: pointer; color: var(--color-primary);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  </button>
+                  <button title="Gerenciar Gargalo" class="btnGerenciarAcao" data-id={plano.id} style="background: transparent; border: 1px solid var(--color-border); padding: 0.4rem; border-radius: var(--radius-md); cursor: pointer; color: var(--color-primary);">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                   </button>
                 </div>
@@ -344,6 +407,81 @@ if (user) {
          });
       }
 
+      // Lógica do Modal de Detalhes
+      const modalDetalhes = document.getElementById('modalDetalhesPlano');
+      const btnFecharDetalhes = document.getElementById('btnFecharDetalhes');
+      const btnImprimirPlano = document.getElementById('btnImprimirPlano');
+      const timelineContainer = document.getElementById('timelineContainer');
+      const btnsDetalhes = document.querySelectorAll('.btnVerDetalhes');
+
+      const fecharDetalhes = () => { if(modalDetalhes) modalDetalhes.style.display = 'none'; };
+      if (btnFecharDetalhes) btnFecharDetalhes.addEventListener('click', fecharDetalhes);
+      
+      if (modalDetalhes) {
+        modalDetalhes.addEventListener('click', (e) => { if(e.target === modalDetalhes) fecharDetalhes(); });
+      }
+
+      if (btnImprimirPlano) {
+        btnImprimirPlano.addEventListener('click', () => {
+          window.print();
+        });
+      }
+
+      btnsDetalhes.forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const plano = JSON.parse(btn.getAttribute('data-plano') || '{}');
+          
+          if (!modalDetalhes) return;
+          
+          // Preencher Dados Básicos
+          document.getElementById('detalheTitulo')!.innerText = plano.what_title;
+          document.getElementById('detalheSubtitulo')!.innerText = `${plano.where_location} • Prazo: ${new Date(plano.when_end).toLocaleDateString('pt-BR')}`;
+          document.getElementById('infoWhat')!.innerText = plano.what_title;
+          document.getElementById('infoWhy')!.innerText = plano.why_reason;
+          document.getElementById('infoHow')!.innerText = plano.how_method;
+          
+          const statusEl = document.getElementById('detalheStatus')!;
+          statusEl.innerText = plano.status;
+          statusEl.style.background = plano.status === 'Atrasado' ? '#fee2e2' : '#e0f2fe';
+          statusEl.style.color = plano.status === 'Atrasado' ? '#b91c1c' : '#0369a1';
+
+          modalDetalhes.style.display = 'flex';
+          
+          // Buscar Histórico via API
+          if (timelineContainer) {
+            timelineContainer.innerHTML = '<div style="position: absolute; left: 7px; top: 0; bottom: 0; width: 2px; background: #e2e8f0; z-index: 0;"></div><div style="text-align: center; padding: 1rem; color: var(--color-text-muted); font-size: 0.875rem;">Carregando histórico...</div>';
+            
+            try {
+              const res = await fetch(`/api/planos/${plano.id}/historico`);
+              const historico = await res.json();
+              
+              let html = '<div style="position: absolute; left: 7px; top: 0; bottom: 0; width: 2px; background: #e2e8f0; z-index: 0;"></div>';
+              
+              if (historico.length === 0) {
+                html += '<div style="text-align: center; padding: 1rem; color: var(--color-text-muted); font-size: 0.875rem; position: relative; z-index: 1; background: white;">Nenhum registro de movimentação ainda.</div>';
+              } else {
+                historico.forEach((step: any) => {
+                  html += `
+                    <div style="position: relative; z-index: 1; padding-left: 1.5rem;">
+                      <div style="position: absolute; left: 0; top: 5px; width: 16px; height: 16px; border-radius: 50%; background: white; border: 3px solid var(--color-primary);"></div>
+                      <div style="font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted); margin-bottom: 0.25rem;">
+                        ${new Date(step.created_at).toLocaleDateString('pt-BR')} ${new Date(step.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}
+                      </div>
+                      <div style="font-size: 0.875rem; font-weight: 600; color: var(--color-primary);">${step.responsavel_nome}</div>
+                      <p style="font-size: 0.825rem; color: var(--color-text); margin: 0.25rem 0 0;">${step.descricao}</p>
+                      ${step.data_prevista_checkpoint ? `<div style="font-size: 0.7rem; color: #b91c1c; font-weight: 600; margin-top: 0.4rem; display: flex; align-items: center; gap: 0.25rem;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Checkpoint: ${new Date(step.data_prevista_checkpoint).toLocaleDateString('pt-BR')}</div>` : ''}
+                    </div>
+                  `;
+                });
+              }
+              timelineContainer.innerHTML = html;
+            } catch (err) {
+              timelineContainer.innerHTML = '<div style="text-align: center; padding: 1rem; color: #ef4444; font-size: 0.875rem; position: relative; z-index: 1; background: white;">Erro ao carregar linha do tempo.</div>';
+            }
+          }
+        });
+      });
+
       // Lógica do Modal de Gerenciar Ação
       const modalGerenciar = document.getElementById('modalGerenciarAcao');
       const btnFecharGerenciar = document.getElementById('btnFecharGerenciar');
@@ -401,4 +539,27 @@ if (user) {
     document.addEventListener('astro:page-load', initPgrModal);
     initPgrModal();
   </script>
+  <style>
+    @media print {
+      .no-print, .app-layout > *:not(.main-content), .main-content > *:not(#modalDetalhesPlano) {
+        display: none !important;
+      }
+      #modalDetalhesPlano {
+        position: static !important;
+        display: block !important;
+        background: white !important;
+        padding: 0 !important;
+        backdrop-filter: none !important;
+      }
+      #printableArea {
+        box-shadow: none !important;
+        max-height: none !important;
+        overflow: visible !important;
+      }
+      .main-content {
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+    }
+  </style>
 </Layout>
