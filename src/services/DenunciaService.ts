@@ -87,4 +87,25 @@ IP Removido. Metadata Limpo.
     // Retorna o protocolo para ser exibido APENAS NESTA TELA para o funcionário anotar.
     return denunciaSalva.protocolo;
   }
+
+  /**
+   * Busca uma denúncia e seus andamentos pelo número de protocolo
+   */
+  async buscarDenunciaPorProtocolo(protocolo: string) {
+    const db = this.getSupabaseAdmin();
+    
+    const { data: denuncia, error } = await db
+      .from('denuncias_anonimas')
+      .select('*, denuncias_andamentos(*)')
+      .eq('protocolo', protocolo.trim().toUpperCase())
+      .order('created_at', { foreignTable: 'denuncias_andamentos', ascending: true })
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') throw new Error("Protocolo não encontrado. Verifique se digitou corretamente.");
+      throw new Error("Erro ao buscar protocolo: " + error.message);
+    }
+
+    return denuncia;
+  }
 }

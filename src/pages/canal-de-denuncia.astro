@@ -7,21 +7,32 @@ import { DenunciaService } from '../services/DenunciaService';
 
 let protocoloSalvo = null;
 let erroMensagem = null;
+let denunciaAcompanhada = null;
 
 if (Astro.request.method === "POST") {
-  try {
-    const formData = await Astro.request.formData();
-    const denunciaService = new DenunciaService();
-    
-    protocoloSalvo = await denunciaService.registrarDenuncia({
-      empresa_id: formData.get("empresa_id")?.toString() || '',
-      tipo_violacao: formData.get("tipo_violacao")?.toString() || '',
-      data_ocorrido: formData.get("data_ocorrido")?.toString() || '',
-      texto: formData.get("texto")?.toString() || '',
-      identificacao: formData.get("anonimato")?.toString() === "identificado" ? 'Identidade Opcional (Revisar Anexos)' : undefined
-    });
-  } catch (error: any) {
-    erroMensagem = error.message || "Erro desconhecido ao processar denúncia.";
+  const formData = await Astro.request.formData();
+  const action = formData.get("action")?.toString();
+  const denunciaService = new DenunciaService();
+
+  if (action === "registrar") {
+    try {
+      protocoloSalvo = await denunciaService.registrarDenuncia({
+        empresa_id: formData.get("empresa_id")?.toString() || '',
+        tipo_violacao: formData.get("tipo_violacao")?.toString() || '',
+        data_ocorrido: formData.get("data_ocorrido")?.toString() || '',
+        texto: formData.get("texto")?.toString() || '',
+        identificacao: formData.get("anonimato")?.toString() === "identificado" ? 'Identidade Opcional (Revisar Anexos)' : undefined
+      });
+    } catch (error: any) {
+      erroMensagem = error.message || "Erro desconhecido ao processar denúncia.";
+    }
+  } else if (action === "acompanhar") {
+    try {
+      const protocoloBusca = formData.get("protocolo_busca")?.toString() || '';
+      denunciaAcompanhada = await denunciaService.buscarDenunciaPorProtocolo(protocoloBusca);
+    } catch (error: any) {
+      erroMensagem = error.message || "Erro ao localizar protocolo.";
+    }
   }
 }
 ---
@@ -57,14 +68,14 @@ if (Astro.request.method === "POST") {
       <div style="display: grid; grid-template-columns: 1fr; gap: 2rem; max-width: 800px; margin: 0 auto;">
         
         <!-- Toggle (Nova Denúncia vs Acompanhar) -->
-        <div style="display: flex; background: #e2e8f0; padding: 0.5rem; border-radius: var(--radius-md); gap: 0.5rem;">
-          <button style="flex: 1; padding: 1rem; border-radius: 6px; border: none; background: white; color: var(--color-primary); font-weight: 700; font-size: 0.9rem; cursor: default; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="display: flex; background: #e2e8f0; padding: 0.5rem; border-radius: var(--radius-md); gap: 0.5rem;" class="no-print">
+          <button id="tabRegistrar" class={!denunciaAcompanhada ? 'active-tab' : 'inactive-tab'} style="flex: 1; padding: 1rem; border-radius: 6px; border: none; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: 0.2s;">
             <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
               <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
               RELATAR NOVA OCORRÊNCIA
             </div>
           </button>
-          <button style="flex: 1; padding: 1rem; border-radius: 6px; border: none; background: transparent; color: var(--color-text-muted); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.4)'" onmouseout="this.style.background='transparent'">
+          <button id="tabAcompanhar" class={denunciaAcompanhada ? 'active-tab' : 'inactive-tab'} style="flex: 1; padding: 1rem; border-radius: 6px; border: none; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: 0.2s;">
             <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
               <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
               ACOMPANHAR RELATO
@@ -81,121 +92,222 @@ if (Astro.request.method === "POST") {
             </div>
           )}
 
-          {protocoloSalvo ? (
-             <div style="text-align: center; padding: 2rem 0;">
-                <div style="width: 64px; height: 64px; background: #ecfdf5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem auto;">
-                  <svg style="width: 32px; height: 32px; color: #10b981;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                </div>
-                <h3 style="font-size: 1.5rem; color: var(--color-text); margin-bottom: 0.5rem;">Relato Concluído com Sucesso!</h3>
-                <p style="color: var(--color-text-muted); font-size: 1rem; max-width: 500px; margin: 0 auto 2rem auto;">
-                  As informações foram enviadas confidencialmente para o comitê de ética usando criptografia ponta a ponta.
-                </p>
-                <div style="background: #fbfbfc; border: 2px dashed var(--color-border); padding: 2rem; border-radius: var(--radius-lg); display: inline-block;">
-                  <div style="font-size: 0.85rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; margin-bottom: 0.5rem;">Seu Número de Protocolo</div>
-                  <div style="font-size: 2.5rem; font-weight: 900; color: var(--color-primary); letter-spacing: 2px; user-select: all;">
-                    {protocoloSalvo}
+          {/* VIEW: RELATAR */}
+          <div id="viewRegistrar" style={denunciaAcompanhada ? 'display: none;' : 'display: block;'}>
+            {protocoloSalvo ? (
+               <div style="text-align: center; padding: 2rem 0;">
+                  <div style="width: 64px; height: 64px; background: #ecfdf5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem auto;">
+                    <svg style="width: 32px; height: 32px; color: #10b981;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
                   </div>
-                </div>
-                <p style="color: var(--color-danger); font-size: 0.85rem; font-weight: 600; margin-top: 1.5rem; max-width: 500px; margin-left: auto; margin-right: auto;">
-                  ⚠️ ANOTE ESTE NÚMERO IMEDIATAMENTE. Sem ele, você nunca mais terá acesso a esta denúncia. Esta página será expirada em breve.
-                </p>
-                <div style="margin-top: 3rem;">
-                  <a href="/canal-de-denuncia" class="btn btn-outline" style="text-decoration: none;">VOLTAR AO INÍCIO SECURO</a>
-                </div>
-             </div>
-          ) : (
-            <form method="POST" style="display: flex; flex-direction: column; gap: 2rem;">
-              
-              <div style="background: rgba(107, 56, 150, 0.05); border: 1px solid rgba(107, 56, 150, 0.2); padding: 1.5rem; border-radius: var(--radius-md);">
-                <h3 style="font-size: 0.9rem; color: var(--color-primary); font-weight: 700; margin-bottom: 0.5rem;">Vínculo Empresarial</h3>
-                <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: 1rem;">Digite o Token ou digite parte do nome da sua empresa para a qual a denúncia será direcionada.</p>
-                <input name="empresa_id" type="text" required placeholder="Ex: Indústria Metalúrgica SA" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-family: inherit; font-size: 0.9rem; outline: none;" />
-              </div>
-
-              <!-- Identidade (Garantia de Anonimato) -->
-              <div>
-                <h3 style="font-size: 1.1rem; color: var(--color-text); font-weight: 600; margin-bottom: 1rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.5rem;">1. Preferência de Identificação</h3>
+                  <h3 style="font-size: 1.5rem; color: var(--color-text); margin-bottom: 0.5rem;">Relato Concluído com Sucesso!</h3>
+                  <p style="color: var(--color-text-muted); font-size: 1rem; max-width: 500px; margin: 0 auto 2rem auto;">
+                    As informações foram enviadas confidencialmente para o comitê de ética usando criptografia ponta a ponta.
+                  </p>
+                  <div style="background: #fbfbfc; border: 2px dashed var(--color-border); padding: 2rem; border-radius: var(--radius-lg); display: inline-block;">
+                    <div style="font-size: 0.85rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; margin-bottom: 0.5rem;">Seu Número de Protocolo</div>
+                    <div style="font-size: 2.5rem; font-weight: 900; color: var(--color-primary); letter-spacing: 2px; user-select: all;">
+                      {protocoloSalvo}
+                    </div>
+                  </div>
+                  <p style="color: var(--color-danger); font-size: 0.85rem; font-weight: 600; margin-top: 1.5rem; max-width: 500px; margin-left: auto; margin-right: auto;">
+                    ⚠️ ANOTE ESTE NÚMERO IMEDIATAMENTE. Sem ele, você nunca mais terá acesso a esta denúncia. Esta página será expirada em breve.
+                  </p>
+                  <div style="margin-top: 3rem;">
+                    <a href="/canal-de-denuncia" class="btn btn-outline" style="text-decoration: none;">VOLTAR AO INÍCIO SECURO</a>
+                  </div>
+               </div>
+            ) : (
+              <form method="POST" style="display: flex; flex-direction: column; gap: 2rem;">
+                <input type="hidden" name="action" value="registrar" />
                 
-                <label style="display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; padding: 1rem; border: 2px solid var(--color-primary); border-radius: var(--radius-md); background: #fbfbfc; cursor: pointer;">
-                  <input type="radio" name="anonimato" value="anonimo" checked style="margin-top: 0.2rem; transform: scale(1.2);" />
-                  <div>
-                    <div style="font-weight: 700; color: var(--color-primary); font-size: 0.95rem;">Relato Anônimo (Recomendado)</div>
-                    <div style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.3rem;">Não solicitaremos seu nome, email ou qualquer dado que possa identificá-lo. Informações de navegação (IP) não são registradas.</div>
-                  </div>
-                </label>
-
-                <label style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#fbfbfc'" onmouseout="this.style.background='transparent'">
-                  <input type="radio" name="anonimato" value="identificado" style="margin-top: 0.2rem; transform: scale(1.2);" />
-                  <div>
-                    <div style="font-weight: 600; color: var(--color-text); font-size: 0.95rem;">Relato Identificado</div>
-                    <div style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.3rem;">Desejo me identificar anexando informações e documentos. Apenas o comitê terá acesso.</div>
-                  </div>
-                </label>
-              </div>
-
-              <!-- Detalhes do Ocorrido -->
-              <div>
-                <h3 style="font-size: 1.1rem; color: var(--color-text); font-weight: 600; margin-bottom: 1rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.5rem;">2. Detalhes do Ocorrido</h3>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                  <div>
-                    <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text-muted);">TIPO DE VIOLAÇÃO *</label>
-                    <select name="tipo_violacao" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;">
-                      <option value="" selected disabled>Selecione uma categoria...</option>
-                      <option>Assédio Moral (Humilhação, perseguição)</option>
-                      <option>Assédio Sexual</option>
-                      <option>Discriminação / Preconceito</option>
-                      <option>Violação das condições de Saúde e Segurança (PGR)</option>
-                      <option>Fraude e Corrupção</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text-muted);">QUANDO ACONTECEU? *</label>
-                    <input name="data_ocorrido" required type="text" placeholder="Ex: Ontem, Há um mês atrás..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;" />
-                  </div>
+                <div style="background: rgba(107, 56, 150, 0.05); border: 1px solid rgba(107, 56, 150, 0.2); padding: 1.5rem; border-radius: var(--radius-md);">
+                  <h3 style="font-size: 0.9rem; color: var(--color-primary); font-weight: 700; margin-bottom: 0.5rem;">Vínculo Empresarial</h3>
+                  <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: 1rem;">Digite o Token ou digite parte do nome da sua empresa para a qual a denúncia será direcionada.</p>
+                  <input name="empresa_id" type="text" required placeholder="Ex: Indústria Metalúrgica SA" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-family: inherit; font-size: 0.9rem; outline: none;" />
                 </div>
 
+                <!-- Identidade (Garantia de Anonimato) -->
                 <div>
-                  <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text-muted);">DESCRIÇÃO DETALHADA DO OCORRIDO *</label>
-                  <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 0.5rem;">Forneça o máximo de detalhes possível: Onde ocorreu? Houve testemunhas envolvidas? Como foi a situação?</div>
-                  <textarea name="texto" required rows="6" placeholder="Descreva os fatos aqui..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; resize: vertical; font-family: inherit; font-size: 0.9rem;"></textarea>
-                </div>
-              </div>
+                  <h3 style="font-size: 1.1rem; color: var(--color-text); font-weight: 600; margin-bottom: 1rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.5rem;">1. Preferência de Identificação</h3>
+                  
+                  <label style="display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; padding: 1rem; border: 2px solid var(--color-primary); border-radius: var(--radius-md); background: #fbfbfc; cursor: pointer;">
+                    <input type="radio" name="anonimato" value="anonimo" checked style="margin-top: 0.2rem; transform: scale(1.2);" />
+                    <div>
+                      <div style="font-weight: 700; color: var(--color-primary); font-size: 0.95rem;">Relato Anônimo (Recomendado)</div>
+                      <div style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.3rem;">Não solicitaremos seu nome, email ou qualquer dado que possa identificá-lo. Informações de navegação (IP) não são registradas.</div>
+                    </div>
+                  </label>
 
-              <!-- Evidências -->
-              <div>
-                <h3 style="font-size: 1.1rem; color: var(--color-text); font-weight: 600; margin-bottom: 1rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.5rem;">3. Anexos e Evidências</h3>
-                
-                <div style="border: 2px dashed var(--color-border); border-radius: var(--radius-lg); padding: 2.5rem; text-align: center; background: #fafafa;">
-                  <svg style="width: 36px; height: 36px; color: var(--color-primary); margin-bottom: 1rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-                  <p style="font-size: 0.95rem; font-weight: 600; color: var(--color-text); margin: 0 0 0.25rem 0;">Clique para enviar arquivos ou arraste-os para cá</p>
-                  <p style="font-size: 0.75rem; color: var(--color-text-muted); margin: 0;">(Aceitamos fotos, capturas de tela do WhatsApp, PDFs e Áudios. Os metadados das fotos serão deletados para te proteger).</p>
+                  <label style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#fbfbfc'" onmouseout="this.style.background='transparent'">
+                    <input type="radio" name="anonimato" value="identificado" style="margin-top: 0.2rem; transform: scale(1.2);" />
+                    <div>
+                      <div style="font-weight: 600; color: var(--color-text); font-size: 0.95rem;">Relato Identificado</div>
+                      <div style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.3rem;">Desejo me identificar anexando informações e documentos. Apenas o comitê terá acesso.</div>
+                    </div>
+                  </label>
                 </div>
-              </div>
 
-              <!-- Submit Action -->
-              <div style="background: #f1f5f9; padding: 1.5rem; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between;">
-                <div style="font-size: 0.8rem; color: var(--color-text-muted); max-width: 400px; line-height: 1.4;">
-                  Ao enviar o relato, você receberá um <strong>Protocolo de Acompanhamento Único</strong> e uma <strong>Senha Segura</strong>. Guarde-os anotados. Sem eles, você jamais poderá visualizar a resposta da sua denúncia.
+                <!-- Detalhes do Ocorrido -->
+                <div>
+                  <h3 style="font-size: 1.1rem; color: var(--color-text); font-weight: 600; margin-bottom: 1rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.5rem;">2. Detalhes do Ocorrido</h3>
+                  
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div>
+                      <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text-muted);">TIPO DE VIOLAÇÃO *</label>
+                      <select name="tipo_violacao" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;">
+                        <option value="" selected disabled>Selecione uma categoria...</option>
+                        <option>Assédio Moral (Humilhação, perseguição)</option>
+                        <option>Assédio Sexual</option>
+                        <option>Discriminação / Preconceito</option>
+                        <option>Violação das condições de Saúde e Segurança (PGR)</option>
+                        <option>Fraude e Corrupção</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text-muted);">QUANDO ACONTECEU? *</label>
+                      <input name="data_ocorrido" required type="text" placeholder="Ex: Ontem, Há um mês atrás..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text-muted);">DESCRIÇÃO DETALHADA DO OCORRIDO *</label>
+                    <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 0.5rem;">Forneça o máximo de detalhes possível: Onde ocorreu? Houve testemunhas envolvidas? Como foi a situação?</div>
+                    <textarea name="texto" required rows="6" placeholder="Descreva os fatos aqui..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; resize: vertical; font-family: inherit; font-size: 0.9rem;"></textarea>
+                  </div>
                 </div>
-                <!-- Changed to type=submit for form action -->
-                <button type="submit" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1rem;">
-                  <svg style="width: 18px; height: 18px; margin-right: 0.5rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                  ENVIAR RELATO CONFIDENCIAL
-                </button>
-              </div>
 
-            </form>
-          )}
+                <!-- Evidências -->
+                <div>
+                  <h3 style="font-size: 1.1rem; color: var(--color-text); font-weight: 600; margin-bottom: 1rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.5rem;">3. Anexos e Evidências</h3>
+                  
+                  <div style="border: 2px dashed var(--color-border); border-radius: var(--radius-lg); padding: 2.5rem; text-align: center; background: #fafafa;">
+                    <svg style="width: 36px; height: 36px; color: var(--color-primary); margin-bottom: 1rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                    <p style="font-size: 0.95rem; font-weight: 600; color: var(--color-text); margin: 0 0 0.25rem 0;">Clique para enviar arquivos ou arraste-os para cá</p>
+                    <p style="font-size: 0.75rem; color: var(--color-text-muted); margin: 0;">(Aceitamos fotos, capturas de tela do WhatsApp, PDFs e Áudios. Os metadados das fotos serão deletados para te proteger).</p>
+                  </div>
+                </div>
+
+                <!-- Submit Action -->
+                <div style="background: #f1f5f9; padding: 1.5rem; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between;">
+                  <div style="font-size: 0.8rem; color: var(--color-text-muted); max-width: 400px; line-height: 1.4;">
+                    Ao enviar o relato, você receberá um <strong>Protocolo de Acompanhamento Único</strong>. Guarde-o anotado. Sem ele, você jamais poderá visualizar a resposta da sua denúncia.
+                  </div>
+                  <button type="submit" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1rem;">
+                    <svg style="width: 18px; height: 18px; margin-right: 0.5rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    ENVIAR RELATO CONFIDENCIAL
+                  </button>
+                </div>
+
+              </form>
+            )}
+          </div>
+
+          {/* VIEW: ACOMPANHAR */}
+          <div id="viewAcompanhar" style={denunciaAcompanhada ? 'display: block;' : 'display: none;'}>
+             {!denunciaAcompanhada ? (
+                <form method="POST" style="display: flex; flex-direction: column; gap: 1.5rem; max-width: 500px; margin: 0 auto; text-align: center;">
+                   <input type="hidden" name="action" value="acompanhar" />
+                   <h3 style="font-size: 1.25rem; color: var(--color-text); font-weight: 600;">Acompanhar Status de Denúncia</h3>
+                   <p style="font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 1rem;">Insira o número do protocolo que você recebeu ao finalizar o seu relato.</p>
+                   <input name="protocolo_busca" type="text" required placeholder="Ex: PROT-A1B2C3" style="width: 100%; padding: 1rem; border: 2px solid var(--color-border); border-radius: var(--radius-md); font-size: 1.5rem; font-weight: 700; text-align: center; color: var(--color-primary); outline: none; transition: border-color 0.2s;" />
+                   <button type="submit" class="btn btn-primary" style="padding: 1rem; width: 100%; font-size: 1rem; font-weight: 700;">
+                     BUSCAR ATUALIZAÇÕES
+                   </button>
+                </form>
+             ) : (
+                <div style="display: flex; flex-direction: column; gap: 2rem;">
+                   <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--color-border); padding-bottom: 1.5rem;">
+                      <div>
+                        <span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase;">Protocolo</span>
+                        <h3 style="font-size: 1.5rem; font-weight: 900; color: var(--color-primary); margin: 0;">{denunciaAcompanhada.protocolo}</h3>
+                      </div>
+                      <div style="text-align: right;">
+                        <span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase;">Status Atual</span>
+                        <div style={`font-size: 0.9rem; font-weight: 800; padding: 0.5rem 1rem; border-radius: 999px; margin-top: 0.25rem; background: ${denunciaAcompanhada.status === 'Resolvido' ? '#dcfce7' : '#fef9c3'}; color: ${denunciaAcompanhada.status === 'Resolvido' ? '#15803d' : '#854d0e'}; text-transform: uppercase;`}>
+                          {denunciaAcompanhada.status}
+                        </div>
+                      </div>
+                   </div>
+
+                   <div>
+                      <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--color-text); margin-bottom: 1rem;">Conteúdo Original do Relato</h4>
+                      <div style="background: #f8fafc; padding: 1.5rem; border-radius: var(--radius-md); border-left: 4px solid #cbd5e1; font-size: 0.9rem; color: #475569; white-space: pre-wrap;">
+                        {denunciaAcompanhada.texto}
+                      </div>
+                   </div>
+
+                   <div>
+                      <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--color-text); margin-bottom: 1rem;">Andamentos e Respostas do Comitê</h4>
+                      <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        {denunciaAcompanhada.denuncias_andamentos?.length === 0 ? (
+                          <div style="padding: 2rem; background: white; border: 1px dashed var(--color-border); border-radius: var(--radius-md); text-align: center; color: var(--color-text-muted); font-size: 0.9rem;">
+                            Aguardando a primeira análise do comitê de ética. Por favor, volte em alguns dias.
+                          </div>
+                        ) : denunciaAcompanhada.denuncias_andamentos.map((andamento: any) => (
+                          <div style="background: #eff6ff; padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid #bfdbfe;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+                              <span style="font-weight: 700; color: #1e40af; font-size: 0.85rem;">Resposta Oficial NR1</span>
+                              <span style="font-size: 0.75rem; color: #60a5fa;">{new Date(andamento.created_at).toLocaleDateString('pt-BR')}</span>
+                            </div>
+                            <p style="margin: 0; font-size: 0.95rem; color: #1e3a8a; line-height: 1.5;">{andamento.texto}</p>
+                          </div>
+                        ))}
+                      </div>
+                   </div>
+
+                   <div style="margin-top: 1rem; text-align: center;">
+                      <a href="/canal-de-denuncia" class="btn btn-outline">REALIZAR NOVO RELATO</a>
+                   </div>
+                </div>
+             )}
+          </div>
         </div>
 
       </div>
     </main>
     
     <!-- Footer Restrito -->
-    <footer style="text-align: center; padding: 2rem; color: var(--color-text-muted); font-size: 0.75rem;">
-      &copy; 2026 SaaS NR1 - Todos os direitos reservados. Em caso de emergências graves, contate 190.<br/>
-      Tecnologia de criptografia protegida.
-    </footer>
+    <script>
+      function initChannelTabs() {
+        const tabRegistrar = document.getElementById('tabRegistrar');
+        const tabAcompanhar = document.getElementById('tabAcompanhar');
+        const viewRegistrar = document.getElementById('viewRegistrar');
+        const viewAcompanhar = document.getElementById('viewAcompanhar');
+
+        if (!tabRegistrar || !tabAcompanhar || !viewRegistrar || !viewAcompanhar) return;
+
+        tabRegistrar.addEventListener('click', () => {
+          tabRegistrar.className = 'active-tab';
+          tabAcompanhar.className = 'inactive-tab';
+          viewRegistrar.style.display = 'block';
+          viewAcompanhar.style.display = 'none';
+        });
+
+        tabAcompanhar.addEventListener('click', () => {
+          tabAcompanhar.className = 'active-tab';
+          tabRegistrar.className = 'inactive-tab';
+          viewAcompanhar.style.display = 'block';
+          viewRegistrar.style.display = 'none';
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', initChannelTabs);
+      document.addEventListener('astro:page-load', initChannelTabs);
+    </script>
+
+    <style>
+      .active-tab {
+        background: white !important;
+        color: var(--color-primary) !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      .inactive-tab {
+        background: transparent !important;
+        color: var(--color-text-muted) !important;
+      }
+      .inactive-tab:hover {
+        background: rgba(255,255,255,0.4) !important;
+      }
+    </style>
   </div>
 </Layout>
