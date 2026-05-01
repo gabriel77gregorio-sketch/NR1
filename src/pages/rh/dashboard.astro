@@ -16,7 +16,6 @@ let data = { user: { email: 'rh@empresa.com', name: 'Gestão PGR' }, company: 'E
 let gruposExposicao: any[] = [];
 let indicadoresEixos: any[] = [];
 let departamentos: any[] = [];
-let userRole = 'RH';
 
 // Filtros
 const searchParams = Astro.url.searchParams;
@@ -32,7 +31,6 @@ if (user) {
   const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, role, empresa_id').eq('id', user.id).single();
   if (perfil) {
     data.user.name = perfil.nome;
-    userRole = perfil.role;
     empresaId = perfil.empresa_id;
   }
 

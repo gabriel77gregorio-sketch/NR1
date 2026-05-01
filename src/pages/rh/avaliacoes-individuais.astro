@@ -1,17 +1,11 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import SidebarRH from '../../components/SidebarRH.astro';
-import { supabase } from '../../lib/supabase';
-import { AvaliacaoIndividualService } from '../../services/AvaliacaoIndividualService';
-
 // Proteção de Rota (Bypass)
-const supabaseClient = supabase(Astro);
-let user = null;
-try {
-  const { data: authData } = await supabaseClient.auth.getUser();
-  user = authData?.user;
-} catch (e) { }
-const avaliacaoService = new AvaliacaoIndividualService(supabaseClient);
+// const supabaseClient = supabase(Astro);
+// const { data: authData } = await supabaseClient.auth.getUser();
+// const user = authData?.user;
+// const avaliacaoService = new AvaliacaoIndividualService(supabaseClient);
 
 // Mock Dados
 let avaliacoes = [

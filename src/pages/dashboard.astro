@@ -15,14 +15,12 @@ if (!user && !isBypass) {
 if (user) {
   const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, role, empresa_id').eq('id', user.id).single();
 
-  // Bloqueio Total para Quem não é SuperAdmin
   if (!perfil || perfil.role !== 'SuperAdmin') {
     return Astro.redirect('/rh/dashboard');
   }
-  userPerfil = { email: user.email, name: perfil.nome };
+  userPerfil = { email: user.email || '', name: perfil.nome };
 }
 
-// Configurações do SSR e Processamento de POST
 const masterService = new ClienteMasterService();
 let msgErro = null;
 let msgSucesso = null;
@@ -46,7 +44,6 @@ if (Astro.request.method === "POST") {
 let clientsDb = [];
 try {
   if (isBypass) {
-    // Mock local de empresas para não travar a tela em dev mode
     clientsDb = [
       { id: 'uuid-1', nome: 'Indústria Metalúrgica SA', cnpj: '12.345.678/0001-90', planos_de_acao_pgr: [{ count: 12 }], denuncias_anonimas: [{ count: 3 }], campanhas_pesquisa: [{ count: 1 }] },
       { id: 'uuid-2', nome: 'Logística TransNacional', cnpj: '98.765.432/0001-10', planos_de_acao_pgr: [{ count: 4 }], denuncias_anonimas: [{ count: 0 }], campanhas_pesquisa: [{ count: 2 }] }
@@ -55,202 +52,276 @@ try {
     clientsDb = await masterService.listarClientes();
   }
 } catch (e) {
-  console.log("Banco sem empresas ainda ou erro.");
+  console.log("Erro ao carregar clientes.");
 }
+
+// Estatísticas globais
+const totalClientes = clientsDb.length;
+const totalPlanos = (clientsDb || []).reduce((acc, c) => acc + (c.planos_de_acao_pgr?.[0]?.count || 0), 0);
+const totalDenuncias = (clientsDb || []).reduce((acc, c) => acc + (c.denuncias_anonimas?.[0]?.count || 0), 0);
 ---
 
-<Layout title="Dashboard Profissional">
-  <div class="app-layout">
+<Layout title="Master Admin Dashboard">
+  <div class="app-layout" style="background: #fdfbff; background-image: radial-gradient(#e2e8f0 0.5px, transparent 0.5px); background-size: 24px 24px;">
     
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div style="padding: 1.5rem 1rem; border-bottom: 1px solid var(--color-border); display: flex; align-items: center; justify-content: space-between;">
-        <h1 style="color: var(--color-primary); font-size: 1.5rem; font-weight: 500; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-          <svg style="width: 24px; height: 24px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
-          SaaS NR1
+    <!-- Sidebar Premium -->
+    <aside class="sidebar" style="width: 280px; background: white; border-right: 1px solid var(--color-border); box-shadow: 4px 0 24px rgba(0,0,0,0.02);">
+      <div style="padding: 2rem 1.5rem; border-bottom: 1px solid var(--color-border);">
+        <h1 class="gradient-text" style="font-size: 1.75rem; margin: 0; display: flex; align-items: center; gap: 0.75rem; letter-spacing: -0.5px;">
+          <div style="width: 32px; height: 32px; background: var(--color-primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white;">
+            <svg style="width: 20px; height: 20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+          </div>
+          NR1 MASTER
         </h1>
-        <svg class="icon" style="color: var(--color-primary); cursor: pointer;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"></path></svg>
       </div>
       
-      <div style="padding: 1rem; border-bottom: 1px solid var(--color-border); background: #fbfbfc;">
-        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-          <div style="width: 36px; height: 36px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted);">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      <div style="padding: 1.5rem; border-bottom: 1px solid var(--color-border);">
+        <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: #f8fafc; border-radius: var(--radius-lg);">
+          <div style="width: 40px; height: 40px; border-radius: 12px; background: var(--color-secondary); display: flex; align-items: center; justify-content: center; color: var(--color-primary);">
+            <svg style="width: 24px; height: 24px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
           </div>
-          <div>
-            <p style="font-size: 0.8rem; font-weight: 600; color: var(--color-text); margin: 0;">{userPerfil.name}</p>
-            <p style="font-size: 0.7rem; color: var(--color-text-muted); margin: 0;">{userPerfil.email}</p>
+          <div style="overflow: hidden;">
+            <p style="font-size: 0.875rem; font-weight: 700; color: var(--color-text); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{userPerfil.name}</p>
+            <p style="font-size: 0.75rem; color: var(--color-text-muted); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{userPerfil.email}</p>
           </div>
         </div>
-        <button class="btn btn-primary" style="width: 100%; justify-content: center;">ATUALIZAR PERFIL</button>
       </div>
 
-      <nav style="flex: 1; padding: 1rem 0; overflow-y: auto;">
-        <ul style="list-style: none; margin: 0; padding: 0;">
+      <nav style="flex: 1; padding: 1.5rem 1rem;">
+        <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem;">
           <li>
-            <a href="#" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-text); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
-              <svg class="icon" style="color: var(--color-primary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-              GESTÃO DE ASSESSORIA
-            </a>
-          </li>
-          <li style="background: white; border-left: 3px solid var(--color-primary);">
-            <a href="#" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-primary); text-decoration: none; font-size: 0.8rem; font-weight: 600; gap: 0.75rem;">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-              Planos de Ação
+            <a href="#" style="display: flex; align-items: center; padding: 0.875rem 1.25rem; background: var(--color-secondary); color: var(--color-primary); border-radius: 12px; text-decoration: none; font-size: 0.9rem; font-weight: 600; gap: 1rem; transition: all 0.2s;">
+              <svg style="width: 20px; height: 20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+              Gestão de Clientes
             </a>
           </li>
           <li>
-            <a href="#" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-text); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
-              <svg class="icon" style="color: var(--color-primary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
-              Avaliações Psicossociais
+            <a href="#" class="nav-link" style="display: flex; align-items: center; padding: 0.875rem 1.25rem; color: var(--color-text-muted); border-radius: 12px; text-decoration: none; font-size: 0.9rem; font-weight: 500; gap: 1rem; transition: all 0.2s;">
+              <svg style="width: 20px; height: 20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+              Serviços & Planos
             </a>
           </li>
           <li>
-            <a href="#" style="display: flex; align-items: center; padding: 0.75rem 1rem; color: var(--color-text); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
-              <svg class="icon" style="color: var(--color-text-muted);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
-              CONFIGURAÇÕES
+            <a href="#" class="nav-link" style="display: flex; align-items: center; padding: 0.875rem 1.25rem; color: var(--color-text-muted); border-radius: 12px; text-decoration: none; font-size: 0.9rem; font-weight: 500; gap: 1rem; transition: all 0.2s;">
+              <svg style="width: 20px; height: 20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              Configurações
             </a>
           </li>
         </ul>
       </nav>
-      <div style="padding: 1rem; border-top: 1px solid var(--color-border);">
-        <a href="#" style="display: flex; align-items: center; color: var(--color-text-muted); text-decoration: none; font-size: 0.8rem; font-weight: 500; gap: 0.75rem;">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-          SAIR
+
+      <div style="padding: 1.5rem; border-top: 1px solid var(--color-border);">
+        <a href="/login" style="display: flex; align-items: center; color: var(--color-danger); text-decoration: none; font-size: 0.9rem; font-weight: 600; gap: 1rem; padding: 0.75rem 1.25rem; border-radius: 12px; transition: background 0.2s;">
+          <svg style="width: 20px; height: 20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          Encerrar Sessão
         </a>
       </div>
     </aside>
 
-    <!-- Main Content -->
-    <main class="main-content">
-      <div style="padding: 2rem 3rem;">
-        
-        {msgErro && (
-          <div style="background: #fee2e2; color: #b91c1c; padding: 1rem; border-radius: var(--radius-md); margin-bottom: 2rem; border: 1px solid #f87171;">
-            <strong>Erro HTTP:</strong> {msgErro}
-          </div>
-        )}
+    <!-- Main Content Premium -->
+    <main class="main-content" style="padding: 2.5rem 3.5rem;">
+      
+      <!-- Top Feedback Messages -->
+      {msgErro && (
+        <div class="glass" style="background: #fff5f5; border-color: #feb2b2; color: #c53030; padding: 1.25rem; border-radius: var(--radius-lg); margin-bottom: 2rem; display: flex; align-items: center; gap: 1rem;">
+          <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <span style="font-weight: 500;">{msgErro}</span>
+        </div>
+      )}
 
-        {msgSucesso && (
-          <div style="background: #d1fae5; color: #047857; padding: 1rem; border-radius: var(--radius-md); margin-bottom: 2rem; border: 1px solid #34d399;">
-            <strong>✅ Operação Sucesso:</strong> {msgSucesso}
-          </div>
-        )}
+      {msgSucesso && (
+        <div class="glass" style="background: #f0fff4; border-color: #9ae6b4; color: #276749; padding: 1.25rem; border-radius: var(--radius-lg); margin-bottom: 2rem; display: flex; align-items: center; gap: 1rem;">
+          <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          <span style="font-weight: 500;">{msgSucesso}</span>
+        </div>
+      )}
 
-        <!-- Header area matching reference -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-          <div style="display: flex; align-items: center; gap: 1rem;">
-            <h2 style="font-size: 1.5rem; color: var(--color-primary); font-weight: 400; margin: 0;">Progresso de Clientes e Planos</h2>
-            <span style="font-size: 0.75rem; padding: 0.25rem 0.75rem; background: #E3D9EE; color: var(--color-primary); border-radius: 999px; font-weight: 600;">{clientsDb.length} clientes ativos</span>
+      <!-- Dashboard Header -->
+      <header style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3rem;">
+        <div>
+          <h2 style="font-size: 2.25rem; font-weight: 800; color: var(--color-text); margin: 0; letter-spacing: -1px;">Gerenciamento de Clientes</h2>
+          <p style="color: var(--color-text-muted); font-size: 1.125rem; margin-top: 0.5rem;">Controle centralizado de tenants e acessos do ecossistema NR1.</p>
+        </div>
+        <button id="btnNovoCliente" class="btn btn-primary" style="padding: 0.875rem 1.75rem; font-size: 0.9rem; box-shadow: 0 10px 15px -3px rgba(107, 56, 150, 0.3);">
+          <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          NOVO CLIENTE
+        </button>
+      </header>
+
+      <!-- Stats Overview Cards -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+        <div class="card" style="display: flex; flex-direction: column; gap: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="padding: 0.5rem; background: #f0f9ff; color: #0369a1; border-radius: 10px;">
+              <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+            <span style="font-size: 0.75rem; font-weight: 700; color: #059669; background: #ecfdf5; padding: 0.25rem 0.5rem; border-radius: 6px;">+12%</span>
           </div>
-          <button id="btnNovoCliente" class="btn btn-primary">
-            <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            NOVO CLIENTE
-          </button>
+          <div>
+            <p style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-muted); margin: 0;">Total de Clientes</p>
+            <p style="font-size: 1.75rem; font-weight: 800; color: var(--color-text); margin: 0;">{totalClientes}</p>
+          </div>
         </div>
 
-        <!-- Search Bar -->
-        <div style="position: relative; margin-bottom: 2rem; max-width: 600px;">
-          <svg style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--color-text-muted); width: 20px; height: 20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <input type="text" placeholder="Buscar por cliente, documento ou matriz..." style="width: 100%; padding: 0.75rem 1rem 0.75rem 3rem; border: 1px solid var(--color-border); border-radius: var(--radius-pill); font-family: inherit; font-size: 0.875rem; outline: none;" />
+        <div class="card" style="display: flex; flex-direction: column; gap: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="padding: 0.5rem; background: #fff7ed; color: #c2410c; border-radius: 10px;">
+              <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+            </div>
+          </div>
+          <div>
+            <p style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-muted); margin: 0;">Planos Ativos (PGR)</p>
+            <p style="font-size: 1.75rem; font-weight: 800; color: var(--color-text); margin: 0;">{totalPlanos}</p>
+          </div>
+        </div>
+
+        <div class="card" style="display: flex; flex-direction: column; gap: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="padding: 0.5rem; background: #fdf2f8; color: #be185d; border-radius: 10px;">
+              <svg style="width: 24px; height: 24px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </div>
+            <span style="font-size: 0.75rem; font-weight: 700; color: #dc2626; background: #fef2f2; padding: 0.25rem 0.5rem; border-radius: 6px;">Critico</span>
+          </div>
+          <div>
+            <p style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-muted); margin: 0;">Alertas Pendentes</p>
+            <p style="font-size: 1.75rem; font-weight: 800; color: var(--color-text); margin: 0;">{totalDenuncias}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Data Table Container -->
+      <div class="card" style="padding: 0; overflow: hidden; border: none; box-shadow: var(--shadow-lg);">
+        <!-- Table Header / Actions -->
+        <div style="padding: 1.5rem 2rem; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
+          <div style="position: relative; width: 400px;">
+            <svg style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--color-text-muted); width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" placeholder="Filtrar por nome ou CNPJ..." style="width: 100%; padding: 0.75rem 1rem 0.75rem 3rem; border: 1px solid var(--color-border); border-radius: 12px; font-family: inherit; font-size: 0.875rem; outline: none; background: white; transition: border-color 0.2s;" />
+          </div>
+          <div style="display: flex; gap: 0.75rem;">
+            <button class="btn btn-outline" style="border-radius: 10px; text-transform: none; font-size: 0.875rem;">
+              <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Exportar
+            </button>
+          </div>
         </div>
 
         <!-- Table Content -->
-        <div style="background: white; border-top: 1px solid var(--color-border);">
-          <div style="display: flex; padding: 1rem 0; font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.5px; border-bottom: 1px solid var(--color-border);">
-            <div style="width: 40px; text-align: center;"></div>
-            <div style="flex: 2;">NOME DO CLIENTE / CNPJ</div>
-            <div style="flex: 2; text-align: center;">MÉTRICAS INTEGRADAS</div>
-            <div style="flex: 1; text-align: center;">ID DO TENANT</div>
-            <div style="width: 80px; text-align: center;">AÇÕES</div>
-          </div>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; min-width: 800px;">
+            <thead>
+              <tr style="background: #f8fafc; border-bottom: 1px solid var(--color-border);">
+                <th style="padding: 1.25rem 2rem; text-align: left; font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Cliente</th>
+                <th style="padding: 1.25rem 2rem; text-align: center; font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Indicadores Ativos</th>
+                <th style="padding: 1.25rem 2rem; text-align: center; font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Tenant ID</th>
+                <th style="padding: 1.25rem 2rem; text-align: center; font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Status</th>
+                <th style="padding: 1.25rem 2rem; text-align: center; font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {clientsDb.length === 0 ? (
+                <tr>
+                  <td colspan="5" style="padding: 4rem; text-align: center; color: var(--color-text-muted);">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                      <svg style="width: 48px; height: 48px; color: #e2e8f0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                      <p>Nenhum cliente registrado na plataforma.</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : clientsDb.map((client) => {
+                const numPlanos = client.planos_de_acao_pgr?.[0]?.count || 0;
+                const numDenuncias = client.denuncias_anonimas?.[0]?.count || 0;
+                const numCampanhas = client.campanhas_pesquisa?.[0]?.count || 0;
 
-          {clientsDb.length === 0 ? (
-            <div style="padding: 2rem; text-align: center; color: var(--color-text-muted);">
-              Nenhum cliente cadastrado ainda. Use o botão acima para injetar a primeira empresa.
-            </div>
-          ) : clientsDb.map((client) => {
-            const numPlanos = client.planos_de_acao_pgr?.[0]?.count || 0;
-            const numDenuncias = client.denuncias_anonimas?.[0]?.count || 0;
-            const numCampanhas = client.campanhas_pesquisa?.[0]?.count || 0;
-
-            return (
-              <div class="table-row-hover hover:bg-slate-50 transition-colors duration-200" style="display: flex; align-items: center; padding: 1.25rem 0; font-size: 0.875rem; border-bottom: 1px solid #f1f5f9;">
-                <div style="width: 40px; text-align: center;">
-                  <input type="checkbox" style="width: 16px; height: 16px; border: 1px solid var(--color-border); border-radius: 4px;" />
-                </div>
-                <div style="flex: 2;">
-                  <div style="font-size: 0.95rem; color: var(--color-primary); margin-bottom: 0.25rem; font-weight: 600;">{client.nome}</div>
-                  <div style="color: var(--color-text-muted); font-size: 0.75rem;">CNPJ: {client.cnpj}</div>
-                </div>
-                <div style="flex: 2; display: flex; gap: 0.5rem; justify-content: center; align-items: center;">
-                  <span class="badge" title="Planos de Ação (GRO) Abertos" style="background: #e0f2fe; color: #0284c7; font-size: 0.65rem; border-radius: 99px; padding: 0.3rem 0.6rem; display: flex; gap: 0.25rem; align-items: center;">
-                    <svg style="width:12px; height: 12px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                    {numPlanos} Planos
-                  </span>
-                  <span class="badge" title="Denúncias Anônimas Registradas" style="background: #fce7f3; color: #be185d; font-size: 0.65rem; border-radius: 99px; padding: 0.3rem 0.6rem; display: flex; gap: 0.25rem; align-items: center;">
-                    <svg style="width: 12px; height: 12px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                    {numDenuncias} Alertas
-                  </span>
-                  <span class="badge" title="Campanhas de Pesquisa" style="background: #dcfce7; color: #15803d; font-size: 0.65rem; border-radius: 99px; padding: 0.3rem 0.6rem; display: flex; gap: 0.25rem; align-items: center;">
-                    <svg style="width: 12px; height: 12px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
-                    {numCampanhas} Campanhas
-                  </span>
-                </div>
-                <div style="flex: 1; text-align: center; color: var(--color-text-muted); font-family: monospace; font-size: 0.7rem;" title={client.id}>
-                  {client.id.split('-')[0]}...
-                </div>
-                <div style="width: 80px; text-align: center; color: var(--color-primary); cursor: pointer;">
-                  <a href="/login" title="Acessar Área do Cliente via Login" style="display: inline-block; background: transparent; border: 1px solid var(--color-border); padding: 0.4rem; border-radius: var(--radius-md); cursor: pointer; color: var(--color-primary);">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                  </a>
-                </div>
-              </div>
-            );
-          })}
+                return (
+                  <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s;">
+                    <td style="padding: 1.5rem 2rem;">
+                      <div style="display: flex; flex-direction: column;">
+                        <span style="font-weight: 700; color: var(--color-text); font-size: 1rem;">{client.nome}</span>
+                        <span style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.25rem;">CNPJ: {client.cnpj}</span>
+                      </div>
+                    </td>
+                    <td style="padding: 1.5rem 2rem; text-align: center;">
+                      <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                        <div title="Planos de Ação" style="display: flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.75rem; background: #f0f9ff; color: #0369a1; border-radius: 8px; font-size: 0.75rem; font-weight: 700;">
+                          <svg style="width: 14px; height: 14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                          {numPlanos}
+                        </div>
+                        <div title="Denúncias" style="display: flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.75rem; background: #fff1f2; color: #be123c; border-radius: 8px; font-size: 0.75rem; font-weight: 700;">
+                          <svg style="width: 14px; height: 14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+                          {numDenuncias}
+                        </div>
+                        <div title="Campanhas" style="display: flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.75rem; background: #f0fdf4; color: #15803d; border-radius: 8px; font-size: 0.75rem; font-weight: 700;">
+                          <svg style="width: 14px; height: 14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg>
+                          {numCampanhas}
+                        </div>
+                      </div>
+                    </td>
+                    <td style="padding: 1.5rem 2rem; text-align: center;">
+                      <code style="background: #f1f5f9; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; color: #475569;">{client.id.split('-')[0]}...</code>
+                    </td>
+                    <td style="padding: 1.5rem 2rem; text-align: center;">
+                      <span style="display: inline-flex; align-items: center; gap: 0.35rem; background: #ecfdf5; color: #065f46; padding: 0.35rem 0.75rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700;">
+                        <span style="width: 6px; height: 6px; background: #10b981; border-radius: 50%;"></span>
+                        Ativo
+                      </span>
+                    </td>
+                    <td style="padding: 1.5rem 2rem; text-align: center;">
+                      <a href="/login" class="btn btn-outline" style="padding: 0.5rem; min-width: 0; width: 36px; height: 36px; border-radius: 8px; color: var(--color-primary);">
+                        <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                      </a>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
     </main>
 
-    <!-- HTML Modal de Criação via SSR -->
-    <div id="modalCliente" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-      <div style="background: white; border-radius: var(--radius-lg); width: 100%; max-width: 500px; padding: 2rem; position: relative; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
-        <button id="btnFecharModal" style="position: absolute; top: 1rem; right: 1rem; background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-text-muted);">&times;</button>
-        <h2 style="font-size: 1.25rem; color: var(--color-primary); margin-bottom: 0.5rem; font-weight: 600;">Provisionar Novo Cliente</h2>
-        <p style="color: var(--color-text-muted); font-size: 0.8rem; margin-bottom: 1.5rem; line-height: 1.4;">Isso criará o Banco de Dados Virtual (Tenant) e o login via apis do Supabase Auth.</p>
+    <!-- Premium Creation Modal -->
+    <div id="modalCliente" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 1.5rem;">
+      <div class="glass" style="background: white; border-radius: var(--radius-xl); width: 100%; max-width: 550px; padding: 2.5rem; position: relative; box-shadow: var(--shadow-xl); border: none;">
+        <button id="btnFecharModal" style="position: absolute; top: 1.5rem; right: 1.5rem; background: #f1f5f9; border: none; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-text-muted); transition: all 0.2s;">&times;</button>
         
-        <form method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
-          <div>
-            <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.2rem; color: var(--color-text-muted);">RAZÃO SOCIAL *</label>
-            <input name="nome_empresa" type="text" required placeholder="SaaS NR1 Solutions" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;" />
-          </div>
-          <div>
-            <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.2rem; color: var(--color-text-muted);">CNPJ *</label>
-            <input id="inputCnpj" name="cnpj" type="text" required placeholder="00.000.000/0001-00" maxlength="18" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;" />
-          </div>
-          <div style="border-top: 1px dashed var(--color-border); padding-top: 1rem; margin-top: 0.5rem;">
-            <p style="font-size: 0.8rem; font-weight: 600; color: var(--color-primary); margin-bottom: 1rem;">Setup de Administrador Local (RH)</p>
-            <div style="display: grid; gap: 1rem;">
-              <div>
-                <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.2rem; color: var(--color-text-muted);">NOME DO ADMIN *</label>
-                <input name="nome_admin" type="text" required placeholder="João RH" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;" />
-              </div>
-              <div>
-                <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.2rem; color: var(--color-text-muted);">EMAIL DE ACESSO (Login Auth) *</label>
-                <input name="email_admin" type="email" required placeholder="rh@cliente.com" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;" />
-              </div>
-              <div>
-                <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.2rem; color: var(--color-text-muted);">SENHA PROVISÓRIA *</label>
-                <input name="senha_provisoria" type="text" required placeholder="SenhaSegura@123" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;" />
-              </div>
+        <header style="margin-bottom: 2rem;">
+          <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--color-text); margin: 0; letter-spacing: -0.5px;">Provisionar Cliente</h2>
+          <p style="color: var(--color-text-muted); font-size: 0.875rem; margin-top: 0.5rem; line-height: 1.5;">Configuração de novo ambiente isolado e credenciais administrativas para o cliente.</p>
+        </header>
+        
+        <form method="POST" style="display: flex; flex-direction: column; gap: 1.25rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+            <div style="grid-column: span 2;">
+              <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--color-text); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Razão Social da Empresa</label>
+              <input name="nome_empresa" type="text" required placeholder="Ex: Indústrias Brasil Ltda" style="width: 100%; padding: 0.875rem 1rem; border: 1.5px solid #e2e8f0; border-radius: 12px; outline: none; font-family: inherit; font-size: 0.9rem;" />
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--color-text); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">CNPJ</label>
+              <input id="inputCnpj" name="cnpj" type="text" required placeholder="00.000.000/0001-00" maxlength="18" style="width: 100%; padding: 0.875rem 1rem; border: 1.5px solid #e2e8f0; border-radius: 12px; outline: none; font-family: inherit; font-size: 0.9rem;" />
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--color-text); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Nome do Admin RH</label>
+              <input name="nome_admin" type="text" required placeholder="Ex: Maria Souza" style="width: 100%; padding: 0.875rem 1rem; border: 1.5px solid #e2e8f0; border-radius: 12px; outline: none; font-family: inherit; font-size: 0.9rem;" />
             </div>
           </div>
-          <div style="margin-top: 1rem;">
-            <button id="btnSubmitProvisionar" type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+
+          <div style="padding-top: 1.25rem; border-top: 1px dashed #e2e8f0; display: flex; flex-direction: column; gap: 1.25rem;">
+            <div>
+              <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--color-text); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">E-mail de Acesso (Login)</label>
+              <input name="email_admin" type="email" required placeholder="admin@cliente.com.br" style="width: 100%; padding: 0.875rem 1rem; border: 1.5px solid #e2e8f0; border-radius: 12px; outline: none; font-family: inherit; font-size: 0.9rem;" />
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--color-text); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Senha Provisória</label>
+              <input name="senha_provisoria" type="text" required placeholder="Mínimo 6 caracteres" style="width: 100%; padding: 0.875rem 1rem; border: 1.5px solid #e2e8f0; border-radius: 12px; outline: none; font-family: inherit; font-size: 0.9rem;" />
+            </div>
+          </div>
+
+          <div style="margin-top: 1.5rem;">
+            <button id="btnSubmitProvisionar" type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; border-radius: 12px; font-size: 0.9rem; box-shadow: 0 4px 6px -1px rgba(107, 56, 150, 0.1);">
               <span id="labelSubmit">CRIAR CLIENTE NO SUPABASE</span>
               <span id="labelLoading" style="display: none; align-items: center; gap: 0.5rem;">
-                <svg class="animate-spin" style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M4 12a8 8 0 0 1 8-8" stroke-opacity="1"></path></svg>
-                PROVISIONANDO...
+                <svg class="animate-spin" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M4 12a8 8 0 0 1 8-8" stroke-opacity="1"></path></svg>
+                PROCESSANDO...
               </span>
             </button>
           </div>
@@ -259,11 +330,15 @@ try {
     </div>
   </div>
 
+  <style>
+    .nav-link:hover {
+      background: #f8fafc;
+      color: var(--color-primary) !important;
+    }
+  </style>
+
   <script>
-    // Em Astro, <script> tradicional (sem is:inline) é processado, minificado e empacotado como um Module,
-    // o que permite contornar naturalmente as Políticas Restritivas de CSP (Content Security Policy) sem usar unsafe-inline.
-    
-    function initModal() {
+    function initDashboard() {
       const btnAbrir = document.getElementById('btnNovoCliente');
       const btnFechar = document.getElementById('btnFecharModal');
       const modal = document.getElementById('modalCliente');
@@ -315,18 +390,14 @@ try {
             btnSubmit.disabled = true;
             labelSubmit.style.display = 'none';
             labelLoading.style.display = 'flex';
+            labelLoading.style.justifyContent = 'center';
           }
         });
       }
     }
 
-    // Aguarda montagem DOM na inicialização primária (ou Astro view transitions)
-    document.addEventListener('DOMContentLoaded', initModal);
-    
-    // Astro ViewTransitions fallback
-    document.addEventListener('astro:page-load', initModal);
-
-    // Call imediato se o script rodar defer via Vite bundle com async fallback.
-    initModal();
+    document.addEventListener('DOMContentLoaded', initDashboard);
+    document.addEventListener('astro:page-load', initDashboard);
+    initDashboard();
   </script>
 </Layout>

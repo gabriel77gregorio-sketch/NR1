@@ -27,9 +27,6 @@ const prefillWhy = prefillRisk ? `Nível ${prefillRisk} (Score NR1: ${prefillSco
 const autoOpen = prefillSector ? "true" : "false";
 
 if (user) {
-  // Usuário logado
-  const planoAcaoService = new PlanoAcaoService(supabaseClient);
-  
   // Handlers de formulário POST
   if (Astro.request.method === "POST") {
     try {
@@ -354,7 +351,7 @@ if (user) {
       const selectAcaoTomar = document.getElementById('selectAcaoTomar');
       const divProximoResponsavel = document.getElementById('divProximoResponsavel');
       const btnSalvarGerenciar = document.getElementById('btnSalvarGerenciar');
-      let currentPlanoId = null;
+      // currentPlanoId removido para evitar avisos de build.
 
       const btnsGerenciar = document.querySelectorAll('.btnGerenciarAcao');
       btnsGerenciar.forEach(btn => {

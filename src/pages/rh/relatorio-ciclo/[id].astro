@@ -61,7 +61,7 @@ let totalRedFlags = 0;
 // Análise por Eixo
 const eixosStats: Record<string, { soma: number, count: number }> = {};
 
-respostasReais.forEach(row => {
+(respostasReais || []).forEach(row => {
   const resp = (row as any).respostas;
   totalRedFlags += (resp.red_flags || 0);
   
@@ -96,12 +96,12 @@ const taxaEngajamento = totalEnviados > 0 ? Math.round((totalRespondidos / total
 const tempoMedioMinutos = contagemTempo > 0 ? Math.round((somaTempoResposta / contagemTempo) / 60000) : 0;
 
 // Agrupar por canal (baseado nas campanhas)
-const performanceCanais = {
+const performanceCanais: Record<string, { total: number, resp: number }> = {
   email: { total: 0, resp: 0 },
   whatsapp: { total: 0, resp: 0 }
 };
 
-campanhas.forEach(camp => {
+(campanhas || []).forEach(camp => {
   const canal = (camp.canal || 'email').toLowerCase();
   const partsCamp = participantes.filter(p => p.campanha_id === camp.id);
   

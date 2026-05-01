@@ -1,13 +1,10 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import SidebarRH from '../../components/SidebarRH.astro';
-import { supabase } from '../../lib/supabase';
-import { AdvertenciaService } from '../../services/AdvertenciaService';
-
 // Proteção de Rota (Bypass)
-const supabaseClient = supabase(Astro);
-const user = null; // bypassed
-const advertenciaService = new AdvertenciaService(supabaseClient);
+// const supabaseClient = supabase(Astro);
+// const user = null; // bypassed
+// const advertenciaService = new AdvertenciaService(supabaseClient);
 
 // Mock Dados
 let advertencias = [
