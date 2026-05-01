@@ -357,7 +357,6 @@ if (user) {
       btnsGerenciar.forEach(btn => {
         btn.addEventListener('click', (e) => {
           const target = e.currentTarget as HTMLButtonElement;
-          currentPlanoId = target.getAttribute('data-id');
           if (modalGerenciar) modalGerenciar.style.display = 'flex';
         });
       });
