@@ -82,57 +82,109 @@ if (user) {
 
     <!-- Overlay/Modal Detalhes e Linha do Tempo -->
     <div id="modalDetalhesPlano" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1100; align-items: center; justify-content: center; padding: 1rem;">
-      <div id="printableArea" style="background: white; border-radius: var(--radius-lg); width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; position: relative; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+      <div id="printableArea" style="background: white; border-radius: var(--radius-lg); width: 100%; max-width: 900px; max-height: 94vh; overflow-y: auto; position: relative; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
         
-        <!-- Header Modal -->
-        <div style="padding: 2rem; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: flex-start; background: #f8fafc; border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
+        <!-- Cabeçalho Exclusivo para Impressão (Oculto no Navegador) -->
+        <div class="only-print" style="display: none; padding-bottom: 1.5rem; border-bottom: 2px solid #000; margin-bottom: 2rem; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 40px; height: 40px; background: var(--color-primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.2rem;">NR</div>
+            <div>
+              <h1 style="font-size: 1.2rem; margin: 0; font-weight: 700; color: #000;">RELATÓRIO DE PLANO DE AÇÃO (5W2H)</h1>
+              <p style="font-size: 0.75rem; margin: 0; color: #666;">Sistema NR1 - Gestão de Conformidade e Prevenção</p>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <p style="font-size: 0.7rem; margin: 0; font-weight: 600;">Data do Relatório: {new Date().toLocaleDateString('pt-BR')}</p>
+            <p style="font-size: 0.6rem; margin: 0; color: #888;">Documento Gerado Digitalmente</p>
+          </div>
+        </div>
+
+        <!-- Header Modal (Visível no Navegador) -->
+        <div class="no-print" style="padding: 1.5rem 2rem; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: flex-start; background: #f8fafc; border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
           <div>
             <div id="detalheStatus" style="font-size: 0.65rem; font-weight: 700; padding: 0.25rem 0.75rem; border-radius: 999px; text-transform: uppercase; margin-bottom: 0.5rem; display: inline-block;">STATUS</div>
             <h2 id="detalheTitulo" style="font-size: 1.5rem; color: var(--color-primary); font-weight: 700; margin: 0;">Título da Ação</h2>
             <p id="detalheSubtitulo" style="color: var(--color-text-muted); font-size: 0.875rem; margin-top: 0.25rem;">Setor • Prazo Final: 00/00/0000</p>
           </div>
-          <div style="display: flex; gap: 0.75rem;" class="no-print">
+          <div style="display: flex; gap: 0.75rem;">
             <button id="btnImprimirPlano" style="background: white; border: 1px solid var(--color-border); padding: 0.5rem 1rem; border-radius: var(--radius-md); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; font-weight: 600; color: var(--color-text);">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-              IMPRIMIR
+              IMPRIMIR RELATÓRIO
             </button>
             <button id="btnFecharDetalhes" style="background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-text-muted);">&times;</button>
           </div>
         </div>
 
-        <div style="padding: 2rem; display: grid; grid-template-columns: 1fr 300px; gap: 2.5rem;">
+        <div id="reportContent" style="padding: 2.5rem; display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 3rem;">
           <!-- Coluna 1: Informações Gerais -->
           <div>
-            <section style="margin-bottom: 2rem;">
-              <h3 style="font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; margin-bottom: 1rem; letter-spacing: 0.05em;">Definição 5W2H</h3>
-              <div style="display: grid; gap: 1.25rem;">
-                <div>
-                  <label style="display: block; font-size: 0.7rem; color: var(--color-text-muted); font-weight: 600;">O QUÊ (WHAT)</label>
-                  <p id="infoWhat" style="font-weight: 500; color: var(--color-text); margin-top: 0.25rem;"></p>
+            <!-- Visível apenas no Print -->
+            <div class="only-print" style="display: none; margin-bottom: 2rem;">
+               <h2 id="printTitulo" style="font-size: 1.8rem; margin: 0; color: #000; font-weight: 800;"></h2>
+               <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                  <span id="printStatus" style="font-weight: 700; font-size: 0.8rem; text-transform: uppercase;"></span>
+                  <span id="printSubtitulo" style="color: #666; font-size: 0.9rem;"></span>
+               </div>
+            </div>
+
+            <section style="margin-bottom: 2.5rem;">
+              <h3 style="font-size: 0.85rem; font-weight: 800; color: #000; text-transform: uppercase; margin-bottom: 1.5rem; letter-spacing: 0.05em; border-left: 4px solid var(--color-primary); padding-left: 0.75rem;">Detalhamento da Metodologia 5W2H</h3>
+              <div style="display: grid; gap: 1.5rem;">
+                <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
+                  <label style="display: block; font-size: 0.7rem; color: var(--color-text-muted); font-weight: 700; margin-bottom: 0.25rem;">O QUE SERÁ FEITO (WHAT)</label>
+                  <p id="infoWhat" style="font-weight: 600; color: #000; font-size: 1rem; margin: 0;"></p>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                  <div>
+                    <label style="display: block; font-size: 0.7rem; color: var(--color-text-muted); font-weight: 700; margin-bottom: 0.25rem;">MOTIVAÇÃO (WHY)</label>
+                    <p id="infoWhy" style="font-size: 0.9rem; color: var(--color-text); margin: 0; line-height: 1.5;"></p>
+                  </div>
+                  <div>
+                    <label style="display: block; font-size: 0.7rem; color: var(--color-text-muted); font-weight: 700; margin-bottom: 0.25rem;">LOCAL DE APLICAÇÃO (WHERE)</label>
+                    <p id="infoWhere" style="font-size: 0.9rem; color: var(--color-text); margin: 0;"></p>
+                  </div>
                 </div>
                 <div>
-                  <label style="display: block; font-size: 0.7rem; color: var(--color-text-muted); font-weight: 600;">POR QUÊ (WHY)</label>
-                  <p id="infoWhy" style="font-size: 0.9rem; color: var(--color-text); margin-top: 0.25rem;"></p>
+                  <label style="display: block; font-size: 0.7rem; color: var(--color-text-muted); font-weight: 700; margin-bottom: 0.25rem;">MÉTODO DE EXECUÇÃO (HOW)</label>
+                  <p id="infoHow" style="font-size: 0.95rem; background: #fff; padding: 1.25rem; border-radius: 8px; border: 1px solid var(--color-border); color: #334155; margin: 0; line-height: 1.6;"></p>
                 </div>
-                <div>
-                  <label style="display: block; font-size: 0.7rem; color: var(--color-text-muted); font-weight: 600;">COMO (HOW)</label>
-                  <p id="infoHow" style="font-size: 0.9rem; background: #f1f5f9; padding: 1rem; border-radius: 8px; border-left: 3px solid var(--color-primary); color: var(--color-text); margin-top: 0.5rem;"></p>
+                <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.5rem; background: #f1f5f9; padding: 1rem; border-radius: 8px;">
+                  <div>
+                    <label style="display: block; font-size: 0.7rem; color: var(--color-text-muted); font-weight: 700; margin-bottom: 0.25rem;">RESPONSÁVEL PELA EXECUÇÃO (WHO)</label>
+                    <p id="infoWho" style="font-weight: 700; color: var(--color-primary); margin: 0;"></p>
+                  </div>
+                  <div>
+                    <label style="display: block; font-size: 0.7rem; color: var(--color-text-muted); font-weight: 700; margin-bottom: 0.25rem;">ORÇAMENTO ESTIMADO</label>
+                    <p id="infoCost" style="font-weight: 700; color: #15803d; margin: 0;"></p>
+                  </div>
                 </div>
               </div>
             </section>
+
+            <!-- Campo de Assinatura exclusivo para Print -->
+            <div class="only-print" style="display: none; margin-top: 4rem; grid-template-columns: 1fr 1fr; gap: 4rem;">
+               <div style="border-top: 1px solid #000; text-align: center; padding-top: 0.5rem;">
+                  <p style="font-size: 0.75rem; margin: 0; font-weight: 700;">Assinatura do Responsável</p>
+                  <p style="font-size: 0.65rem; color: #666; margin: 0;">Cargo / Departamento</p>
+               </div>
+               <div style="border-top: 1px solid #000; text-align: center; padding-top: 0.5rem;">
+                  <p style="font-size: 0.75rem; margin: 0; font-weight: 700;">Aprovação Segurança do Trabalho</p>
+                  <p style="font-size: 0.65rem; color: #666; margin: 0;">Carimbo / Visto</p>
+               </div>
+            </div>
           </div>
 
           <!-- Coluna 2: Linha do Tempo -->
-          <div style="border-left: 1px solid var(--color-border); padding-left: 2rem;">
-            <h3 style="font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; margin-bottom: 1.5rem; letter-spacing: 0.05em;">Linha do Tempo (Rastreabilidade)</h3>
+          <div style="border-left: 1px solid var(--color-border); padding-left: 2.5rem;">
+            <h3 style="font-size: 0.85rem; font-weight: 800; color: #000; text-transform: uppercase; margin-bottom: 2rem; letter-spacing: 0.05em;">Trilha de Rastreabilidade</h3>
             
-            <div id="timelineContainer" style="display: flex; flex-direction: column; gap: 1.5rem; position: relative;">
+            <div id="timelineContainer" style="display: flex; flex-direction: column; gap: 2rem; position: relative;">
                <!-- Linha vertical decorativa -->
                <div style="position: absolute; left: 7px; top: 0; bottom: 0; width: 2px; background: #e2e8f0; z-index: 0;"></div>
                
                <!-- Items da Timeline serão inseridos aqui -->
                <div id="timelineLoading" style="text-align: center; padding: 1rem; color: var(--color-text-muted); font-size: 0.875rem;">
-                 Carregando histórico...
+                 Carregando rastro de auditoria...
                </div>
             </div>
           </div>
@@ -434,16 +486,32 @@ if (user) {
           if (!modalDetalhes) return;
           
           // Preencher Dados Básicos
-          document.getElementById('detalheTitulo')!.innerText = plano.what_title;
-          document.getElementById('detalheSubtitulo')!.innerText = `${plano.where_location} • Prazo: ${new Date(plano.when_end).toLocaleDateString('pt-BR')}`;
-          document.getElementById('infoWhat')!.innerText = plano.what_title;
+          const titulo = plano.what_title;
+          const subtitulo = `${plano.where_location} • Prazo: ${new Date(plano.when_end).toLocaleDateString('pt-BR')}`;
+          const status = plano.status;
+          
+          document.getElementById('detalheTitulo')!.innerText = titulo;
+          document.getElementById('detalheSubtitulo')!.innerText = subtitulo;
+          document.getElementById('printTitulo')!.innerText = titulo;
+          document.getElementById('printSubtitulo')!.innerText = subtitulo;
+          document.getElementById('infoWhat')!.innerText = titulo;
           document.getElementById('infoWhy')!.innerText = plano.why_reason;
+          document.getElementById('infoWhere')!.innerText = plano.where_location;
           document.getElementById('infoHow')!.innerText = plano.how_method;
+          document.getElementById('infoWho')!.innerText = plano.who_responsible || 'Responsável não definido';
+          document.getElementById('infoCost')!.innerText = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(plano.how_much_cost || 0);
           
           const statusEl = document.getElementById('detalheStatus')!;
-          statusEl.innerText = plano.status;
-          statusEl.style.background = plano.status === 'Atrasado' ? '#fee2e2' : '#e0f2fe';
-          statusEl.style.color = plano.status === 'Atrasado' ? '#b91c1c' : '#0369a1';
+          const printStatusEl = document.getElementById('printStatus')!;
+          statusEl.innerText = status;
+          printStatusEl.innerText = `STATUS: ${status}`;
+          
+          const color = plano.status === 'Atrasado' ? '#b91c1c' : (plano.status === 'Concluído' ? '#15803d' : '#0369a1');
+          const bgColor = plano.status === 'Atrasado' ? '#fee2e2' : (plano.status === 'Concluído' ? '#dcfce7' : '#e0f2fe');
+          
+          statusEl.style.background = bgColor;
+          statusEl.style.color = color;
+          printStatusEl.style.color = color;
 
           modalDetalhes.style.display = 'flex';
           
@@ -541,24 +609,72 @@ if (user) {
   </script>
   <style>
     @media print {
-      .no-print, .app-layout > *:not(.main-content), .main-content > *:not(#modalDetalhesPlano) {
-        display: none !important;
+      /* Esconder absolutamente tudo que não seja o modal */
+      body * {
+        visibility: hidden !important;
       }
+      
+      #modalDetalhesPlano, #modalDetalhesPlano * {
+        visibility: visible !important;
+      }
+
+      /* Resetar posicionamento do modal para preencher a folha */
       #modalDetalhesPlano {
-        position: static !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        height: auto !important;
         display: block !important;
         background: white !important;
         padding: 0 !important;
-        backdrop-filter: none !important;
-      }
-      #printableArea {
-        box-shadow: none !important;
-        max-height: none !important;
-        overflow: visible !important;
-      }
-      .main-content {
-        padding: 0 !important;
         margin: 0 !important;
+        overflow: visible !important;
+        z-index: 9999 !important;
+      }
+
+      #printableArea {
+        width: 100% !important;
+        max-width: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        border-radius: 0 !important;
+      }
+
+      .only-print {
+        display: flex !important;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+
+      #reportContent {
+        display: block !important; /* Em print, colunas empilham melhor ou o layout deve ser ajustado */
+        padding: 0 !important;
+      }
+
+      section {
+        page-break-inside: avoid;
+        margin-top: 2rem !important;
+      }
+
+      #timelineContainer {
+        margin-top: 3rem !important;
+        padding-left: 0 !important;
+        border-left: none !important;
+      }
+
+      #timelineContainer > div {
+        page-break-inside: avoid;
+      }
+
+      /* Forçar cores de fundo na impressão */
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
     }
   </style>
