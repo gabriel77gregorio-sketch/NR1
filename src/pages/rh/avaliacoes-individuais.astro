@@ -1,39 +1,46 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import SidebarRH from '../../components/SidebarRH.astro';
-// Proteção de Rota (Bypass)
-// const supabaseClient = supabase(Astro);
-// const { data: authData } = await supabaseClient.auth.getUser();
-// const user = authData?.user;
-// const avaliacaoService = new AvaliacaoIndividualService(supabaseClient);
+import { supabase } from '../../lib/supabase';
+import { AvaliacaoIndividualService } from '../../services/AvaliacaoIndividualService';
 
-// Mock Dados
-let avaliacoes = [
-  { id: '1', colaborador: { nome: 'Lucas Ferreira', cargo: 'Estagiário' }, tipo: 'Experiência_45_Dias', status: 'Concluído', data_limite: '2026-04-10' },
-  { id: '2', colaborador: { nome: 'Ana Julia', cargo: 'Assistente Administrativa' }, tipo: 'Experiência_90_Dias', status: 'Em Andamento', data_limite: '2026-04-30' },
-  { id: '3', colaborador: { nome: 'Roberto Alves', cargo: 'Técnico Manutenção' }, tipo: 'Desligamento', status: 'Pendente', data_limite: '2026-04-26' }
-];
+const supabaseClient = supabase(Astro);
+let user = null;
+let empresaId = '';
+try {
+  const { data: authData } = await supabaseClient.auth.getUser();
+  user = authData?.user;
+} catch (e) { }
 
-let colaboradores = [
-  { id: '104', nome: 'Lucas Ferreira', cargo: 'Estagiário' },
-  { id: '105', nome: 'Ana Julia', cargo: 'Assistente Administrativa' },
-  { id: '106', nome: 'Roberto Alves', cargo: 'Técnico Manutenção' }
-];
+let avaliacoes: any[] = [];
+let colaboradores: any[] = [];
 
-if (Astro.request.method === 'POST') {
-  try {
-    const data = await Astro.request.formData();
-    // Inserção Mock
-    const colab = colaboradores.find(c => c.id === data.get('colaborador_id')?.toString());
-    avaliacoes.unshift({
-      id: Math.random().toString(),
-      colaborador: { nome: colab?.nome || 'Desconhecido', cargo: colab?.cargo || '' },
-      tipo: data.get('tipo')?.toString() || '',
-      status: 'Pendente',
-      data_limite: data.get('data_limite')?.toString() || ''
-    });
-  } catch (error) {
-    console.error(error);
+if (user) {
+  const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('empresa_id').eq('id', user.id).single();
+  if (perfil) {
+    empresaId = perfil.empresa_id;
+    const avaliacaoService = new AvaliacaoIndividualService(supabaseClient, empresaId);
+
+    avaliacoes = await avaliacaoService.getAvaliacoes();
+    
+    // Buscar colaboradores da empresa para o agendamento
+    const { data: colabs } = await supabaseClient.from('colaboradores_base').select('id, nome, cargo').eq('empresa_id', empresaId).order('nome');
+    colaboradores = colabs || [];
+
+    if (Astro.request.method === 'POST') {
+      try {
+        const formData = await Astro.request.formData();
+        await avaliacaoService.agendarAvaliacao({
+          colaborador_id: formData.get('colaborador_id')?.toString() || '',
+          tipo: formData.get('tipo')?.toString() || '',
+          status: 'Pendente',
+          data_limite: formData.get('data_limite')?.toString() || ''
+        });
+        return Astro.redirect('/rh/avaliacoes-individuais');
+      } catch (error) {
+        console.error(error);
+      }
+    }
   }
 }
 
@@ -89,8 +96,11 @@ function getTipoBadge(tipo: string) {
 
         <!-- Grade de Cartões -->
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;">
-          
-          {avaliacoes.map((av) => {
+          {avaliacoes.length === 0 ? (
+            <div style="grid-column: 1 / -1; padding: 4rem; text-align: center; background: white; border: 1px dashed var(--color-border); border-radius: 12px; color: var(--color-text-muted);">
+               Nenhuma avaliação agendada para esta empresa.
+            </div>
+          ) : avaliacoes.map((av) => {
             const badge = getTipoBadge(av.tipo);
             return (
               <div class="av-card" data-status={av.status} data-tipo={av.tipo} style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
@@ -106,8 +116,8 @@ function getTipoBadge(tipo: string) {
                  </div>
                  
                  <div style="flex: 1;">
-                    <h3 style="margin: 0 0 0.2rem 0; font-size: 1.1rem; color: var(--color-text);">{av.colaborador.nome}</h3>
-                    <p style="margin: 0; font-size: 0.85rem; color: var(--color-text-muted);">{av.colaborador.cargo}</p>
+                    <h3 style="margin: 0 0 0.2rem 0; font-size: 1.1rem; color: var(--color-text);">{av.colaboradores_base?.nome || 'Colaborador Excluído'}</h3>
+                    <p style="margin: 0; font-size: 0.85rem; color: var(--color-text-muted);">{av.colaboradores_base?.cargo || 'Sem Cargo'}</p>
                  </div>
                  
                  <div style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border); padding-top: 1rem;">
@@ -115,7 +125,7 @@ function getTipoBadge(tipo: string) {
                        Prazo: <strong style="color: var(--color-text);">{new Date(av.data_limite).toLocaleDateString('pt-BR')}</strong>
                     </div>
                     
-                    <button class={`btn btn-outline ${av.status === 'Concluído' ? 'btnVerRelatorio' : 'btnResponderAv'}`} data-nome={av.colaborador.nome} data-cargo={av.colaborador.cargo} data-tipo={av.tipo} style="font-size: 0.75rem; padding: 0.4rem 0.8rem;">
+                    <button class={`btn btn-outline ${av.status === 'Concluído' ? 'btnVerRelatorio' : 'btnResponderAv'}`} data-nome={av.colaboradores_base?.nome || 'Desconhecido'} data-cargo={av.colaboradores_base?.cargo || ''} data-tipo={av.tipo} style="font-size: 0.75rem; padding: 0.4rem 0.8rem;">
                        {av.status === 'Concluído' ? 'VER RELATÓRIO' : 'RESPONDER'}
                     </button>
                  </div>

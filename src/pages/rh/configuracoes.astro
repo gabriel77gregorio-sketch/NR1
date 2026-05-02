@@ -74,147 +74,159 @@ const colaboradores = user ? await service.getColaboradores() : [];
 
     <!-- Main Content -->
     <main class="main-content">
-      <div style="padding: 2rem 3rem;">
+      <div class="page-container">
         
-        <div style="margin-bottom: 2rem;">
-          <h2 style="font-size: 1.5rem; color: var(--color-primary); font-weight: 400; margin: 0;">Organograma e Colaboradores</h2>
-          <p style="color: var(--color-text-muted); font-size: 0.875rem; margin-top: 0.25rem;">Gerencie os setores (GHE) e cadastre a lista de funcionários que receberão as pesquisas.</p>
-        </div>
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem;">
+          <div>
+            <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--color-text); margin: 0;">Configurações</h1>
+            <p style="color: var(--color-text-muted); font-size: 0.95rem; margin-top: 0.25rem;">Gerencie os setores (GHE) e cadastre a lista de colaboradores da <strong>{data.company}</strong>.</p>
+          </div>
+          <label class="btn btn-primary" style="cursor: pointer;">
+            <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            IMPORTAR PLANILHA
+            <input type="file" accept=".xlsx, .xls, .csv" style="display: none;" onchange="alert('Processando planilha...')" />
+          </label>
+        </header>
 
         {message && (
-          <div style={`padding: 1rem; margin-bottom: 2rem; border-radius: 4px; font-weight: 600; font-size: 0.875rem; ${isError ? 'background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca;' : 'background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0;'}`}>
+          <div style={`padding: 1rem 1.5rem; margin-bottom: 2rem; border-radius: 12px; font-weight: 600; font-size: 0.875rem; display: flex; align-items: center; gap: 0.75rem; ${isError ? 'background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca;' : 'background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0;'}`}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4M12 16h.01"></path></svg>
             {message}
           </div>
         )}
 
-        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem;">
+        <div style="display: grid; grid-template-columns: 320px 1fr; gap: 2rem; align-items: start;">
           
           <!-- SECTORS MANAGEMENT -->
-          <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; display: flex; flex-direction: column;">
-             <div style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--color-border); background: #fbfbfc;">
-               <h3 style="margin: 0; font-size: 1rem; color: var(--color-text); display: flex; align-items: center; gap: 0.5rem;">
-                 <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+          <div class="card" style="padding: 1.5rem; border-radius: 24px;">
+             <div style="margin-bottom: 1.5rem;">
+               <h3 style="margin: 0; font-size: 1rem; font-weight: 700; color: var(--color-text); display: flex; align-items: center; gap: 0.75rem;">
+                 <svg style="width: 20px; height: 20px; color: var(--color-primary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
                  Setores / GHE
                </h3>
              </div>
-             <div style="padding: 1.5rem;">
-               <form method="POST" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem;">
-                 <input type="hidden" name="action" value="add_setor" />
-                 <input type="text" name="setor_nome" placeholder="Nome do Novo Setor..." required style="flex: 1; padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 4px; outline: none; font-size: 0.875rem;" />
-                 <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.75rem;">+ ADICIONAR</button>
-               </form>
+             
+             <form method="POST" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 2rem;">
+               <input type="hidden" name="action" value="add_setor" />
+               <input type="text" name="setor_nome" placeholder="Novo Setor..." required style="padding: 0.75rem 1rem; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-background); outline: none; font-size: 0.875rem;" />
+               <button type="submit" class="btn btn-outline" style="width: 100%;">+ ADICIONAR</button>
+             </form>
 
-               <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                 {setores.length === 0 && <span style="font-size: 0.875rem; color: var(--color-text-muted);">Nenhum setor cadastrado.</span>}
-                 {setores.map(setor => (
-                   <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 4px; background: #f8fafc;">
-                     <span style="font-size: 0.875rem; font-weight: 500;">{setor.nome}</span>
-                     <form method="POST" style="margin: 0;">
-                       <input type="hidden" name="action" value="del_setor" />
-                       <input type="hidden" name="setor_id" value={setor.id} />
-                       <button type="submit" style="background: none; border: none; color: var(--color-danger); cursor: pointer; padding: 0;">
-                         <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                       </button>
-                     </form>
-                   </div>
-                 ))}
-               </div>
+             <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+               <p style="font-size: 0.7rem; font-weight: 800; color: var(--color-text-muted); text-transform: uppercase;">Setores Ativos</p>
+               {setores.length === 0 && <span style="font-size: 0.875rem; color: var(--color-text-muted); opacity: 0.6;">Nenhum setor.</span>}
+               {setores.map(setor => (
+                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.875rem; border-radius: 12px; background: var(--color-background); border: 1px solid var(--color-border);">
+                   <span style="font-size: 0.875rem; font-weight: 600;">{setor.nome}</span>
+                   <form method="POST" style="margin: 0;">
+                     <input type="hidden" name="action" value="del_setor" />
+                     <input type="hidden" name="setor_id" value={setor.id} />
+                     <button type="submit" style="background: none; border: none; color: #94a3b8; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">
+                       <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                     </button>
+                   </form>
+                 </div>
+               ))}
              </div>
           </div>
 
           <!-- EMPLOYEES MANAGEMENT -->
-          <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; display: flex; flex-direction: column;">
-             <div style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--color-border); background: #fbfbfc; display: flex; justify-content: space-between; align-items: center;">
-               <h3 style="margin: 0; font-size: 1rem; color: var(--color-text); display: flex; align-items: center; gap: 0.5rem;">
-                 <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                 Quadro de Colaboradores
-               </h3>
-               <label class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; cursor: pointer; color: var(--color-primary); border-color: var(--color-primary); margin: 0; display: flex; align-items: center; gap: 0.4rem;">
-                 <svg style="width: 14px; height: 14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                 IMPORTAR PLANILHA (XLSX)
-                 <input type="file" accept=".xlsx, .xls, .csv" style="display: none;" onchange="alert('Iniciando parser da planilha... Em produção, esta função criará o setor e o colaborador automaticamente na base.')" />
-               </label>
+          <div style="display: flex; flex-direction: column; gap: 2rem;">
+             <!-- Form de Cadastro -->
+             <div class="card" style="border-radius: 24px; padding: 2rem;">
+                <h3 style="margin: 0 0 1.5rem 0; font-size: 1rem; font-weight: 700; color: var(--color-text); display: flex; align-items: center; gap: 0.75rem;">
+                  <svg style="width: 20px; height: 20px; color: var(--color-primary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+                  Novo Colaborador
+                </h3>
+                
+                <form method="POST" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem;">
+                  <input type="hidden" name="action" value="add_colaborador" />
+                  
+                  <div style="grid-column: span 1;">
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">NOME COMPLETO</label>
+                    <input type="text" name="colab_nome" required style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-background); outline: none; font-size: 0.875rem;" />
+                  </div>
+                  
+                  <div style="grid-column: span 1;">
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">E-MAIL</label>
+                    <input type="email" name="colab_email" required style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-background); outline: none; font-size: 0.875rem;" />
+                  </div>
+                  
+                  <div style="grid-column: span 1;">
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">WHATSAPP</label>
+                    <input type="text" name="colab_whatsapp" placeholder="DDD+Número" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-background); outline: none; font-size: 0.875rem;" />
+                  </div>
+                  
+                  <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">CARGO</label>
+                    <input type="text" name="colab_cargo" required style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-background); outline: none; font-size: 0.875rem;" />
+                  </div>
+                  
+                  <div>
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">SETOR / GHE</label>
+                    <select name="colab_setor" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-background); outline: none; font-size: 0.875rem;">
+                      <option value="">Nenhum Setor</option>
+                      {setores.map(s => (
+                        <option value={s.id}>{s.nome}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style="display: flex; align-items: flex-end;">
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">CADASTRAR</button>
+                  </div>
+                </form>
              </div>
-             <div style="padding: 1.5rem;">
-               <div style="background: #f8fafc; border: 1px dashed var(--color-border); padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
-                 <form method="POST" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                   <input type="hidden" name="action" value="add_colaborador" />
-                   
-                   <div>
-                     <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--color-text-muted);">Nome Completo *</label>
-                     <input type="text" name="colab_nome" required style="width: 100%; padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 4px; outline: none; font-size: 0.875rem;" />
-                   </div>
-                   
-                   <div>
-                     <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--color-text-muted);">E-mail Corporativo *</label>
-                     <input type="email" name="colab_email" required style="width: 100%; padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 4px; outline: none; font-size: 0.875rem;" />
-                   </div>
-                   
-                   <div>
-                     <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--color-text-muted);">Cargo / Função *</label>
-                     <input type="text" name="colab_cargo" required style="width: 100%; padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 4px; outline: none; font-size: 0.875rem;" />
-                   </div>
-                   
-                   <div>
-                     <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--color-text-muted);">Setor (GHE vinculável)</label>
-                     <select name="colab_setor" style="width: 100%; padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 4px; outline: none; font-size: 0.875rem; background: white;">
-                       <option value="">-- Selecione o Setor --</option>
-                       {setores.map(s => (
-                         <option value={s.id}>{s.nome}</option>
-                       ))}
-                     </select>
-                   </div>
-                   
-                   <div>
-                     <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--color-text-muted);">WhatsApp (com DDD) *</label>
-                     <input type="text" name="colab_whatsapp" placeholder="Ex: 11988887777" style="width: 100%; padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 4px; outline: none; font-size: 0.875rem;" />
-                   </div>
 
-                   <div style="grid-column: span 2; display: flex; justify-content: flex-end; margin-top: 0.5rem;">
-                     <button type="submit" class="btn btn-primary" style="padding: 0.4rem 1.5rem; font-size: 0.75rem;">+ REGISTRAR COLABORADOR</button>
-                   </div>
-                 </form>
-               </div>
-
-               <div style="border: 1px solid var(--color-border); border-radius: 4px; overflow: hidden;">
-                 <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
-                   <thead style="background: #fbfbfc; border-bottom: 1px solid var(--color-border);">
-                     <tr>
-                       <th style="text-align: left; padding: 0.75rem 1rem; color: var(--color-text-muted); font-weight: 600; font-size: 0.75rem;">NOME & E-MAIL</th>
-                       <th style="text-align: left; padding: 0.75rem 1rem; color: var(--color-text-muted); font-weight: 600; font-size: 0.75rem;">CARGO / SETOR</th>
-                       <th style="text-align: right; padding: 0.75rem 1rem;"></th>
-                     </tr>
-                   </thead>
-                   <tbody>
-                     {colaboradores.length === 0 && (
-                       <tr><td colspan="3" style="padding: 1rem; text-align: center; color: var(--color-text-muted);">Nenhum colaborador na base.</td></tr>
-                     )}
-                     {colaboradores.map(c => (
-                       <tr style="border-bottom: 1px solid var(--color-border);">
-                         <td style="padding: 0.75rem 1rem;">
-                           <div style="font-weight: 600; color: var(--color-text);">{c.nome}</div>
-                           <div style="font-size: 0.75rem; color: var(--color-text-muted);">{c.email}</div>
-                         </td>
-                         <td style="padding: 0.75rem 1rem;">
-                           <div style="color: var(--color-text);">{c.cargo}</div>
-                           <div style="font-size: 0.75rem; color: var(--color-primary);">{c.departamentos_unidades?.nome || 'Sem Setor'}</div>
-                           {c.telefone && <div style="font-size: 0.7rem; color: #16a34a; font-weight: 600;">📱 {c.telefone}</div>}
-                         </td>
-                         <td style="padding: 0.75rem 1rem; text-align: right;">
-                           <form method="POST" style="margin: 0; display: inline-block;">
-                             <input type="hidden" name="action" value="del_colaborador" />
-                             <input type="hidden" name="colab_id" value={c.id} />
-                             <button type="submit" title="Remover" style="background: none; border: none; color: var(--color-danger); cursor: pointer; padding: 0;">
-                               <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                             </button>
-                           </form>
-                         </td>
-                       </tr>
-                     ))}
-                   </tbody>
-                 </table>
-               </div>
-
+             <!-- Tabela -->
+             <div class="card" style="border-radius: 24px; padding: 0; overflow: hidden;">
+                <div style="padding: 1.5rem 2rem; border-bottom: 1px solid var(--color-border);">
+                  <h4 style="margin: 0; font-size: 1rem; font-weight: 700;">Base de Colaboradores</h4>
+                </div>
+                <div style="overflow-x: auto;">
+                  <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                    <thead>
+                      <tr style="text-align: left; background: var(--color-background);">
+                        <th style="padding: 1rem 2rem; color: var(--color-text-muted); font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">Colaborador</th>
+                        <th style="padding: 1rem 2rem; color: var(--color-text-muted); font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">Cargo & Setor</th>
+                        <th style="padding: 1rem 2rem; color: var(--color-text-muted); font-weight: 700; font-size: 0.7rem; text-transform: uppercase; text-align: right;">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {colaboradores.length === 0 && (
+                        <tr><td colspan="3" style="padding: 4rem; text-align: center; color: var(--color-text-muted);">Nenhum colaborador cadastrado ainda.</td></tr>
+                      )}
+                      {colaboradores.map(c => (
+                        <tr style="border-bottom: 1px solid var(--color-border); transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                          <td style="padding: 1rem 2rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                              <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--color-secondary); color: var(--color-primary); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.75rem;">
+                                {c.nome.charAt(0)}
+                              </div>
+                              <div>
+                                <p style="font-weight: 700; color: var(--color-text); margin: 0;">{c.nome}</p>
+                                <p style="font-size: 0.75rem; color: var(--color-text-muted); margin: 0;">{c.email}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td style="padding: 1rem 2rem;">
+                            <p style="font-weight: 600; color: var(--color-text); margin: 0;">{c.cargo}</p>
+                            <p style="font-size: 0.75rem; color: var(--color-primary); margin: 0;">{c.departamentos_unidades?.nome || 'Sem Setor'}</p>
+                          </td>
+                          <td style="padding: 1rem 2rem; text-align: right;">
+                            <form method="POST" style="margin: 0;">
+                              <input type="hidden" name="action" value="del_colaborador" />
+                              <input type="hidden" name="colab_id" value={c.id} />
+                              <button type="submit" style="background: none; border: none; color: #94a3b8; cursor: pointer; padding: 0.5rem; border-radius: 8px; transition: all 0.2s;" onmouseover="this.style.background='#fee2e2'; this.style.color='#ef4444'" onmouseout="this.style.background='transparent'; this.style.color='#94a3b8'">
+                                <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                              </button>
+                            </form>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
              </div>
           </div>
 

@@ -13,22 +13,21 @@ export interface AvaliacaoIndividual {
 }
 
 export class AvaliacaoIndividualService {
-  private supabase: SupabaseClient;
+  private empresaId: string;
 
-  constructor(supabaseClient: SupabaseClient) {
+  constructor(supabaseClient: SupabaseClient, empresaId: string) {
     this.supabase = supabaseClient;
+    this.empresaId = empresaId;
   }
 
-  async getAvaliacoes(): Promise<AvaliacaoIndividual[]> {
-    const { data: { user } } = await this.supabase.auth.getUser();
-    if (!user) return [];
-
+  async getAvaliacoes(): Promise<any[]> {
     const { data, error } = await this.supabase
       .from('avaliacoes_individuais')
       .select(`
         *,
         colaboradores_base ( nome, cargo )
       `)
+      .eq('empresa_id', this.empresaId)
       .order('created_at', { ascending: false });
 
     if (error) {

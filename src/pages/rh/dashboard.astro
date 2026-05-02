@@ -25,31 +25,32 @@ let ciclos: any[] = [];
 let empresaId = '';
 
 if (user) {
-  const matrizService = new MatrizRiscoService(supabaseClient);
-  
   // Obter Perfil e Empresa
   const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, role, empresa_id').eq('id', user.id).single();
+  
   if (perfil) {
     data.user.name = perfil.nome;
     empresaId = perfil.empresa_id;
+
+    const matrizService = new MatrizRiscoService(supabaseClient, empresaId);
+
+    // Buscar Departamentos para o Filtro
+    const { data: depts } = await supabaseClient.from('departamentos_unidades').select('id, nome').eq('empresa_id', empresaId).order('nome');
+    departamentos = depts || [];
+
+    // Buscar Ciclos para o Filtro
+    const { data: ciclosData } = await supabaseClient.from('ciclos_avaliacao')
+      .select('id, nome')
+      .eq('empresa_id', empresaId)
+      .order('created_at', { ascending: false });
+    ciclos = ciclosData || [];
+
+    gruposExposicao = await matrizService.getMatrizRiscoMatematica(filterCicloId || undefined);
+    indicadoresEixos = await matrizService.getIndicadoresCopsoqConsolidado(filterSetorId || undefined, filterCicloId || undefined);
   }
-
-  // Buscar Departamentos para o Filtro (Filtrado por empresa via RLS ou explícito)
-  const { data: depts } = await supabaseClient.from('departamentos_unidades').select('id, nome').eq('empresa_id', empresaId).order('nome');
-  departamentos = depts || [];
-
-  // Buscar Ciclos para o Filtro (APENAS DA EMPRESA LOGADA)
-  const { data: ciclosData } = await supabaseClient.from('ciclos_avaliacao')
-    .select('id, nome')
-    .eq('empresa_id', empresaId)
-    .order('created_at', { ascending: false });
-  ciclos = ciclosData || [];
-
-  gruposExposicao = await matrizService.getMatrizRiscoMatematica(filterCicloId || undefined);
-  // Aplicar filtro nos eixos se houver
-  indicadoresEixos = await matrizService.getIndicadoresCopsoqConsolidado(filterSetorId || undefined, filterCicloId || undefined);
 } else {
-  const matrizServiceMock = new MatrizRiscoService(supabaseClient);
+  // Se não estiver logado, podemos opcionalmente mostrar mocks ou redirecionar
+  const matrizServiceMock = new MatrizRiscoService(supabaseClient, 'mock');
   gruposExposicao = matrizServiceMock.gerarMockEducacional();
   indicadoresEixos = (matrizServiceMock as any).gerarMockIndicadores();
   departamentos = [
@@ -140,7 +141,13 @@ const currentSetorName = departamentos.find(d => d.id === filterSetorId)?.nome |
              </div>
              
              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
-                {indicadoresEixos.map(eixo => (
+                {indicadoresEixos.length === 0 ? (
+                  <div style="grid-column: 1 / -1; padding: 3rem; text-align: center; background: #f8fafc; border: 1px dashed var(--color-border); border-radius: 12px; color: var(--color-text-muted);">
+                    <svg style="width: 48px; height: 48px; margin-bottom: 1rem; opacity: 0.3;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                    <p style="font-weight: 600; margin: 0;">Aguardando coleta de dados...</p>
+                    <p style="font-size: 0.85rem; margin-top: 0.5rem;">As médias do COPSOQ II aparecerão aqui assim que as primeiras pesquisas forem respondidas.</p>
+                  </div>
+                ) : indicadoresEixos.map(eixo => (
                   <div style={`background: ${eixo.color}; color: white; padding: 1.75rem; border-radius: 14px; position: relative; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); transition: all 0.3s ease; cursor: help;`} class="risk-card">
                     <!-- Overlay Tooltip -->
                     <div class="card-tooltip">
@@ -179,7 +186,11 @@ const currentSetorName = departamentos.find(d => d.id === filterSetorId)?.nome |
             </div>
 
             <div style="display: flex; flex-direction: column;">
-              {gruposExposicao.map((grupo) => (
+              {gruposExposicao.length === 0 ? (
+                <div style="padding: 3rem; text-align: center; color: var(--color-text-muted);">
+                  Nenhum setor ou dado de risco mapeado para esta empresa.
+                </div>
+              ) : gruposExposicao.map((grupo) => (
                 <div style="display: flex; align-items: center; padding: 1.25rem 1.5rem; font-size: 0.95rem; border-bottom: 1px solid var(--color-border); transition: background 0.15s;" class="table-row">
                   <div style="flex: 2;">
                     <div style="font-weight: 700; color: var(--color-text);">{grupo.setor}</div>

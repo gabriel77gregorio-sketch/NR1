@@ -1,42 +1,48 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import SidebarRH from '../../components/SidebarRH.astro';
-// Proteção de Rota (Bypass)
-// const supabaseClient = supabase(Astro);
-// const user = null; // bypassed
-// const advertenciaService = new AdvertenciaService(supabaseClient);
+import { supabase } from '../../lib/supabase';
+import { AdvertenciaService } from '../../services/AdvertenciaService';
+import { ColaboradoresService } from '../../services/ColaboradoresService';
 
-// Mock Dados
-let advertencias = [
-  { id: '1', colaborador: { nome: 'João da Silva', cargo: 'Operador de Máquina' }, tipo: 'Falta de EPI', descricao: 'Foi flagrado operando a prensa sem o uso de protetor auricular, contrariando a ordem de serviço OS-012.', data_ocorrencia: '2026-04-24', status_assinatura: 'Pendente', gestor: { nome: 'Carlos Souza' } },
-  { id: '2', colaborador: { nome: 'Maria Santos', cargo: 'Auxiliar de Logística' }, tipo: 'Comportamento Inadequado', descricao: 'Recusou-se a participar do DDS matinal.', data_ocorrencia: '2026-04-20', status_assinatura: 'Assinado', gestor: { nome: 'Amanda Costa' } }
-];
+const supabaseClient = supabase(Astro);
+let user = null;
+let empresaId = '';
+try {
+  const { data: authData } = await supabaseClient.auth.getUser();
+  user = authData?.user;
+} catch (e) { }
 
-let colaboradores = [
-  { id: '101', nome: 'João da Silva', cargo: 'Operador de Máquina' },
-  { id: '102', nome: 'Maria Santos', cargo: 'Auxiliar de Logística' },
-  { id: '103', nome: 'Pedro Almeida', cargo: 'Montador' }
-];
+let advertencias: any[] = [];
+let colaboradores: any[] = [];
 
-if (Astro.request.method === 'POST') {
-  try {
-    const data = await Astro.request.formData();
-    // Em modo produção, chamaríamos:
-    // await advertenciaService.criarAdvertencia({ ... })
-    
-    // Inserção Mock para visualização:
-    const colab = colaboradores.find(c => c.id === data.get('colaborador_id')?.toString());
-    advertencias.unshift({
-      id: Math.random().toString(),
-      colaborador: { nome: colab?.nome || 'Desconhecido', cargo: colab?.cargo || '' },
-      tipo: data.get('tipo')?.toString() || '',
-      descricao: data.get('descricao')?.toString() || '',
-      data_ocorrencia: data.get('data_ocorrencia')?.toString() || '',
-      status_assinatura: 'Pendente',
-      gestor: { nome: 'Gestor Atual' }
-    });
-  } catch (error) {
-    console.error(error);
+if (user) {
+  const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('empresa_id').eq('id', user.id).single();
+  if (perfil) {
+    empresaId = perfil.empresa_id;
+    const advertenciaService = new AdvertenciaService(supabaseClient, empresaId);
+    const colabService = new ColaboradoresService(supabaseClient);
+
+    advertencias = await advertenciaService.getAdvertencias();
+    // No service de colaboradores, precisamos filtrar por empresa_id (via RLS ou explícito)
+    const { data: colabs } = await supabaseClient.from('colaboradores_base').select('id, nome, cargo').eq('empresa_id', empresaId).order('nome');
+    colaboradores = colabs || [];
+
+    if (Astro.request.method === 'POST') {
+      try {
+        const formData = await Astro.request.formData();
+        await advertenciaService.criarAdvertencia({
+          colaborador_id: formData.get('colaborador_id')?.toString() || '',
+          tipo: formData.get('tipo')?.toString() || '',
+          descricao: formData.get('descricao')?.toString() || '',
+          data_ocorrencia: formData.get('data_ocorrencia')?.toString() || '',
+          status_assinatura: 'Pendente'
+        });
+        return Astro.redirect('/rh/advertencias');
+      } catch (error) {
+        console.error(error);
+      }
+    }
   }
 }
 ---
@@ -112,17 +118,17 @@ if (Astro.request.method === 'POST') {
            
            <div id="listaAdvertencias" style="display: flex; flex-direction: column;">
               {advertencias.map((adv) => (
-                 <div class="adv-row" data-id={adv.id} data-status={adv.status_assinatura} data-tipo={adv.tipo} data-nome={adv.colaborador.nome} data-cargo={adv.colaborador.cargo} data-desc={adv.descricao} data-data={adv.data_ocorrencia} style="display: flex; padding: 1rem; border-bottom: 1px solid var(--color-border); align-items: center;">
+                 <div class="adv-row" data-id={adv.id} data-status={adv.status_assinatura} data-tipo={adv.tipo} data-nome={adv.colaboradores_base?.nome || 'Desconhecido'} data-cargo={adv.colaboradores_base?.cargo || ''} data-desc={adv.descricao} data-data={adv.data_ocorrencia} style="display: flex; padding: 1rem; border-bottom: 1px solid var(--color-border); align-items: center;">
                     <div style="flex: 2;">
-                       <div style="font-weight: 600; color: var(--color-text); font-size: 0.9rem;">{adv.colaborador.nome}</div>
-                       <div style="font-size: 0.75rem; color: var(--color-text-muted);">{adv.colaborador.cargo}</div>
+                       <div style="font-weight: 600; color: var(--color-text); font-size: 0.9rem;">{adv.colaboradores_base?.nome || 'Colaborador Excluído'}</div>
+                       <div style="font-size: 0.75rem; color: var(--color-text-muted);">{adv.colaboradores_base?.cargo || 'Sem Cargo'}</div>
                     </div>
                     <div style="flex: 2; padding-right: 1rem;">
                        <div style="font-weight: 600; color: #b91c1c; font-size: 0.85rem;">{adv.tipo}</div>
                        <div style="font-size: 0.75rem; color: var(--color-text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{adv.descricao}</div>
                     </div>
                     <div style="flex: 1; font-size: 0.85rem; color: var(--color-text);">{new Date(adv.data_ocorrencia).toLocaleDateString('pt-BR')}</div>
-                    <div style="flex: 1; font-size: 0.85rem; color: var(--color-text-muted);">{adv.gestor.nome}</div>
+                    <div style="flex: 1; font-size: 0.85rem; color: var(--color-text-muted);">{adv.perfis_usuarios?.nome || 'Gestor'}</div>
                     <div style="flex: 1; display: flex; justify-content: center;">
                        {adv.status_assinatura === 'Pendente' ? (
                           <span style="background: #fef3c7; color: #b45309; padding: 0.25rem 0.5rem; border-radius: 99px; font-size: 0.7rem; font-weight: 600;">PENDENTE</span>

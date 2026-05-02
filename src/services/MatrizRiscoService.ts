@@ -22,9 +22,11 @@ export interface IndicadorEixo {
 
 export class MatrizRiscoService {
   private supabase: SupabaseClient;
+  private empresaId: string;
 
-  constructor(supabaseClient: SupabaseClient) {
+  constructor(supabaseClient: SupabaseClient, empresaId: string) {
     this.supabase = supabaseClient;
+    this.empresaId = empresaId;
   }
 
   /**
@@ -37,27 +39,26 @@ export class MatrizRiscoService {
     try {
       const result = await this.supabase
         .from('departamentos_unidades')
-        .select('id, nome, tipo');
+        .select('id, nome, tipo')
+        .eq('empresa_id', this.empresaId);
       departamentos = result.data;
       error = result.error;
     } catch (e) {
-      console.warn("MatrizRiscoService: Falha de rede ao buscar departamentos, usando mock.");
+      console.warn("MatrizRiscoService: Falha ao buscar departamentos.");
       error = e;
     }
 
     if (error || !departamentos || departamentos.length === 0) {
-      // Se a rede falhar ou a empresa ainda não tiver cadastrado nada, retorna mock educacional
-      return this.gerarMockEducacional();
+      return []; // Retorna vazio em vez de mock para clientes reais
     }
 
-    // 2. Buscar Respostas Reais do Banco
-    let queryRespostas = this.supabase
+    // 2. Buscar Respostas Reais do Banco (Sempre filtrando por empresa_id através do relacionamento ou explícito)
+    // Aqui assumimos que respostas_avaliacoes tem empresa_id ou vinculamos via setores
+    const { data: respostasReais } = await this.supabase
       .from('respostas_avaliacoes')
-      .select('respostas, ciclo_id');
-      
-    if (cicloId) queryRespostas = queryRespostas.eq('ciclo_id', cicloId);
-
-    const { data: respostasReais } = await queryRespostas;
+      .select('respostas, ciclo_id, empresa_id')
+      .eq('empresa_id', this.empresaId)
+      .filter('ciclo_id', cicloId ? 'eq' : 'not.is', cicloId || null);
 
     // 3. Processar médias por Setor
     const setoresMap: Record<string, { totalPontos: number, totalRedFlags: number, count: number }> = {};
@@ -71,7 +72,6 @@ export class MatrizRiscoService {
         setoresMap[sid] = { totalPontos: 0, totalRedFlags: 0, count: 0 };
       }
       
-      // Calcular média de pontos dessa resposta específica
       const detalhes = resp.detalhes || [];
       const somaLocal = detalhes.reduce((acc: number, curr: any) => acc + (curr.pontos || 0), 0);
       const mediaLocal = detalhes.length > 0 ? somaLocal / detalhes.length : 0;
@@ -86,7 +86,6 @@ export class MatrizRiscoService {
       const stats = setoresMap[dept.id];
       
       if (!stats) {
-        // Se não houver dados para este setor, mantemos um score neutro/baixo para não poluir
         return this.calcularCategorizacao({
           id: dept.id,
           setor: dept.nome,
@@ -99,16 +98,13 @@ export class MatrizRiscoService {
       const mediaGeralSetor = stats.totalPontos / stats.count;
       const mediaRedFlags = stats.totalRedFlags / stats.count;
 
-      // Conversão 0-100 para escala 1-4
-      // Severidade: Média de pontos (Impacto Psicológico)
       let s = 1;
       if (mediaGeralSetor > 75) s = 4;
       else if (mediaGeralSetor > 50) s = 3;
       else if (mediaGeralSetor > 25) s = 2;
 
-      // Probabilidade: Presença de Comportamentos Ofensivos (Red Flags)
       let p = 1;
-      if (mediaRedFlags > 2) p = 4; // Muitos comportamentos ofensivos recorrentes
+      if (mediaRedFlags > 2) p = 4;
       else if (mediaRedFlags > 1) p = 3;
       else if (mediaRedFlags > 0) p = 2;
 
@@ -142,20 +138,20 @@ export class MatrizRiscoService {
   }
 
   /**
-   * Consolida a pontuação média por eixo de todos os respondentes para o "Mapa de Calor" do Dashboard
+   * Consolida a pontuação média por eixo de todos os respondentes
    */
   async getIndicadoresCopsoqConsolidado(setorId?: string, cicloId?: string): Promise<IndicadorEixo[]> {
     let query = this.supabase
       .from('respostas_avaliacoes')
-      .select('respostas');
+      .select('respostas')
+      .eq('empresa_id', this.empresaId);
 
     if (cicloId) query = query.eq('ciclo_id', cicloId);
 
     const { data: respostasReais, error: errorResp } = await query;
 
     if (errorResp || !respostasReais || respostasReais.length === 0) {
-      console.log("Sem respostas reais, usando mock de indicadores.");
-      return this.gerarMockIndicadores();
+      return []; // Retorna vazio em vez de mock
     }
 
     const eixos = [
@@ -172,14 +168,11 @@ export class MatrizRiscoService {
 
     respostasReais.forEach((row: any) => {
       const resp = row.respostas;
-      // Aplicar filtro de setor se fornecido
       if (setorId && resp.setor_id !== setorId) return;
 
       const detalhes = resp?.detalhes || [];
       detalhes.forEach((d: any) => {
-        // Busca a chave correspondente (ex: "Eixo 1" em "Eixo 1: Exigências...")
         const eixoChave = Object.keys(somaEixos).find(key => d.eixo?.startsWith(key));
-        
         if (eixoChave) {
           somaEixos[eixoChave].total += (d.pontos || 0);
           somaEixos[eixoChave].count += 1;
@@ -212,7 +205,7 @@ export class MatrizRiscoService {
     });
   }
 
-  private gerarMockIndicadores(): IndicadorEixo[] {
+  public gerarMockIndicadores(): IndicadorEixo[] {
     return [
       { nome: 'Exigências no Trabalho (Demandas)', score: 72.5, label: 'Alto', color: '#ef4444', descricao: 'Avalia ritmo de trabalho, carga quantitativa e exigências emocionais do cargo.' },
       { nome: 'Organização e Conteúdo do Trabalho', score: 45.2, label: 'Médio', color: '#f59e0b', descricao: 'Mede a influência, clareza de papel e o sentido que o colaborador vê nas tarefas.' },
@@ -232,13 +225,7 @@ export class MatrizRiscoService {
     ];
   }
 
-  /**
-   * Função Utilitária para retornar apenas os dados mapeados na Matriz CSS do Dashboard
-   */
   agruparPontosMatriz(_grupos: GrupoRisco[]) {
-    // Array para os 16 quadrados (P x S). Index = 0 é (P4, S1)...
-    // A CSS Grid foi feita em 4 colunas (Severidade) e 4 Linhas (Probabilidade Invertida)
-    const points: any[] = [];
-    return points;
+    return [];
   }
 }

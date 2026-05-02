@@ -93,10 +93,42 @@ export class ClienteMasterService {
      // Puxa as empresas e faz um Count Aggregation inteligente via FK relationships
      const { data, error } = await adminSupabase
        .from('empresas')
-       .select('*, planos_de_acao_pgr(count), denuncias_anonimas(count), campanhas_pesquisa(count)')
+       .select('*, planos_de_acao_pgr(count), denuncias_anonimas(count), campanhas_pesquisa(count), colaboradores_base(count)')
        .order('created_at', { ascending: false });
 
      if (error) throw new Error(error.message);
      return data;
+  }
+
+  /**
+   * Métodos para Configurações Globais do Sistema
+   */
+  async getConfiguracoes() {
+    const adminSupabase = this.getSupabaseAdmin();
+    const { data, error } = await adminSupabase
+      .from('configuracoes_sistema')
+      .select('*')
+      .single();
+    
+    // Se não existir, retorna um default para não quebrar a UI
+    if (error) {
+      return {
+        nome_plataforma: 'NR1 Compliance',
+        email_suporte: 'suporte@nr1.com.br',
+        modo_manutencao: false,
+        limite_usuarios_trial: 10
+      };
+    }
+    return data;
+  }
+
+  async salvarConfiguracoes(config: any) {
+    const adminSupabase = this.getSupabaseAdmin();
+    const { error } = await adminSupabase
+      .from('configuracoes_sistema')
+      .upsert([config]);
+    
+    if (error) throw new Error("Erro ao salvar configurações: " + error.message);
+    return { sucesso: true };
   }
 }

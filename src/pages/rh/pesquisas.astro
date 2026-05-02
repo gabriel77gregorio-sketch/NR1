@@ -24,14 +24,6 @@ if (sessionUser) {
   }
 }
 
-// Fallback para desenvolvimento (NR1 Admin)
-if (!empresaId) {
-  empresaId = '53294cef-d9b3-4b0e-ae68-d2b7a437bb17';
-}
-
-if (sessionUser) {
-  ciclos = await cicloService.getCiclos(empresaId);
-}
 
 // Lógica de manipulação de formulário via SSR (Criação de Ciclo)
 if (Astro.request.method === 'POST') {
@@ -43,20 +35,23 @@ if (Astro.request.method === 'POST') {
       const nome = formData.get('ciclo_nome')?.toString();
       if (nome && empresaId) {
         await cicloService.createCiclo(empresaId, nome);
-        // Recarregar ciclos após criação
         console.log("Ciclo criado com sucesso!");
       }
     } else if (action === 'delete_ciclo') {
       const id = formData.get('ciclo_id')?.toString();
       if (id) {
         await cicloService.deleteCiclo(id);
-        ciclos = await cicloService.getCiclos(empresaId);
         console.log("Ciclo removido com sucesso!");
       }
     }
   } catch (err: any) {
     console.error(err);
   }
+}
+
+// Busca final após qualquer alteração via POST
+if (sessionUser) {
+  ciclos = await cicloService.getCiclos(empresaId);
 }
 ---
 

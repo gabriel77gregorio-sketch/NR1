@@ -41,14 +41,6 @@ if (user) {
       }));
     }
   }
-} else {
-  // Mock Data
-  const d7 = new Date(); d7.setDate(d7.getDate() - 3);
-  const d30 = new Date(); d30.setDate(d30.getDate() - 20);
-  denuncias = [
-    { protocolo: 'DEN-100234', data: d7.toLocaleDateString('pt-BR'), data_iso: d7.toISOString(), severidade: 'Alta', status: 'Em Apuração', ultima_att: 'Hoje', texto: '[TIPO DE VIOLAÇÃO]: Assédio Moral\n\n[RELATO]:\nMeu gerente tem gritado comigo todos os dias no final do expediente.' },
-    { protocolo: 'DEN-100233', data: d30.toLocaleDateString('pt-BR'), data_iso: d30.toISOString(), severidade: 'Média', status: 'Nova Denúncia', ultima_att: 'Há 5 dias', texto: '[TIPO DE VIOLAÇÃO]: Violação de Saúde e Segurança\n\n[RELATO]:\nA escada do bloco B está com o corrimão quebrado há semanas, risco de queda.' }
-  ];
 }
 ---
 
@@ -78,12 +70,12 @@ if (user) {
         <!-- Indicadores -->
         <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
           <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1rem 1.5rem; flex: 1;">
-            <div style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600;">NOVAS (7 DIAS)</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-danger);">1</div>
+            <div style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600;">NOVAS (TOTAL)</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-danger);">{denuncias.filter(d => d.status === 'Nova Denúncia').length}</div>
           </div>
           <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1rem 1.5rem; flex: 1;">
             <div style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600;">EM APURAÇÃO</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-warning);">1</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-warning);">{denuncias.filter(d => d.status === 'Em Apuração').length}</div>
           </div>
         </div>
         
@@ -132,7 +124,11 @@ if (user) {
           </div>
 
           <div id="listaDenuncias" style="display: flex; flex-direction: column;">
-            {denuncias.map((denuncia) => (
+            {denuncias.length === 0 ? (
+               <div style="padding: 3rem; text-align: center; color: var(--color-text-muted);">
+                 Nenhuma denúncia encontrada na caixa de entrada.
+               </div>
+            ) : denuncias.map((denuncia) => (
               <div class="denuncia-row" data-status={denuncia.status} data-date={denuncia.data_iso} data-texto={denuncia.texto} data-protocolo={denuncia.protocolo} style="display: flex; align-items: center; padding: 1.25rem 1rem; font-size: 0.875rem; border-bottom: 1px solid var(--color-border);">
                 <div style="flex: 1.5;">
                   <div style="font-weight: 600; color: var(--color-text); font-family: monospace; font-size: 1rem;">{denuncia.protocolo}</div>

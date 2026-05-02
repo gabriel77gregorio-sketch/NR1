@@ -13,16 +13,14 @@ export interface Advertencia {
 }
 
 export class AdvertenciaService {
-  private supabase: SupabaseClient;
+  private empresaId: string;
 
-  constructor(supabaseClient: SupabaseClient) {
+  constructor(supabaseClient: SupabaseClient, empresaId: string) {
     this.supabase = supabaseClient;
+    this.empresaId = empresaId;
   }
 
-  async getAdvertencias(): Promise<Advertencia[]> {
-    const { data: { user } } = await this.supabase.auth.getUser();
-    if (!user) return [];
-
+  async getAdvertencias(): Promise<any[]> {
     const { data, error } = await this.supabase
       .from('advertencias_comportamentais')
       .select(`
@@ -30,6 +28,7 @@ export class AdvertenciaService {
         colaboradores_base ( nome, cargo ),
         perfis_usuarios ( nome )
       `)
+      .eq('empresa_id', this.empresaId)
       .order('created_at', { ascending: false });
 
     if (error) {
