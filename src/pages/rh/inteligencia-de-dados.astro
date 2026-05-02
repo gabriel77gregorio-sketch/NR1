@@ -11,6 +11,8 @@ try {
   user = authData?.user;
 } catch (e) { }
 
+let hasRealData = false;
+
 if (user) {
   const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('role, empresa_id').eq('id', user.id).single();
   if (perfil && !['Master', 'Diretoria', 'Segurança_Trabalho', 'RH'].includes(perfil.role)) {
@@ -27,8 +29,6 @@ if (user) {
      hasRealData = (count || 0) > 0;
   }
 }
-
-let hasRealData = false;
 ---
 
 <Layout title="Inteligência de Dados | RH NR1">

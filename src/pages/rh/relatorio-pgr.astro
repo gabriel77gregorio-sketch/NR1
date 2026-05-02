@@ -25,15 +25,17 @@ let matrizGrupos: any[] = [];
 let planos: any[] = [];
 let indicadoresEixos: any[] = [];
 
-const matrizService = new MatrizRiscoService(supabaseClient);
+let matrizService = new MatrizRiscoService(supabaseClient, 'demo');
 
 if (user) {
-  const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, empresas(nome, id)').eq('id', user.id).single();
+  const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, empresas(nome, id), empresa_id').eq('id', user.id).single();
   if (perfil) {
     userName = perfil.nome;
     if (perfil.empresas) {
       companyName = (perfil.empresas as any).nome;
     }
+    // Agora temos o empresa_id real
+    matrizService = new MatrizRiscoService(supabaseClient, perfil.empresa_id);
   }
 
   // Buscar nome do setor se houver filtro

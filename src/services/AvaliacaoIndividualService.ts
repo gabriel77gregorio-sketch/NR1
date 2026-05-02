@@ -13,6 +13,7 @@ export interface AvaliacaoIndividual {
 }
 
 export class AvaliacaoIndividualService {
+  private supabase: SupabaseClient;
   private empresaId: string;
 
   constructor(supabaseClient: SupabaseClient, empresaId: string) {

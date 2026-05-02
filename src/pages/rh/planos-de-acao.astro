@@ -352,7 +352,7 @@ if (user) {
                <select name="responsavel_id" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; background: white;">
                  <option value="">Selecione o Responsável...</option>
                  <optgroup label="Gestores / Acesso ao Sistema">
-                   <option value={`USER_${user.id}`}>Eu Mesmo ({data.user.name})</option>
+                   <option value={`USER_${user?.id}`}>Eu Mesmo ({data.user.name})</option>
                    {equipe.map(membro => (
                      <option value={`USER_${membro.id}`}>{membro.nome} ({membro.role})</option>
                    ))}
@@ -396,7 +396,7 @@ if (user) {
                 <select name="historico_responsavel_id" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; background: white;">
                   <option value="">Ação fluindo normalmente (Sem pendências)</option>
                   <optgroup label="Gestores / Acesso ao Sistema">
-                    <option value={`USER_${user.id}`}>Travado com: Eu Mesmo ({data.user.name})</option>
+                    <option value={`USER_${user?.id}`}>Travado com: Eu Mesmo ({data.user.name})</option>
                     {equipe.map(membro => (
                       <option value={`USER_${membro.id}`}>Travado com: {membro.nome} ({membro.role})</option>
                     ))}

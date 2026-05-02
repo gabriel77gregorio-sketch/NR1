@@ -13,6 +13,7 @@ export interface Advertencia {
 }
 
 export class AdvertenciaService {
+  private supabase: SupabaseClient;
   private empresaId: string;
 
   constructor(supabaseClient: SupabaseClient, empresaId: string) {
