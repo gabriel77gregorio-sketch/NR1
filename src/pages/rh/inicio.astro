@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import SidebarRH from '../../components/SidebarRH.astro';
 import { supabase } from '../../lib/supabase';
+import { AvaliacaoIndividualService } from '../../services/AvaliacaoIndividualService';
 
 // Proteção SSR
 const supabaseClient = supabase(Astro);
@@ -43,6 +44,10 @@ let valDenuncias = 0;
 let valAvaliacoes = 0;
 let valPgr = '0%';
 
+// Indicadores Espelhados
+let stats = { media45: 0, media90: 0, desligamentos: 0 };
+let turnover = '0';
+
 let listaAgendamentos: any[] = [];
 
 // -------------------------------------------------------------
@@ -72,7 +77,18 @@ if (user && empresaId) {
     .eq('status', 'Pendente');
   if (cAvaliacoes !== null) valAvaliacoes = cAvaliacoes;
 
-  // 4. Agendamentos Pendentes (Lista)
+  // 4. Estatísticas de Avaliação e Turnover
+  const avalService = new AvaliacaoIndividualService(supabaseClient, empresaId);
+  stats = await avalService.getStats();
+  
+  const { count: totalColabs } = await supabaseClient
+    .from('colaboradores_base')
+    .select('id', { count: 'exact', head: true })
+    .eq('empresa_id', empresaId);
+  
+  turnover = totalColabs ? ((stats.desligamentos / totalColabs) * 100).toFixed(1) : '0';
+
+  // 5. Agendamentos Pendentes (Lista)
   const { data: realAg } = await supabaseClient.from('avaliacoes_individuais')
     .select('id, tipo, data_limite, colaboradores_base(nome, cargo)')
     .eq('empresa_id', empresaId)
@@ -178,6 +194,50 @@ if (user && empresaId) {
             </div>
           </div>
         </div>
+
+        <!-- Painel de People Analytics (Espelhado) -->
+        <section style="margin-bottom: 2.5rem;">
+           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+             <h4 style="font-size: 1.1rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.75rem;">
+               <svg style="width: 22px; height: 22px; color: var(--color-primary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
+               Indicadores de Gente & Gestão
+             </h4>
+             <a href="/rh/avaliacoes-individuais" style="font-size: 0.8rem; color: var(--color-primary); font-weight: 600; text-decoration: none;">Gerenciar Avaliações →</a>
+           </div>
+
+           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;">
+              <div class="card" style="padding: 1.25rem; background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);">
+                <p style="margin: 0; font-size: 0.7rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase;">Média Adaptação (45d)</p>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.5rem;">
+                   <h3 style="font-size: 1.5rem; font-weight: 800; margin: 0; color: #0369a1;">{stats.media45}%</h3>
+                   <div style="width: 60px; height: 60px; position: relative;">
+                      <svg viewBox="0 0 36 36" style="transform: rotate(-90deg);"><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e0f2fe" stroke-width="3" /><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#0ea5e9" stroke-width="3" stroke-dasharray={`${stats.media45}, 100`} /></svg>
+                   </div>
+                </div>
+              </div>
+
+              <div class="card" style="padding: 1.25rem; background: linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%);">
+                <p style="margin: 0; font-size: 0.7rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase;">Média Efetivação (90d)</p>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.5rem;">
+                   <h3 style="font-size: 1.5rem; font-weight: 800; margin: 0; color: #4338ca;">{stats.media90}%</h3>
+                   <div style="width: 60px; height: 60px; position: relative;">
+                      <svg viewBox="0 0 36 36" style="transform: rotate(-90deg);"><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f3e8ff" stroke-width="3" /><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#6366f1" stroke-width="3" stroke-dasharray={`${stats.media90}, 100`} /></svg>
+                   </div>
+                </div>
+              </div>
+
+              <div class="card" style="padding: 1.25rem; background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);">
+                <p style="margin: 0; font-size: 0.7rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase;">Taxa de Turnover</p>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.5rem;">
+                   <h3 style="font-size: 1.5rem; font-weight: 800; margin: 0; color: #b91c1c;">{turnover}%</h3>
+                   <div style="text-align: right;">
+                      <span style="font-size: 0.7rem; display: block; font-weight: 700; color: #ef4444;">ALERTA</span>
+                      <span style="font-size: 0.65rem; color: var(--color-text-muted);">{stats.desligamentos} desligados</span>
+                   </div>
+                </div>
+              </div>
+           </div>
+        </section>
 
         <!-- Seção de Conteúdo -->
         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">

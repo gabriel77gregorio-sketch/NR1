@@ -22,6 +22,24 @@ if (user) {
   }
 }
 
+function calcularTempoCasa(dataAdmissao: string | null) {
+  if (!dataAdmissao) return '-';
+  const inicio = new Date(dataAdmissao);
+  const hoje = new Date();
+  const diffTime = hoje.getTime() - inicio.getTime();
+  if (diffTime < 0) return 'Futuro';
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays < 30) return `${diffDays} dias`;
+  if (diffDays < 365) {
+    const meses = Math.floor(diffDays / 30);
+    return `${meses} ${meses === 1 ? 'mês' : 'meses'}`;
+  }
+  const anos = Math.floor(diffDays / 365);
+  const meses = Math.floor((diffDays % 365) / 30);
+  return `${anos} ${anos === 1 ? 'ano' : 'anos'}${meses > 0 ? ` e ${meses} ${meses === 1 ? 'mês' : 'meses'}` : ''}`;
+}
+
 const service = new ColaboradoresService(supabaseClient);
 let message = '';
 let isError = false;
@@ -46,8 +64,9 @@ if (Astro.request.method === 'POST') {
       const cargo = formData.get('colab_cargo')?.toString();
       const setorId = formData.get('colab_setor')?.toString();
       const whatsapp = formData.get('colab_whatsapp')?.toString();
+      const dataAdmissao = formData.get('colab_data_admissao')?.toString();
       if (nome && email && cargo) {
-        await service.addColaborador(nome, email, cargo, setorId || null, whatsapp || null);
+        await service.addColaborador(nome, email, cargo, setorId || null, whatsapp || null, dataAdmissao || null);
         message = "Colaborador adicionado com sucesso!";
       }
     } else if (action === 'del_colaborador') {
@@ -156,6 +175,11 @@ const colaboradores = user ? await service.getColaboradores() : [];
                     <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">WHATSAPP</label>
                     <input type="text" name="colab_whatsapp" placeholder="DDD+Número" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-background); outline: none; font-size: 0.875rem;" />
                   </div>
+
+                  <div style="grid-column: span 1;">
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">DATA DE ADMISSÃO</label>
+                    <input type="date" name="colab_data_admissao" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-background); outline: none; font-size: 0.875rem;" />
+                  </div>
                   
                   <div>
                     <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">CARGO</label>
@@ -189,6 +213,7 @@ const colaboradores = user ? await service.getColaboradores() : [];
                       <tr style="text-align: left; background: var(--color-background);">
                         <th style="padding: 1rem 2rem; color: var(--color-text-muted); font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">Colaborador</th>
                         <th style="padding: 1rem 2rem; color: var(--color-text-muted); font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">Cargo & Setor</th>
+                        <th style="padding: 1rem 2rem; color: var(--color-text-muted); font-weight: 700; font-size: 0.7rem; text-transform: uppercase;">Tempo de Casa</th>
                         <th style="padding: 1rem 2rem; color: var(--color-text-muted); font-weight: 700; font-size: 0.7rem; text-transform: uppercase; text-align: right;">Ações</th>
                       </tr>
                     </thead>
@@ -212,6 +237,10 @@ const colaboradores = user ? await service.getColaboradores() : [];
                           <td style="padding: 1rem 2rem;">
                             <p style="font-weight: 600; color: var(--color-text); margin: 0;">{c.cargo}</p>
                             <p style="font-size: 0.75rem; color: var(--color-primary); margin: 0;">{c.departamentos_unidades?.nome || 'Sem Setor'}</p>
+                          </td>
+                          <td style="padding: 1rem 2rem;">
+                            <p style="font-weight: 600; color: var(--color-text); margin: 0;">{calcularTempoCasa(c.data_admissao)}</p>
+                            <p style="font-size: 0.75rem; color: var(--color-text-muted); margin: 0;">{c.data_admissao ? new Date(c.data_admissao).toLocaleDateString('pt-BR') : 'Sem data'}</p>
                           </td>
                           <td style="padding: 1rem 2rem; text-align: right;">
                             <form method="POST" style="margin: 0;">

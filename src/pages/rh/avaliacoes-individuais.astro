@@ -14,6 +14,8 @@ try {
 
 let avaliacoes: any[] = [];
 let colaboradores: any[] = [];
+let stats = { media45: 0, media90: 0, desligamentos: 0 };
+let turnover = '0';
 
 if (user) {
   const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('empresa_id').eq('id', user.id).single();
@@ -22,10 +24,17 @@ if (user) {
     const avaliacaoService = new AvaliacaoIndividualService(supabaseClient, empresaId);
 
     avaliacoes = await avaliacaoService.getAvaliacoes();
+    stats = await avaliacaoService.getStats();
     
-    // Buscar colaboradores da empresa para o agendamento
-    const { data: colabs } = await supabaseClient.from('colaboradores_base').select('id, nome, cargo').eq('empresa_id', empresaId).order('nome');
+    // Buscar colaboradores e calcular turnover
+    const { data: colabs, count: totalColabs } = await supabaseClient
+      .from('colaboradores_base')
+      .select('id, nome, cargo', { count: 'exact' })
+      .eq('empresa_id', empresaId)
+      .order('nome');
+    
     colaboradores = colabs || [];
+    turnover = totalColabs ? ((stats.desligamentos / totalColabs) * 100).toFixed(1) : '0';
 
     if (Astro.request.method === 'POST') {
       try {
@@ -77,6 +86,51 @@ function getTipoBadge(tipo: string) {
           </button>
         </div>
 
+        <!-- Indicadores de Qualidade e Turnover -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2.5rem;">
+          
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: 16px; padding: 1.5rem; border-left: 4px solid #0ea5e9;">
+            <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Adaptação (45 dias)</p>
+            <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.5rem;">
+              <span style="font-size: 1.75rem; font-weight: 800; color: var(--color-text);">{stats.media45}%</span>
+              <span style="font-size: 0.8rem; color: #0ea5e9; font-weight: 600;">média geral</span>
+            </div>
+            <div style="width: 100%; height: 6px; background: #f1f5f9; border-radius: 10px; margin-top: 0.75rem; overflow: hidden;">
+              <div style={`width: ${stats.media45}%; height: 100%; background: #0ea5e9;`}></div>
+            </div>
+          </div>
+
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: 16px; padding: 1.5rem; border-left: 4px solid #6366f1;">
+            <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Efetivação (90 dias)</p>
+            <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.5rem;">
+              <span style="font-size: 1.75rem; font-weight: 800; color: var(--color-text);">{stats.media90}%</span>
+              <span style="font-size: 0.8rem; color: #6366f1; font-weight: 600;">média geral</span>
+            </div>
+            <div style="width: 100%; height: 6px; background: #f1f5f9; border-radius: 10px; margin-top: 0.75rem; overflow: hidden;">
+              <div style={`width: ${stats.media90}%; height: 100%; background: #6366f1;`}></div>
+            </div>
+          </div>
+
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: 16px; padding: 1.5rem; border-left: 4px solid #ef4444;">
+            <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Taxa de Turnover</p>
+            <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.5rem;">
+              <span style="font-size: 1.75rem; font-weight: 800; color: var(--color-text);">{turnover}%</span>
+              <span style="font-size: 0.8rem; color: #ef4444; font-weight: 600;">anual aprox.</span>
+            </div>
+            <p style="margin: 0.5rem 0 0 0; font-size: 0.7rem; color: var(--color-text-muted);">Baseado em {stats.desligamentos} desligamentos</p>
+          </div>
+
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: 16px; padding: 1.5rem; border-left: 4px solid #22c55e;">
+            <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Base Ativa</p>
+            <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.5rem;">
+              <span style="font-size: 1.75rem; font-weight: 800; color: var(--color-text);">{colaboradores.length}</span>
+              <span style="font-size: 0.8rem; color: #22c55e; font-weight: 600;">colaboradores</span>
+            </div>
+            <p style="margin: 0.5rem 0 0 0; font-size: 0.7rem; color: var(--color-text-muted);">Dados em tempo real</p>
+          </div>
+
+        </div>
+
         <!-- Filtros -->
         <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; display: flex; gap: 1.5rem; align-items: center;">
           <div style="font-size: 0.85rem; font-weight: 600; color: var(--color-text-muted);">FILTRAR POR:</div>
@@ -109,10 +163,15 @@ function getTipoBadge(tipo: string) {
                     <span style={`background: ${badge.bg}; color: ${badge.color}; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;`}>
                       {badge.label}
                     </span>
-                    
-                    {av.status === 'Pendente' && <span style="font-size: 0.75rem; color: #b45309; font-weight: 600;">PENDENTE</span>}
-                    {av.status === 'Em Andamento' && <span style="font-size: 0.75rem; color: #2563eb; font-weight: 600;">EM ANDAMENTO</span>}
-                    {av.status === 'Concluído' && <span style="font-size: 0.75rem; color: #16a34a; font-weight: 600;">CONCLUÍDO</span>}
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        {av.status === 'Pendente' && <span style="font-size: 0.75rem; color: #b45309; font-weight: 600;">PENDENTE</span>}
+                        {av.status === 'Em Andamento' && <span style="font-size: 0.75rem; color: #2563eb; font-weight: 600;">EM ANDAMENTO</span>}
+                        {av.status === 'Concluído' && <span style="font-size: 0.75rem; color: #16a34a; font-weight: 600;">CONCLUÍDO</span>}
+                        
+                        <button class="btn-excluir-av" data-id={av.id} style="background: none; border: none; cursor: pointer; color: #cbd5e1; padding: 0.2rem; transition: color 0.2s; margin-left: 0.5rem;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#cbd5e1'">
+                          <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                     </div>
                  </div>
                  
                  <div style="flex: 1;">
@@ -125,7 +184,13 @@ function getTipoBadge(tipo: string) {
                        Prazo: <strong style="color: var(--color-text);">{new Date(av.data_limite).toLocaleDateString('pt-BR')}</strong>
                     </div>
                     
-                    <button class={`btn btn-outline ${av.status === 'Concluído' ? 'btnVerRelatorio' : 'btnResponderAv'}`} data-nome={av.colaboradores_base?.nome || 'Desconhecido'} data-cargo={av.colaboradores_base?.cargo || ''} data-tipo={av.tipo} style="font-size: 0.75rem; padding: 0.4rem 0.8rem;">
+                    <button class={`btn btn-outline ${av.status === 'Concluído' ? 'btnVerRelatorio' : 'btnResponderAv'}`} 
+                      data-id={av.id}
+                      data-nome={av.colaboradores_base?.nome || 'Desconhecido'} 
+                      data-cargo={av.colaboradores_base?.cargo || ''} 
+                      data-tipo={av.tipo} 
+                      data-dados={JSON.stringify(av.dados_resposta || {})}
+                      style="font-size: 0.75rem; padding: 0.4rem 0.8rem;">
                        {av.status === 'Concluído' ? 'VER RELATÓRIO' : 'RESPONDER'}
                     </button>
                  </div>
@@ -203,7 +268,7 @@ function getTipoBadge(tipo: string) {
           </div>
           <div style="margin-bottom: 1rem;">
             <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text);">1. Como você avalia a adaptação do colaborador?</label>
-            <select style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; outline: none;">
+            <select id="respAdaptacao" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; outline: none;">
                <option>Excelente</option>
                <option>Boa</option>
                <option>Regular</option>
@@ -212,7 +277,7 @@ function getTipoBadge(tipo: string) {
           </div>
           <div style="margin-bottom: 1.5rem;">
             <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text);">Observações / Feedback Geral</label>
-            <textarea rows="4" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; outline: none;"></textarea>
+            <textarea id="respObservacoes" rows="4" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; outline: none;"></textarea>
           </div>
           <div style="display: flex; justify-content: flex-end; gap: 1rem;">
              <button type="button" id="btnSalvarResposta" class="btn btn-primary">Salvar Respostas</button>
@@ -237,7 +302,7 @@ function getTipoBadge(tipo: string) {
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
              <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid var(--color-border);">
                 <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600; text-transform: uppercase;">Adaptação Geral</p>
-                <p style="margin: 0.25rem 0 0 0; font-size: 1.1rem; color: #16a34a; font-weight: 700;">Excelente</p>
+                <p id="relatorioAdaptacao" style="margin: 0.25rem 0 0 0; font-size: 1.1rem; color: #16a34a; font-weight: 700;">Excelente</p>
              </div>
              <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid var(--color-border);">
                 <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600; text-transform: uppercase;">Decisão Final</p>
@@ -246,8 +311,8 @@ function getTipoBadge(tipo: string) {
           </div>
           <div style="margin-bottom: 1.5rem;">
              <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600; text-transform: uppercase;">Observações do Gestor</p>
-             <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: var(--color-text); line-height: 1.5; background: #fbfbfc; padding: 1rem; border-radius: 8px; border: 1px solid var(--color-border);">
-                Colaborador demonstrou rápida assimilação das tarefas e se entrosou muito bem com a equipe. Recomendamos o prosseguimento das atividades sem ressalvas.
+             <p id="relatorioObservacoes" style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: var(--color-text); line-height: 1.5; background: #fbfbfc; padding: 1rem; border-radius: 8px; border: 1px solid var(--color-border);">
+                -
              </p>
           </div>
         </div>
@@ -273,19 +338,82 @@ function getTipoBadge(tipo: string) {
     
     document.getElementById('btnFecharResponder')?.addEventListener('click', () => { if(modalResponder) modalResponder.style.display = 'none'; });
     document.getElementById('btnFecharRelatorio')?.addEventListener('click', () => { if(modalRelatorio) modalRelatorio.style.display = 'none'; });
-    document.getElementById('btnSalvarResposta')?.addEventListener('click', () => {
-       alert('Avaliação salva com sucesso!');
-       if(modalResponder) modalResponder.style.display = 'none';
+    let currentAvaliacaoId = '';
+
+    document.getElementById('btnSalvarResposta')?.addEventListener('click', async () => {
+       const adaptacao = (document.getElementById('respAdaptacao') as HTMLSelectElement).value;
+       const observacoes = (document.getElementById('respObservacoes') as HTMLTextAreaElement).value;
+       
+       const btn = document.getElementById('btnSalvarResposta') as HTMLButtonElement;
+       btn.disabled = true;
+       btn.innerText = 'Salvando...';
+
+       try {
+         const response = await fetch('/api/rh/avaliacoes/concluir', {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({
+             id: currentAvaliacaoId,
+             dados: { adaptacao, observacoes }
+           })
+         });
+
+         const result = await response.json();
+         if (result.success) {
+           alert('Avaliação salva com sucesso!');
+           window.location.reload();
+         } else {
+           alert('Erro ao salvar: ' + result.error);
+         }
+       } catch (error) {
+         console.error(error);
+         alert('Erro de conexão ao salvar avaliação.');
+       } finally {
+         btn.disabled = false;
+         btn.innerText = 'Salvar Respostas';
+       }
     });
 
     document.querySelectorAll('.btnResponderAv').forEach(btn => {
        btn.addEventListener('click', (e) => {
+           const target = e.currentTarget as HTMLButtonElement;
+           currentAvaliacaoId = target.getAttribute('data-id') || '';
+           const nome = target.getAttribute('data-nome');
+           const tipo = target.getAttribute('data-tipo');
+           const info = document.getElementById('responderInfo');
+           if (info) info.textContent = `${nome} - ${tipo}`;
+           if (modalResponder) modalResponder.style.display = 'flex';
+       });
+    });
+
+    // Lógica para Excluir Avaliação
+    document.querySelectorAll('.btn-excluir-av').forEach(btn => {
+       btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
           const target = e.currentTarget as HTMLButtonElement;
-          const nome = target.getAttribute('data-nome');
-          const tipo = target.getAttribute('data-tipo');
-          const info = document.getElementById('responderInfo');
-          if (info) info.textContent = `${nome} - ${tipo}`;
-          if (modalResponder) modalResponder.style.display = 'flex';
+          const id = target.getAttribute('data-id');
+          
+          if (!id) return;
+
+          if (confirm('Tem certeza que deseja excluir esta avaliação? Esta ação removerá o agendamento permanentemente.')) {
+             try {
+                const response = await fetch('/api/rh/avaliacoes/excluir', {
+                   method: 'POST',
+                   headers: { 'Content-Type': 'application/json' },
+                   body: JSON.stringify({ id })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                   window.location.reload();
+                } else {
+                   alert('Erro ao excluir: ' + result.error);
+                }
+             } catch (error) {
+                console.error(error);
+                alert('Erro de conexão ao excluir avaliação.');
+             }
+          }
        });
     });
 
@@ -294,8 +422,18 @@ function getTipoBadge(tipo: string) {
           const target = e.currentTarget as HTMLButtonElement;
           const nome = target.getAttribute('data-nome');
           const tipo = target.getAttribute('data-tipo');
+          const dadosRaw = target.getAttribute('data-dados');
+          const dados = dadosRaw ? JSON.parse(dadosRaw) : {};
+
           const info = document.getElementById('relatorioInfo');
           if (info) info.textContent = `${nome} - ${tipo}`;
+          
+          const elAdaptacao = document.getElementById('relatorioAdaptacao');
+          const elObservacoes = document.getElementById('relatorioObservacoes');
+          
+          if (elAdaptacao) elAdaptacao.textContent = dados.adaptacao || 'Não informado';
+          if (elObservacoes) elObservacoes.textContent = dados.observacoes || 'Nenhuma observação registrada.';
+          
           if (modalRelatorio) modalRelatorio.style.display = 'flex';
        });
     });

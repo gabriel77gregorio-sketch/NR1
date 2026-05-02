@@ -68,4 +68,54 @@ export class AvaliacaoIndividualService {
 
     return true;
   }
+
+  async concluirAvaliacao(avaliacaoId: string, dadosResposta: any): Promise<boolean> {
+    const { error } = await this.supabase
+      .from('avaliacoes_individuais')
+      .update({ 
+        status: 'Concluído',
+        dados_resposta: dadosResposta
+      })
+      .eq('id', avaliacaoId);
+
+    if (error) {
+      console.error("Erro ao concluir avaliação:", error);
+      return false;
+    }
+
+    return true;
+  }
+
+  async excluirAvaliacao(id: string): Promise<boolean> {
+    const { error } = await this.supabase
+      .from('avaliacoes_individuais')
+      .delete()
+      .eq('id', id)
+      .eq('empresa_id', this.empresaId);
+
+    if (error) {
+      console.error("Erro ao excluir avaliação:", error);
+      return false;
+    }
+    return true;
+  }
+
+  async getStats(): Promise<{ media45: number, media90: number, desligamentos: number }> {
+    const avaliacoes = await this.getAvaliacoes();
+    
+    const calcularMedia = (tipo: string) => {
+      const filtradas = avaliacoes.filter(a => a.tipo === tipo && a.status === 'Concluído' && a.dados_resposta);
+      if (filtradas.length === 0) return 0;
+      
+      const pesos: any = { 'Excelente': 100, 'Boa': 75, 'Regular': 50, 'Insatisfatória': 25 };
+      const soma = filtradas.reduce((acc, a) => acc + (pesos[a.dados_resposta.adaptacao] || 0), 0);
+      return Math.round(soma / filtradas.length);
+    };
+
+    return {
+      media45: calcularMedia('Experiência_45_Dias'),
+      media90: calcularMedia('Experiência_90_Dias'),
+      desligamentos: avaliacoes.filter(a => a.tipo === 'Desligamento' && a.status === 'Concluído').length
+    };
+  }
 }
