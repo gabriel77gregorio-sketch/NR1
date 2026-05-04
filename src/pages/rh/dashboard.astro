@@ -47,6 +47,14 @@ if (user) {
 
     gruposExposicao = await matrizService.getMatrizRiscoMatematica(filterCicloId || undefined);
     indicadoresEixos = await matrizService.getIndicadoresCopsoqConsolidado(filterSetorId || undefined, filterCicloId || undefined);
+
+    // Buscar total de denúncias pendentes
+    const { count: numDenuncias } = await supabaseClient
+      .from('denuncias_anonimas')
+      .select('*', { count: 'exact', head: true })
+      .eq('empresa_id', empresaId)
+      .or('status.eq.Pendente,status.eq.Nova Denúncia');
+    data.numDenunciasPendentes = numDenuncias || 0;
   }
 } else {
   // Se não estiver logado, podemos opcionalmente mostrar mocks ou redirecionar
@@ -122,12 +130,20 @@ const currentSetorName = departamentos.find(d => d.id === filterSetorId)?.nome |
            <div style="margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid #f1f5f9;">
              <p style="margin:0; font-size: 0.8rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Resultado {filterSetorId ? 'do Setor' : 'Geral'}</p>
              <p style="margin:0.25rem 0 0 0; font-size: 0.85rem; color: var(--color-text-muted);">Score médio consolidado das 6 dimensões analisadas</p>
-             <div style="display: flex; align-items: center; gap: 1.5rem; margin-top: 1.5rem;">
+             <div style="display: flex; align-items: center; gap: 1.5rem; margin-top: 1.5rem; flex-wrap: wrap;">
                 <h3 style="margin:0; font-size: 3rem; font-weight: 900; color: var(--color-text); letter-spacing: -1px;">{mediaGeral}</h3>
                 <span style={`background: ${colorGeral}15; color: ${colorGeral}; padding: 0.6rem 1.2rem; border-radius: 99px; font-weight: 800; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; border: 1px solid ${colorGeral}40;`}>
                   <div style={`width: 10px; height: 10px; border-radius: 50%; background: ${colorGeral};`}></div>
                   {labelGeral}
                 </span>
+                
+                {(data as any).numDenunciasPendentes > 0 && (
+                  <a href="/rh/denuncias" style="text-decoration: none; background: #fee2e2; color: #ef4444; padding: 0.6rem 1.2rem; border-radius: 99px; font-weight: 800; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; border: 1px solid #fecaca; animation: pulse 2s infinite;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+                    {(data as any).numDenunciasPendentes} DENÚNCIA(S) PENDENTE(S)
+                  </a>
+                )}
+
                 <span style="color: var(--color-text-muted); font-size: 0.9rem; font-weight: 500;">Dados processados em {new Date().toLocaleDateString('pt-BR')}</span>
              </div>
            </div>
@@ -180,6 +196,7 @@ const currentSetorName = departamentos.find(d => d.id === filterSetorId)?.nome |
             <div style="display: flex; padding: 1.25rem 1.5rem; font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted); letter-spacing: 1px; border-bottom: 1px solid var(--color-border); background: #f8fafc; text-transform: uppercase;">
               <div style="flex: 2;">GHE / SETOR AVALIADO</div>
               <div style="flex: 1.5; text-align: center;">CARGOS REPRESENTADOS</div>
+              <div style="flex: 0.8; text-align: center;">RED FLAGS</div>
               <div style="flex: 1; text-align: center;">SCORE (P x S)</div>
               <div style="flex: 1; text-align: center;">GRAU DE RISCO</div>
               <div style="width: 120px; text-align: center;">AÇÕES</div>
@@ -198,6 +215,14 @@ const currentSetorName = departamentos.find(d => d.id === filterSetorId)?.nome |
                   </div>
                   <div style="flex: 1.5; text-align: center; color: var(--color-text-muted); font-size: 0.85rem;">
                     {grupo.funcao}
+                  </div>
+                  <div style={`flex: 0.8; text-align: center; font-weight: 800; color: ${grupo.redFlags > 0 ? '#ef4444' : '#64748b'};`}>
+                    {grupo.redFlags > 0 ? (
+                      <span style="display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+                        {grupo.redFlags}
+                      </span>
+                    ) : '0'}
                   </div>
                   <div style="flex: 1; text-align: center; font-family: monospace; font-size: 1.1rem; font-weight: 700; color: var(--color-text);">
                     {grupo.score}
@@ -267,5 +292,11 @@ const currentSetorName = departamentos.find(d => d.id === filterSetorId)?.nome |
 
   .table-row:hover {
     background: #fbfbfc;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
   }
 </style>

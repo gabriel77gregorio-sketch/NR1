@@ -52,6 +52,35 @@ export class CicloService {
   }
 
   async deleteCiclo(cicloId: string) {
+    // 1. Buscar IDs das campanhas vinculadas a este ciclo
+    const { data: campanhas } = await this.supabase
+      .from('campanhas_pesquisa')
+      .select('id')
+      .eq('ciclo_id', cicloId);
+
+    const campanhaIds = campanhas?.map(c => c.id) || [];
+
+    // 2. Apagar Respostas Anônimas do Ciclo
+    await this.supabase
+      .from('respostas_avaliacoes')
+      .delete()
+      .eq('ciclo_id', cicloId);
+
+    if (campanhaIds.length > 0) {
+      // 3. Apagar Participantes das Campanhas
+      await this.supabase
+        .from('campanhas_participantes')
+        .delete()
+        .in('campanha_id', campanhaIds);
+
+      // 4. Apagar as Campanhas
+      await this.supabase
+        .from('campanhas_pesquisa')
+        .delete()
+        .eq('ciclo_id', cicloId);
+    }
+
+    // 5. Finalmente, apagar o Ciclo
     const { error } = await this.supabase
       .from('ciclos_avaliacao')
       .delete()

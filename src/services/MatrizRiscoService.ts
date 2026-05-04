@@ -7,6 +7,7 @@ export interface GrupoRisco {
   severity: number;
   probability: number;
   score: number;
+  redFlags: number;
   risk: string;
   color: string;
   bg: string;
@@ -60,6 +61,15 @@ export class MatrizRiscoService {
       .eq('empresa_id', this.empresaId)
       .filter('ciclo_id', cicloId ? 'eq' : 'not.is', cicloId || null);
 
+    // 2.1 Buscar Denúncias Anônimas Pendentes
+    const { data: denunciasPendentes } = await this.supabase
+      .from('denuncias_anonimas')
+      .select('id')
+      .eq('empresa_id', this.empresaId)
+      .or('status.eq.Pendente,status.eq.Nova Denúncia');
+    
+    const totalDenunciasGlobal = denunciasPendentes?.length || 0;
+
     // 3. Processar médias por Setor
     const setoresMap: Record<string, { totalPontos: number, totalRedFlags: number, count: number }> = {};
     
@@ -92,6 +102,7 @@ export class MatrizRiscoService {
           funcao: 'Aguardando Respostas',
           severity: 1,
           probability: 1,
+          redFlags: 0,
         });
       }
 
@@ -108,12 +119,17 @@ export class MatrizRiscoService {
       else if (mediaRedFlags > 1) p = 3;
       else if (mediaRedFlags > 0) p = 2;
 
+      // Soma as denúncias globais ao total de Red Flags para impacto no risco
+      // (Enquanto as denúncias não forem vinculadas a um setor específico, elas alertam a empresa como um todo)
+      const redFlagsCalculadas = stats.totalRedFlags + totalDenunciasGlobal;
+
       return this.calcularCategorizacao({
         id: dept.id,
         setor: dept.nome,
         funcao: 'Empregados Multidisciplinares',
         severity: s,
         probability: p,
+        redFlags: redFlagsCalculadas,
       });
     });
   }
@@ -218,10 +234,10 @@ export class MatrizRiscoService {
 
   public gerarMockEducacional(): GrupoRisco[] {
     return [
-      this.calcularCategorizacao({ id: 'uuid-mock-1', setor: 'Linha de Montagem', funcao: 'Operador de Máquinas', severity: 4, probability: 4 }),
-      this.calcularCategorizacao({ id: 'uuid-mock-2', setor: 'Almoxarifado', funcao: 'Estoquista', severity: 3, probability: 4 }),
-      this.calcularCategorizacao({ id: 'uuid-mock-3', setor: 'Matriz - Financeiro', funcao: 'Analistas', severity: 2, probability: 3 }),
-      this.calcularCategorizacao({ id: 'uuid-mock-4', setor: 'Matriz - RH', funcao: 'Recursos Humanos', severity: 2, probability: 2 }),
+      this.calcularCategorizacao({ id: 'uuid-mock-1', setor: 'Linha de Montagem', funcao: 'Operador de Máquinas', severity: 4, probability: 4, redFlags: 2 }),
+      this.calcularCategorizacao({ id: 'uuid-mock-2', setor: 'Almoxarifado', funcao: 'Estoquista', severity: 3, probability: 4, redFlags: 3 }),
+      this.calcularCategorizacao({ id: 'uuid-mock-3', setor: 'Matriz - Financeiro', funcao: 'Analistas', severity: 2, probability: 3, redFlags: 0 }),
+      this.calcularCategorizacao({ id: 'uuid-mock-4', setor: 'Matriz - RH', funcao: 'Recursos Humanos', severity: 2, probability: 2, redFlags: 0 }),
     ];
   }
 

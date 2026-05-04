@@ -23,6 +23,7 @@ try {
         id,
         titulo,
         empresa_id,
+        ciclo_id,
         metodologia_id,
         metodologias_pesquisa (nome)
       ),
@@ -99,7 +100,8 @@ if (Astro.request.method === "POST" && status === "pendente") {
     // 3. Salvar Respostas Anônimas
     const { error: insertError } = await supabaseAdmin.from('respostas_avaliacoes').insert({
       empresa_id: empresaId,
-      formulario_id: templateId, // ID correto do template (FK)
+      ciclo_id: participanteData.campanhas_pesquisa.ciclo_id, // Agora usando o ID correto do Ciclo
+      formulario_id: templateId, 
       respostas: {
         detalhes: respostasProcessadas,
         setor_id: participanteData.colaboradores_base?.departamento_id,

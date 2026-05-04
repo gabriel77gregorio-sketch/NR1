@@ -30,16 +30,56 @@ if (user) {
       .order('created_at', { ascending: false });
 
     if (dbDenuncias) {
-      denuncias = dbDenuncias.map(d => ({
-        protocolo: d.protocolo,
-        data: d.created_at ? new Date(d.created_at).toLocaleDateString('pt-BR') : '-',
-        data_iso: d.created_at || new Date().toISOString(),
-        texto: d.texto,
-        severidade: 'Pendente',
-        status: d.status || 'Nova Denúncia',
-        ultima_att: d.created_at ? new Date(d.created_at).toLocaleDateString('pt-BR') : '-'
-      }));
+      denuncias = dbDenuncias.map(d => {
+        // Normaliza o status para garantir que 'Pendente' seja exibido como 'Nova Denúncia'
+        const statusExibicao = (d.status === 'Pendente' || !d.status) ? 'Nova Denúncia' : d.status;
+        
+        return {
+          protocolo: d.protocolo,
+          data: d.created_at ? new Date(d.created_at).toLocaleDateString('pt-BR') : '-',
+          data_iso: d.created_at || new Date().toISOString(),
+          texto: d.texto,
+          severidade: 'Pendente',
+          status: statusExibicao,
+          status_db: d.status, // Guardamos o original se precisar
+          ultima_att: d.created_at ? new Date(d.created_at).toLocaleDateString('pt-BR') : '-'
+        };
+      });
     }
+  }
+}
+
+// Handler para atualizar status e adicionar andamento
+if (Astro.request.method === "POST" && user) {
+  const formData = await Astro.request.formData();
+  const action = formData.get("action")?.toString();
+
+  if (action === "atualizar_status") {
+    const protocolo = formData.get("protocolo")?.toString();
+    const novoStatus = formData.get("status")?.toString();
+    const textoAcao = formData.get("texto_acao")?.toString();
+
+    if (protocolo && novoStatus) {
+      // 1. Atualizar Status na Denúncia
+      const { data: denuncia } = await supabaseClient
+        .from('denuncias_anonimas')
+        .update({ status: novoStatus })
+        .eq('protocolo', protocolo)
+        .select('id')
+        .single();
+
+      // 2. Se houver texto de ação, insere no histórico de andamentos
+      if (denuncia && textoAcao) {
+        await supabaseClient
+          .from('denuncias_andamentos')
+          .insert([{
+            denuncia_id: denuncia.id,
+            texto: textoAcao
+          }]);
+      }
+    }
+    // Recarrega para ver as mudanças
+    return Astro.redirect('/rh/denuncias');
   }
 }
 ---
@@ -71,7 +111,7 @@ if (user) {
         <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
           <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1rem 1.5rem; flex: 1;">
             <div style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600;">NOVAS (TOTAL)</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-danger);">{denuncias.filter(d => d.status === 'Nova Denúncia').length}</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-danger);">{denuncias.filter(d => d.status === 'Nova Denúncia' || d.status === 'Pendente').length}</div>
           </div>
           <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1rem 1.5rem; flex: 1;">
             <div style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600;">EM APURAÇÃO</div>
@@ -168,10 +208,13 @@ if (user) {
           <!-- Texto da denúncia será injetado aqui -->
         </div>
 
-        <form id="formTratamento" style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <form id="formTratamento" method="POST" style="display: flex; flex-direction: column; gap: 1.5rem;">
+           <input type="hidden" name="action" value="atualizar_status" />
+           <input type="hidden" id="modalProtocoloInput" name="protocolo" />
+           
            <div>
              <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-muted);">ATUALIZAR STATUS DA INVESTIGAÇÃO</label>
-             <select id="selectStatusTratamento" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; background: white;">
+             <select id="selectStatusTratamento" name="status" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; background: white;">
                <option value="Nova Denúncia">Nova Denúncia (Pendente)</option>
                <option value="Em Apuração">Em Apuração (Tratativa Iniciada)</option>
                <option value="Resolvida">Resolvida / Arquivada (Conclusão)</option>
@@ -179,10 +222,10 @@ if (user) {
            </div>
            
            <div>
-             <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-muted);">AÇÃO TOMADA PELO COMITÊ DE ÉTICA</label>
-             <textarea id="textoAcaoTomada" rows="3" placeholder="Descreva os fatos apurados, sindicâncias abertas ou advertências aplicadas..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; resize: none; font-family: inherit;"></textarea>
+             <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-muted);">AÇÃO TOMADA PELO COMITÊ DE ÉTICA (VISÍVEL AO DENUNCIANTE)</label>
+             <textarea id="textoAcaoTomada" name="texto_acao" rows="3" placeholder="Descreva os fatos apurados, sindicâncias abertas ou advertências aplicadas..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none; resize: none; font-family: inherit;"></textarea>
            </div>
-
+ 
            <div>
              <label style="display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-muted);">EVIDÊNCIAS DE INVESTIGAÇÃO (ANEXOS RESTRITOS)</label>
              <div style="border: 2px dashed var(--color-border); padding: 1.5rem; border-radius: var(--radius-md); text-align: center; color: var(--color-text-muted); font-size: 0.8rem; cursor: pointer; background: #fafafa;">
@@ -192,7 +235,7 @@ if (user) {
            
            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
              <button type="button" id="btnCancelarTratamento" class="btn btn-outline" style="padding: 0.75rem 1.5rem;">FECHAR</button>
-             <button type="button" id="btnSalvarTratamento" class="btn btn-primary" style="padding: 0.75rem 1.5rem; background: var(--color-danger); border-color: var(--color-danger);">
+             <button type="submit" id="btnSalvarTratamento" class="btn btn-primary" style="padding: 0.75rem 1.5rem; background: var(--color-danger); border-color: var(--color-danger);">
                SALVAR APURAÇÃO
              </button>
            </div>

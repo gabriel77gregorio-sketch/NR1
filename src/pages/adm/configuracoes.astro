@@ -34,6 +34,12 @@ if (Astro.request.method === "POST") {
         limite_usuarios_trial: parseInt(formData.get("limite_usuarios_trial")?.toString() || "10")
       });
       msgSucesso = "Configurações globais atualizadas!";
+    } else if (action === "delete_cliente") {
+      const empresaId = formData.get("empresa_id")?.toString();
+      if (empresaId) {
+        await masterService.deletarCliente(empresaId);
+        msgSucesso = "Cliente removido com sucesso!";
+      }
     }
   } catch (err: any) {
     msgErro = err.message || "Erro ao processar solicitação.";
@@ -182,6 +188,7 @@ const totalRowsSystem = usageData.reduce((acc, curr) => acc + curr.total_rows, 0
                     <th style="padding: 1rem 1.5rem; text-align: center; font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase;">Pesquisas</th>
                     <th style="padding: 1rem 1.5rem; text-align: center; font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase;">Ações/Docs</th>
                     <th style="padding: 1rem 1.5rem; text-align: center; font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase;">Peso DB</th>
+                    <th style="padding: 1rem 1.5rem; text-align: center; font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase;">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -200,6 +207,15 @@ const totalRowsSystem = usageData.reduce((acc, curr) => acc + curr.total_rows, 0
                              {((data.total_rows / (totalRowsSystem || 1)) * 100).toFixed(1)}%
                           </span>
                         </div>
+                      </td>
+                      <td style="padding: 1rem 1.5rem; text-align: center;">
+                        <form method="POST" onsubmit="return confirm('Excluir este cliente permanentemente?');" style="margin: 0;">
+                          <input type="hidden" name="action" value="delete_cliente" />
+                          <input type="hidden" name="empresa_id" value={data.id} />
+                          <button type="submit" title="Excluir Cliente" style="background: #fff1f2; border: 1px solid #fecaca; width: 32px; height: 32px; border-radius: 6px; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                            <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                          </button>
+                        </form>
                       </td>
                     </tr>
                   ))}

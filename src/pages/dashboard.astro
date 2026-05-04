@@ -26,16 +26,29 @@ let msgSucesso = null;
 if (Astro.request.method === "POST") {
   try {
     const formData = await Astro.request.formData();
-    await masterService.provisionarNovoCliente({
-      nome_empresa: formData.get("nome_empresa")?.toString() || '',
-      cnpj: formData.get("cnpj")?.toString() || '',
-      nome_admin: formData.get("nome_admin")?.toString() || '',
-      email_admin: formData.get("email_admin")?.toString() || '',
-      senha_provisoria: formData.get("senha_provisoria")?.toString() || '',
-    });
-    msgSucesso = "Cliente e acessos criados com sucesso!";
+    const action = formData.get("action")?.toString();
+
+    if (action === "delete_cliente") {
+      const empresaId = formData.get("empresa_id")?.toString();
+      if (empresaId) {
+        await masterService.deletarCliente(empresaId);
+        msgSucesso = "Cliente removido permanentemente.";
+      }
+    } else {
+      // Provisionamento de novo cliente
+      const novoCliente = {
+        nome_empresa: formData.get("nome_empresa")?.toString() || '',
+        cnpj: formData.get("cnpj")?.toString() || '',
+        nome_admin: formData.get("nome_admin")?.toString() || '',
+        email_admin: formData.get("email_admin")?.toString() || '',
+        senha_provisoria: formData.get("senha_provisoria")?.toString() || '',
+      };
+      
+      await masterService.provisionarNovoCliente(novoCliente);
+      msgSucesso = "Cliente e acessos criados com sucesso!";
+    }
   } catch (err: any) {
-    msgErro = err.message || "Erro desconhecido ao provisionar cliente.";
+    msgErro = err.message || "Erro inesperado ao processar solicitação.";
   }
 }
 
@@ -251,9 +264,19 @@ const totalDenuncias = (clientsDb || []).reduce((acc, c) => acc + (c.denuncias_a
                       </span>
                     </td>
                     <td style="padding: 1.5rem 2rem; text-align: center;">
-                      <a href="/login" class="btn btn-outline" style="padding: 0.5rem; min-width: 0; width: 36px; height: 36px; border-radius: 8px; color: var(--color-primary);">
-                        <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                      </a>
+                      <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                        <a href="/login" class="btn btn-outline" title="Acessar Painel" style="padding: 0.5rem; min-width: 0; width: 36px; height: 36px; border-radius: 8px; color: var(--color-primary);">
+                          <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                        </a>
+                        
+                        <form method="POST" onsubmit="return confirm('ATENÇÃO: Isso apagará TODOS os dados desta empresa (colaboradores, respostas, acessos). Esta ação não pode ser desfeita. Deseja continuar?');" style="margin: 0;">
+                          <input type="hidden" name="action" value="delete_cliente" />
+                          <input type="hidden" name="empresa_id" value={client.id} />
+                          <button type="submit" title="Excluir Cliente" style="background: #fff1f2; border: 1px solid #fecaca; width: 36px; height: 36px; border-radius: 8px; color: #e11d48; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                            <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                          </button>
+                        </form>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -355,17 +378,24 @@ const totalDenuncias = (clientsDb || []).reduce((acc, c) => acc + (c.denuncias_a
 
       if (inputCnpj) {
         inputCnpj.addEventListener('input', (e) => {
-          let value = (e.target as HTMLInputElement).value.replace(/\D/g, '');
+          const target = e.target as HTMLInputElement;
+          let value = target.value.replace(/\D/g, '');
           if (value.length > 14) value = value.slice(0, 14);
           
           let maskedValue = '';
-          if (value.length <= 2) maskedValue = value;
-          else if (value.length <= 5) maskedValue = `${value.slice(0, 2)}.${value.slice(2)}`;
-          else if (value.length <= 8) maskedValue = `${value.slice(0, 2)}.${value.slice(2, 5)}.${value.slice(5)}`;
-          else if (value.length <= 12) maskedValue = `${value.slice(0, 2)}.${value.slice(2, 5)}.${value.slice(5, 8)}/${value.slice(8)}`;
-          else maskedValue = `${value.slice(0, 2)}.${value.slice(2, 5)}.${value.slice(5, 8)}/${value.slice(8, 12)}-${value.slice(12)}`;
+          if (value.length <= 2) {
+            maskedValue = value;
+          } else if (value.length <= 5) {
+            maskedValue = `${value.slice(0, 2)}.${value.slice(2)}`;
+          } else if (value.length <= 8) {
+            maskedValue = `${value.slice(0, 2)}.${value.slice(2, 5)}.${value.slice(5)}`;
+          } else if (value.length <= 12) {
+            maskedValue = `${value.slice(0, 2)}.${value.slice(2, 5)}.${value.slice(5, 8)}/${value.slice(8)}`;
+          } else {
+            maskedValue = `${value.slice(0, 2)}.${value.slice(2, 5)}.${value.slice(5, 8)}/${value.slice(8, 12)}-${value.slice(12)}`;
+          }
           
-          (e.target as HTMLInputElement).value = maskedValue;
+          target.value = maskedValue;
         });
       }
 

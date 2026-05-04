@@ -128,32 +128,19 @@ const performanceCanais: Record<string, { total: number, resp: number }> = {
             <span style="color: var(--color-primary); font-weight: 600;">Relatório Macro</span>
           </nav>
           
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <h1 style="font-size: 1.875rem; color: #1e293b; font-weight: 800; margin: 0;">{ciclo.nome}</h1>
-              <p style="color: #64748b; margin-top: 0.25rem;">Visão Gerencial de Engajamento e Adesão</p>
-            </div>
-            <button class="btn btn-outline" style="background: white;" onclick="window.print()">
-              EXPORTAR PDF
-            </button>
+          <div>
+            <h1 style="font-size: 1.875rem; color: #1e293b; font-weight: 800; margin: 0;">{ciclo.nome}</h1>
+            <p style="color: #64748b; margin-top: 0.25rem;">Visão Gerencial de Engajamento e Adesão</p>
           </div>
         </div>
 
         <!-- KPIs -->
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2.5rem;">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 2.5rem;">
           <div style="background: white; padding: 1.5rem; border-radius: 16px; border: 1px solid #e2e8f0;">
             <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Taxa de Engajamento</span>
             <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.5rem;">
               <span style="font-size: 2rem; font-weight: 800; color: #1e293b;">{taxaEngajamento}%</span>
               <span style="color: #16a34a; font-weight: 600;">{totalRespondidos}/{totalEnviados}</span>
-            </div>
-          </div>
-
-          <div style="background: white; padding: 1.5rem; border-radius: 16px; border: 1px solid #e2e8f0;">
-            <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Tempo Médio de Resposta</span>
-            <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.5rem;">
-              <span style="font-size: 2rem; font-weight: 800; color: #1e293b;">{tempoMedioMinutos}</span>
-              <span style="color: #64748b; font-weight: 600;">minutos</span>
             </div>
           </div>
 

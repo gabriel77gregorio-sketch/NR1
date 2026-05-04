@@ -108,4 +108,21 @@ IP Removido. Metadata Limpo.
 
     return denuncia;
   }
+
+  /**
+   * Pesquisa empresas pelo nome para facilitar o vínculo no canal de denúncia
+   */
+  async pesquisarEmpresas(termo: string) {
+    if (!termo || termo.length < 3) return [];
+    
+    const db = this.getSupabaseAdmin();
+    const { data, error } = await db
+      .from('empresas')
+      .select('id, nome')
+      .ilike('nome', `%${termo}%`)
+      .limit(10);
+      
+    if (error) throw error;
+    return data;
+  }
 }

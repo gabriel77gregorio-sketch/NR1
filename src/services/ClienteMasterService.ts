@@ -131,4 +131,50 @@ export class ClienteMasterService {
     if (error) throw new Error("Erro ao salvar configurações: " + error.message);
     return { sucesso: true };
   }
+
+  /**
+   * Remove completamente uma empresa e todos os dados associados
+   */
+  async deletarCliente(empresaId: string) {
+    const adminSupabase = this.getSupabaseAdmin();
+
+    try {
+      // 1. Buscar todos os IDs de usuários vinculados a esta empresa
+      const { data: perfis } = await adminSupabase
+        .from('perfis_usuarios')
+        .select('id')
+        .eq('empresa_id', empresaId);
+
+      const userIds = perfis?.map(p => p.id) || [];
+
+      // 2. Apagar os usuários do Supabase Auth (Admin API)
+      for (const id of userIds) {
+        await adminSupabase.auth.admin.deleteUser(id);
+      }
+
+      // 3. Apagar dados operacionais (Cascata manual preventiva)
+      // Nota: Algumas tabelas podem ter cascata no banco, mas fazemos aqui para garantir
+      await adminSupabase.from('respostas_avaliacoes').delete().eq('empresa_id', empresaId);
+      await adminSupabase.from('denuncias_anonimas').delete().eq('empresa_id', empresaId);
+      await adminSupabase.from('planos_de_acao_pgr').delete().eq('empresa_id', empresaId);
+      await adminSupabase.from('campanhas_pesquisa').delete().eq('empresa_id', empresaId);
+      await adminSupabase.from('ciclos_avaliacao').delete().eq('empresa_id', empresaId);
+      await adminSupabase.from('colaboradores_base').delete().eq('empresa_id', empresaId);
+      await adminSupabase.from('departamentos_unidades').delete().eq('empresa_id', empresaId);
+      await adminSupabase.from('perfis_usuarios').delete().eq('empresa_id', empresaId);
+
+      // 4. Por fim, apagar a empresa
+      const { error: empresaErr } = await adminSupabase
+        .from('empresas')
+        .delete()
+        .eq('id', empresaId);
+
+      if (empresaErr) throw empresaErr;
+
+      return { sucesso: true };
+    } catch (e: any) {
+      console.error("Erro ao deletar cliente:", e);
+      throw new Error("Falha ao remover cliente: " + e.message);
+    }
+  }
 }

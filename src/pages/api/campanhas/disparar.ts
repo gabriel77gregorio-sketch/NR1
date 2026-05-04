@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
+import { supabase } from '../../../lib/supabase';
 
 // Inicializa Resend
 const resend = new Resend(import.meta.env.RESEND_API_KEY || process.env.RESEND_API_KEY);
@@ -10,38 +11,21 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const body = await request.json();
     const { metodologia, dataDisparo, mensagem, cicloId, setorId, canal } = body;
 
-    // 1. Validar sessão restrita para recuperar a empresa do gestor
+    // 1. Validar sessão usando a lib centralizada
+    const supabaseClient = supabase({ request, cookies });
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Usuário não autenticado' }), { status: 401 });
+    }
+
     const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || process.env.PUBLIC_SUPABASE_URL;
-    const anonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || process.env.PUBLIC_SUPABASE_ANON_KEY;
     const serviceKey = import.meta.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY;
-    
-    let user = null;
-    let token = cookies.get('sb-access-token')?.value || cookies.get('my-access-token')?.value;
-    
-    const supabaseAuth = createClient(supabaseUrl, anonKey, { auth: { persistSession: false } });
     const supabaseAdmin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
-    if (token) {
-      const { data: { user: authUser }, error: userError } = await supabaseAuth.auth.getUser(token);
-      if (!userError && authUser) {
-        user = authUser;
-      }
-    }
+    const { data: perfil } = await supabaseAdmin.from('perfis_usuarios').select('empresa_id, nome').eq('id', user.id).single();
 
-    let perfil = null;
-    if (user) {
-      const { data: p } = await supabaseAdmin.from('perfis_usuarios').select('empresa_id, nome').eq('id', user.id).single();
-      perfil = p;
-    }
-
-    // Bypass para desenvolvimento
-    if (!perfil) {
-      console.log('Utilizando perfil de fallback para desenvolvimento');
-      const { data: pFallback } = await supabaseAdmin.from('perfis_usuarios').select('empresa_id, nome').eq('id', '921a062d-b00d-4aff-b0fa-3995854469e0').single();
-      perfil = pFallback;
-    }
-
-    if (!perfil) return new Response(JSON.stringify({ error: 'Perfil não encontrado e bypass falhou' }), { status: 403 });
+    if (!perfil) return new Response(JSON.stringify({ error: 'Perfil não encontrado' }), { status: 403 });
 
     // 2. Garantir que a metodologia existe para poder criar a campanha
     let { data: met } = await supabaseAdmin.from('metodologias_pesquisa').select('id').eq('nome', metodologia).single();
@@ -132,12 +116,18 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     });
 
     // Enviar via resend.batch (Resend permite até 100 emails por requisição na API BATCH)
-    const resendResponse = await resend.batch.send(emailsToSend);
+    const { data: resendData, error: resendError } = await resend.batch.send(emailsToSend);
+
+    if (resendError) {
+      console.error('Erro detalhado do Resend:', resendError);
+      throw new Error(`Falha no provedor de e-mail: ${resendError.message}`);
+    }
 
     return new Response(JSON.stringify({ 
       success: true, 
       message: 'Campanha e Tokens gerados! Disparo em lote via E-mail executado com sucesso.',
-      resendData: resendResponse 
+      resendData: resendData,
+      count: participantes.length
     }));
 
   } catch (err: any) {
