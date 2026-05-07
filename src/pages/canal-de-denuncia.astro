@@ -60,10 +60,8 @@ if (Astro.request.method === "POST") {
     <header style="background: white; border-bottom: 1px solid var(--color-border); padding: 1.25rem 0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
       <div class="container" style="max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem;">
         <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <div style="width: 32px; height: 32px; background: var(--color-primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white;">
-            <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-          </div>
-          <h1 style="font-size: 1.1rem; font-weight: 800; color: var(--color-text); margin: 0; letter-spacing: -0.5px;">PORTAL ESCUTA SEGURA</h1>
+           <img src="/logo-segurament.png" alt="Segurament" style="height: 32px;" />
+           <h1 style="font-size: 1.1rem; font-weight: 800; color: var(--color-text); margin: 0; letter-spacing: -0.5px;">ESCUTA SEGURA</h1>
         </div>
         <div style="font-size: 0.75rem; font-weight: 700; color: #10b981; background: #ecfdf5; padding: 0.4rem 0.75rem; border-radius: 999px; display: flex; align-items: center; gap: 0.5rem;">
           <span style="width: 6px; height: 6px; background: #10b981; border-radius: 50%;"></span>
@@ -89,7 +87,7 @@ if (Astro.request.method === "POST") {
           <div id="step-0" class="wizard-step">
             <div style="text-align: center; margin-bottom: 2.5rem;">
               <h2 style="font-size: 2rem; font-weight: 800; color: var(--color-text); margin-bottom: 1rem;">O que você deseja fazer?</h2>
-              <p style="color: var(--color-text-muted); font-size: 1rem;">O Canal de Ética da NR1 garante sigilo absoluto para seu relato.</p>
+              <p style="color: var(--color-text-muted); font-size: 1rem;">O Canal de Ética da Segurament garante sigilo absoluto para seu relato.</p>
             </div>
             <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
               <button onclick="window.nextStep(1)" style="display: flex; align-items: center; gap: 1.5rem; padding: 2rem; border-radius: 16px; border: 2px solid #f1f5f9; background: white; cursor: pointer; transition: all 0.2s; text-align: left;" onmouseover="this.style.borderColor='var(--color-primary)'; this.style.background='#fbfbfc'" onmouseout="this.style.borderColor='#f1f5f9'; this.style.background='white'">
@@ -122,7 +120,7 @@ if (Astro.request.method === "POST") {
             </div>
             
             <div style="background: #f8fafc; padding: 1.5rem; border-radius: 12px; font-size: 0.9rem; color: #475569; line-height: 1.6; margin-bottom: 2rem;">
-              <p style="margin-bottom: 1rem;"><strong>1. Independência:</strong> Este canal é operado de forma independente pela NR1 Compliance. Sua empresa não tem controle técnico sobre a exclusão de registros anônimos.</p>
+              <p style="margin-bottom: 1rem;"><strong>1. Independência:</strong> Este canal é operado de forma independente pela Segurament. Sua empresa não tem controle técnico sobre a exclusão de registros anônimos.</p>
               <p style="margin-bottom: 1rem;"><strong>2. Anonimato:</strong> Se você optar pelo anonimato, não gravaremos seu endereço IP, sua localização ou qualquer dado do seu dispositivo.</p>
               <p style="margin-bottom: 1rem;"><strong>3. Compromisso com a Verdade:</strong> Relatar fatos falsos intencionalmente pode prejudicar pessoas inocentes e está sujeito a medidas legais.</p>
               <p><strong>4. Sigilo:</strong> Seus dados são protegidos por criptografia militar. Apenas membros autorizados do comitê de ética terão acesso.</p>
@@ -292,7 +290,7 @@ if (Astro.request.method === "POST") {
         </div>
 
         <footer style="text-align: center; margin-top: 2rem;">
-          <p style="font-size: 0.75rem; color: var(--color-text-muted);">Tecnologia Segura por NR1 Compliance & Ethics. © 2026</p>
+          <p style="font-size: 0.75rem; color: var(--color-text-muted);">Tecnologia Segura por Segurament — Plataforma de Segurança Mental. © 2026</p>
         </footer>
       </div>
     </main>

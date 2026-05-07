@@ -65,28 +65,24 @@ const totalPlanos = (clientsDb || []).reduce((acc, c) => acc + (c.planos_de_acao
 const totalDenuncias = (clientsDb || []).reduce((acc, c) => acc + (c.denuncias_anonimas?.[0]?.count || 0), 0);
 ---
 
-<Layout title="Master Admin Dashboard">
+<Layout title="Segurament Master Dashboard">
   <div class="app-layout" style="background: #fdfbff; background-image: radial-gradient(#e2e8f0 0.5px, transparent 0.5px); background-size: 24px 24px;">
     
     <!-- Sidebar Premium -->
-    <aside class="sidebar" style="width: 280px; background: white; border-right: 1px solid var(--color-border); box-shadow: 4px 0 24px rgba(0,0,0,0.02);">
-      <div style="padding: 2rem 1.5rem; border-bottom: 1px solid var(--color-border);">
-        <h1 class="gradient-text" style="font-size: 1.75rem; margin: 0; display: flex; align-items: center; gap: 0.75rem; letter-spacing: -0.5px;">
-          <div style="width: 32px; height: 32px; background: var(--color-primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white;">
-            <svg style="width: 20px; height: 20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
-          </div>
-          NR1 MASTER
-        </h1>
-      </div>
+    <aside class="sidebar" style="width: 280px; background: #0f172a; border-right: 1px solid rgba(255,255,255,0.1); box-shadow: 4px 0 24px rgba(0,0,0,0.2);">
+        <div style="padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; align-items: center;">
+           <img src="/logo-segurament-horizontal-white.png" alt="Segurament Master" style="height: 120px; width: auto; object-fit: contain; margin-bottom: 0.5rem;" />
+           <p style="font-size: 0.7rem; font-weight: 800; color: #94a3b8; margin: 0; letter-spacing: 1px;">MASTER CONTROL</p>
+        </div>
       
-      <div style="padding: 1.5rem; border-bottom: 1px solid var(--color-border);">
-        <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: #f8fafc; border-radius: var(--radius-lg);">
-          <div style="width: 40px; height: 40px; border-radius: 12px; background: var(--color-secondary); display: flex; align-items: center; justify-content: center; color: var(--color-primary);">
+      <div style="padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: var(--radius-lg);">
+          <div style="width: 40px; height: 40px; border-radius: 12px; background: #1e293b; display: flex; align-items: center; justify-content: center; color: #38bdf8;">
             <svg style="width: 24px; height: 24px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
           </div>
           <div style="overflow: hidden;">
-            <p style="font-size: 0.875rem; font-weight: 700; color: var(--color-text); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{userPerfil.name}</p>
-            <p style="font-size: 0.75rem; color: var(--color-text-muted); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{userPerfil.email}</p>
+            <p style="font-size: 0.875rem; font-weight: 700; color: #ffffff; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{userPerfil.name}</p>
+            <p style="font-size: 0.75rem; color: #94a3b8; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{userPerfil.email}</p>
           </div>
         </div>
       </div>
@@ -94,13 +90,13 @@ const totalDenuncias = (clientsDb || []).reduce((acc, c) => acc + (c.denuncias_a
       <nav style="flex: 1; padding: 1.5rem 1rem;">
         <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem;">
           <li>
-            <a href="#" style="display: flex; align-items: center; padding: 0.875rem 1.25rem; background: var(--color-secondary); color: var(--color-primary); border-radius: 12px; text-decoration: none; font-size: 0.9rem; font-weight: 600; gap: 1rem; transition: all 0.2s;">
+            <a href="#" style="display: flex; align-items: center; padding: 0.875rem 1.25rem; background: #38bdf820; color: #38bdf8; border-radius: 12px; text-decoration: none; font-size: 0.9rem; font-weight: 600; gap: 1rem; transition: all 0.2s;">
               <svg style="width: 20px; height: 20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
               Gestão de Clientes
             </a>
           </li>
           <li>
-            <a href="/adm/configuracoes" class="nav-link" style="display: flex; align-items: center; padding: 0.875rem 1.25rem; color: var(--color-text-muted); border-radius: 12px; text-decoration: none; font-size: 0.9rem; font-weight: 500; gap: 1rem; transition: all 0.2s;">
+            <a href="/adm/configuracoes" class="nav-link" style="display: flex; align-items: center; padding: 0.875rem 1.25rem; color: #94a3b8; border-radius: 12px; text-decoration: none; font-size: 0.9rem; font-weight: 500; gap: 1rem; transition: all 0.2s;">
               <svg style="width: 20px; height: 20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
               Configurações
             </a>
@@ -138,7 +134,7 @@ const totalDenuncias = (clientsDb || []).reduce((acc, c) => acc + (c.denuncias_a
       <header style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3rem;">
         <div>
           <h2 style="font-size: 2.25rem; font-weight: 800; color: var(--color-text); margin: 0; letter-spacing: -1px;">Gerenciamento de Clientes</h2>
-          <p style="color: var(--color-text-muted); font-size: 1.125rem; margin-top: 0.5rem;">Controle centralizado de tenants e acessos do ecossistema NR1.</p>
+          <p style="color: var(--color-text-muted); font-size: 1.125rem; margin-top: 0.5rem;">Controle centralizado de tenants e acessos do ecossistema Segurament.</p>
         </div>
         <button id="btnNovoCliente" class="btn btn-primary" style="padding: 0.875rem 1.75rem; font-size: 0.9rem; box-shadow: 0 10px 15px -3px rgba(107, 56, 150, 0.3);">
           <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>

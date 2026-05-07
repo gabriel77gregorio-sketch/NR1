@@ -2,7 +2,7 @@
 import { supabase } from '../lib/supabase';
 
 export interface Props {
-  activeMenu?: 'inicio' | 'dashboard' | 'pesquisas' | 'planos' | 'denuncias' | 'configuracoes' | 'inteligencia-de-dados' | 'advertencias' | 'avaliacoes-individuais';
+  activeMenu?: 'inicio' | 'dashboard' | 'pesquisas' | 'planos' | 'denuncias' | 'configuracoes' | 'inteligencia-de-dados' | 'advertencias' | 'avaliacoes-individuais' | 'gestao-atestados';
 }
 
 const { activeMenu = 'dashboard' } = Astro.props;
@@ -40,13 +40,11 @@ if (user) {
 
 <aside class="sidebar">
   <!-- Logo / Empresa -->
-  <div class="sidebar-header">
-    <div class="logo-circle">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
-    </div>
+  <div class="sidebar-header" style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1rem; padding: 2rem 1.5rem;">
+    <img src="/logo-segurament-horizontal-white.png" alt="Segurament" style="width: 100%; max-width: 200px; height: auto; object-fit: contain;" />
     <div>
-      <h1 class="company-name">{data.company}</h1>
-      <p class="system-tag">Módulo Compliance</p>
+      <h1 class="company-name" style="font-size: 0.9rem; font-weight: 800; color: #ffffff; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">{data.company}</h1>
+      <p class="system-tag" style="margin-top: 0.25rem; color: #94a3b8;">Segurança Mental</p>
     </div>
   </div>
   
@@ -102,7 +100,15 @@ if (user) {
         </a>
       </li>
 
-      {['Master', 'Diretoria', 'Segurança_Trabalho', 'RH'].includes(userRole) && (
+      <li class={activeMenu === 'gestao-atestados' ? "nav-item active" : "nav-item"}>
+        <a href="/rh/gestao-atestados" class="nav-link">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+          Atestados
+        </a>
+      </li>
+
+      {/* Desativado temporariamente
+      {['Master', 'Diretoria', 'Segurança_Trabalho', 'RH', 'Admin_RH', 'SuperAdmin'].includes(userRole) && (
         <li class={activeMenu === 'inteligencia-de-dados' ? "nav-item active" : "nav-item"}>
           <a href="/rh/inteligencia-de-dados" class="nav-link" style="color: #60a5fa;">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -112,6 +118,7 @@ if (user) {
           </a>
         </li>
       )}
+      */}
     </ul>
   </nav>
 
