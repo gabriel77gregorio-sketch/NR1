@@ -18,15 +18,12 @@ try {
 // Defaults for mock / dev locally
 let data = { user: { email: 'rh@empresa.com', name: 'Gestor de RH' }, company: 'Indústria Metalúrgica SA' };
 
-let userRole = 'RH';
-let unreadNotifs = 0;
 
 if (user) {
   data.user.email = user.email || '';
   const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, empresa_id, role').eq('id', user.id).single();
   if (perfil) {
     data.user.name = perfil.nome;
-    userRole = perfil.role;
     const { data: emp } = await supabaseClient.from('empresas').select('nome').eq('id', perfil.empresa_id).single();
     if (emp) data.company = emp.nome;
     

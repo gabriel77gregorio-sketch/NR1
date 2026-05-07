@@ -389,8 +389,8 @@ if (user) {
        btnSalvarTratativa.addEventListener('click', async () => {
           const status = (selectStatusTratar as HTMLSelectElement).value;
           
-          btnSalvarTratativa.disabled = true;
-          btnSalvarTratativa.innerText = 'Salvando...';
+          (btnSalvarTratativa as HTMLButtonElement).disabled = true;
+          (btnSalvarTratativa as HTMLButtonElement).innerText = 'Salvando...';
 
           try {
             const response = await fetch('/api/rh/advertencias/atualizar-status', {
@@ -413,8 +413,8 @@ if (user) {
             console.error(error);
             alert('Erro de conexão ao salvar.');
           } finally {
-            btnSalvarTratativa.disabled = false;
-            btnSalvarTratativa.innerText = 'SALVAR STATUS';
+            (btnSalvarTratativa as HTMLButtonElement).disabled = false;
+            (btnSalvarTratativa as HTMLButtonElement).innerText = 'SALVAR STATUS';
           }
        });
     }
