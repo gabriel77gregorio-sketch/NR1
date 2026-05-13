@@ -12,24 +12,40 @@ try {
 let companyName = "Empresa Demonstração LTDA";
 let companyCNPJ = "00.000.000/0001-00";
 let userName = "Comitê de Ética";
+let empresaId = null;
 
 if (user) {
-  const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, empresas(nome, id)').eq('id', user.id).single();
+  const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, empresa_id, empresas(nome, cnpj)').eq('id', user.id).single();
   if (perfil) {
+    userName = perfil.nome;
+    empresaId = perfil.empresa_id;
     if (perfil.empresas) {
       companyName = (perfil.empresas as any).nome;
+      companyCNPJ = (perfil.empresas as any).cnpj || "00.000.000/0001-00";
     }
   }
 }
 
-// Simulando dados de Denúncias oriundos do DB 
-const denuncias = [
-  { protocolo: 'PROT-992A-X8', data: '05/04/2026', severidade: 'Alta', status: 'Em Apuração', relator: 'Anônimo', setor: 'Linha de Montagem' },
-  { protocolo: 'PROT-102B-C2', data: '20/03/2026', severidade: 'Crítica', status: 'Nova Denúncia', relator: 'Anônimo', setor: 'Recursos Humanos' },
-  { protocolo: 'PROT-837L-Y1', data: '10/02/2026', severidade: 'Média', status: 'Resolvida', relator: 'Anônimo', setor: 'Financeiro' },
-];
+let denuncias: any[] = [];
+if (empresaId) {
+  const { data: dbDenuncias } = await supabaseClient
+    .from('denuncias_anonimas')
+    .select('*')
+    .eq('empresa_id', empresaId)
+    .order('created_at', { ascending: false });
 
-// const currentDate = new Date().toLocaleDateString('pt-BR');
+  if (dbDenuncias) {
+    denuncias = dbDenuncias.map(d => ({
+      protocolo: d.protocolo,
+      data: d.created_at ? new Date(d.created_at).toLocaleDateString('pt-BR') : '-',
+      severidade: 'Pendente', // Severidade não está no banco ainda, mantendo como Pendente por enquanto
+      status: (d.status === 'Pendente' || !d.status) ? 'Nova Denúncia' : d.status,
+      relator: 'Anônimo',
+      setor: 'Geral' // Setor não está no banco de denúncias anonimas
+    }));
+  }
+}
+
 const currentDateTime = new Date().toLocaleString('pt-BR');
 
 ---

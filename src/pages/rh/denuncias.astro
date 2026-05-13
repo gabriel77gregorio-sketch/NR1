@@ -25,9 +25,16 @@ if (user) {
   if (perfilData) {
     const { data: dbDenuncias } = await supabaseClient
       .from('denuncias_anonimas')
-      .select('*')
+      .select('*, denuncias_andamentos(*)')
       .eq('empresa_id', perfilData.empresa_id)
       .order('created_at', { ascending: false });
+    
+    // Ordena os andamentos de cada denúncia por data (o select join não garante ordem interna)
+    dbDenuncias?.forEach(d => {
+      if (d.denuncias_andamentos) {
+        d.denuncias_andamentos.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      }
+    });
 
     if (dbDenuncias) {
       denuncias = dbDenuncias.map(d => {
@@ -42,7 +49,8 @@ if (user) {
           severidade: 'Pendente',
           status: statusExibicao,
           status_db: d.status, // Guardamos o original se precisar
-          ultima_att: d.created_at ? new Date(d.created_at).toLocaleDateString('pt-BR') : '-'
+          ultima_att: d.created_at ? new Date(d.created_at).toLocaleDateString('pt-BR') : '-',
+          andamentos: d.denuncias_andamentos || []
         };
       });
     }
@@ -60,22 +68,38 @@ if (Astro.request.method === "POST" && user) {
     const textoAcao = formData.get("texto_acao")?.toString();
 
     if (protocolo && novoStatus) {
-      // 1. Atualizar Status na Denúncia
-      const { data: denuncia } = await supabaseClient
-        .from('denuncias_anonimas')
-        .update({ status: novoStatus })
-        .eq('protocolo', protocolo)
-        .select('id')
-        .single();
+      // 0. Obter empresa_id do perfil do usuário
+      const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('empresa_id, nome').eq('id', user.id).single();
+      
+      if (perfil) {
+        // 1. Atualizar Status na Denúncia
+        const { data: denuncia, error: updateError } = await supabaseClient
+          .from('denuncias_anonimas')
+          .update({ status: novoStatus })
+          .eq('protocolo', protocolo)
+          .select('id')
+          .single();
 
-      // 2. Se houver texto de ação, insere no histórico de andamentos
-      if (denuncia && textoAcao) {
-        await supabaseClient
-          .from('denuncias_andamentos')
-          .insert([{
-            denuncia_id: denuncia.id,
-            texto: textoAcao
-          }]);
+        if (updateError) {
+          console.error("Erro ao atualizar denúncia:", updateError.message);
+        }
+
+        // 2. Se houver texto de ação, insere no histórico de andamentos
+        if (denuncia && textoAcao) {
+          const { error: insertError } = await supabaseClient
+            .from('denuncias_andamentos')
+            .insert([{
+              denuncia_id: denuncia.id,
+              empresa_id: perfil.empresa_id,
+              autor: perfil.nome || 'Comitê de Ética',
+              relato: textoAcao,
+              status_atualizado: novoStatus
+            }]);
+          
+          if (insertError) {
+            console.error("Erro ao inserir andamento:", insertError.message);
+          }
+        }
       }
     }
     // Recarrega para ver as mudanças
@@ -169,7 +193,13 @@ if (Astro.request.method === "POST" && user) {
                  Nenhuma denúncia encontrada na caixa de entrada.
                </div>
             ) : denuncias.map((denuncia) => (
-              <div class="denuncia-row" data-status={denuncia.status} data-date={denuncia.data_iso} data-texto={denuncia.texto} data-protocolo={denuncia.protocolo} style="display: flex; align-items: center; padding: 1.25rem 1rem; font-size: 0.875rem; border-bottom: 1px solid var(--color-border);">
+              <div class="denuncia-row" 
+                   data-status={denuncia.status} 
+                   data-date={denuncia.data_iso} 
+                   data-texto={denuncia.texto} 
+                   data-protocolo={denuncia.protocolo}
+                   data-andamentos={JSON.stringify(denuncia.andamentos)}
+                   style="display: flex; align-items: center; padding: 1.25rem 1rem; font-size: 0.875rem; border-bottom: 1px solid var(--color-border);">
                 <div style="flex: 1.5;">
                   <div style="font-weight: 600; color: var(--color-text); font-family: monospace; font-size: 1rem;">{denuncia.protocolo}</div>
                   <div style="color: var(--color-text-muted); font-size: 0.75rem; margin-top: 0.2rem;">Registrada em {denuncia.data}</div>
@@ -204,8 +234,15 @@ if (Astro.request.method === "POST" && user) {
         <h2 style="font-size: 1.3rem; color: var(--color-danger); margin-bottom: 0.5rem; font-weight: 600;">Apurar Denúncia: <span id="modalProtocoloText" style="color: var(--color-text);"></span></h2>
         <p style="color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: 2rem;">Leia atentamente o relato original. Modifique o status de apuração de acordo com a investigação.</p>
         
-        <div style="background: #f8fafc; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.5rem; margin-bottom: 2rem; font-family: monospace; font-size: 0.85rem; color: var(--color-text); white-space: pre-wrap; line-height: 1.5;" id="modalRelatoCompleto">
+        <div style="background: #f8fafc; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.5rem; margin-bottom: 1.5rem; font-family: monospace; font-size: 0.85rem; color: var(--color-text); white-space: pre-wrap; line-height: 1.5;" id="modalRelatoCompleto">
           <!-- Texto da denúncia será injetado aqui -->
+        </div>
+        
+        <div id="historicoAndamentos" style="margin-bottom: 2rem;">
+          <h3 style="font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted); margin-bottom: 1rem; text-transform: uppercase;">Histórico de Tratativas</h3>
+          <div id="listaAndamentos" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <!-- Andamentos injetados aqui -->
+          </div>
         </div>
 
         <form id="formTratamento" method="POST" style="display: flex; flex-direction: column; gap: 1.5rem;">
@@ -305,12 +342,43 @@ if (Astro.request.method === "POST" && user) {
             const protocolo = target.getAttribute('data-protocolo');
             const texto = target.getAttribute('data-texto');
             const status = target.getAttribute('data-status');
-            
-            if (modalProtocoloText) modalProtocoloText.textContent = protocolo;
-            if (modalRelatoCompleto) modalRelatoCompleto.textContent = texto || 'Nenhum texto informado.';
-            if (selectStatusTratamento) (selectStatusTratamento as HTMLSelectElement).value = status || '';
+            const modalProtocoloInput = document.getElementById('modalProtocoloInput');
+            const listaAndamentos = document.getElementById('listaAndamentos');
+             
+             if (modalProtocoloText) modalProtocoloText.textContent = protocolo;
+             if (modalProtocoloInput) (modalProtocoloInput as HTMLInputElement).value = protocolo || '';
+             if (modalRelatoCompleto) modalRelatoCompleto.textContent = texto || 'Nenhum texto informado.';
+             if (selectStatusTratamento) (selectStatusTratamento as HTMLSelectElement).value = status || '';
 
-            if (modal) modal.style.display = 'flex';
+             // Limpar e popular histórico
+             if (listaAndamentos) {
+               listaAndamentos.innerHTML = '';
+               const andamentos = JSON.parse(target.getAttribute('data-andamentos') || '[]');
+               
+               if (andamentos.length === 0) {
+                 listaAndamentos.innerHTML = '<p style="font-size: 0.85rem; color: var(--color-text-muted); font-style: italic;">Nenhuma tratativa registrada ainda.</p>';
+               } else {
+                 andamentos.forEach((a: any) => {
+                   const dataFormatada = new Date(a.created_at).toLocaleString('pt-BR');
+                   const item = document.createElement('div');
+                   item.style.padding = '0.75rem';
+                   item.style.background = '#f1f5f9';
+                   item.style.borderRadius = '8px';
+                   item.style.fontSize = '0.85rem';
+                   item.innerHTML = `
+                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                       <strong style="color: var(--color-text);">${a.autor || 'Comitê'}</strong>
+                       <span style="font-size: 0.7rem; color: var(--color-text-muted);">${dataFormatada}</span>
+                     </div>
+                     <div style="color: #475569;">${a.relato}</div>
+                     ${a.status_atualizado ? `<div style="margin-top: 0.4rem;"><span style="font-size: 0.7rem; font-weight: 700; color: var(--color-primary); background: #e0e7ff; padding: 2px 6px; border-radius: 4px;">ST: ${a.status_atualizado}</span></div>` : ''}
+                   `;
+                   listaAndamentos.appendChild(item);
+                 });
+               }
+             }
+
+             if (modal) modal.style.display = 'flex';
          });
        });
 
@@ -321,8 +389,8 @@ if (Astro.request.method === "POST" && user) {
        
        if (btnSalvar) {
          btnSalvar.addEventListener('click', () => {
-           alert('Status da denúncia atualizado e ações registradas no histórico confidencial.');
-           fecharModal();
+           // O formulário será enviado normalmente via POST e a página recarregada.
+           // Não é necessário fechar manualmente ou dar alert que bloqueie o redirecionamento.
          });
        }
 

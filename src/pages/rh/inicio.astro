@@ -63,11 +63,11 @@ if (user && empresaId) {
     .lt('when_end', hoje);
   if (cAtrasadas !== null) valAtrasadas = cAtrasadas;
 
-  // 2. Denúncias não lidas
+  // 2. Denúncias aguardando triagem (Pendente ou Nova Denúncia)
   const { count: cDenuncias } = await supabaseClient.from('denuncias_anonimas')
     .select('*', { count: 'exact', head: true })
     .eq('empresa_id', empresaId)
-    .in('status', ['Nova', 'Em Análise']);
+    .in('status', ['Pendente', 'Nova Denúncia']);
   if (cDenuncias !== null) valDenuncias = cDenuncias;
 
   // 3. Avaliações Pendentes
