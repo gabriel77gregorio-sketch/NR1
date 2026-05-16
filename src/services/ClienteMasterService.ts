@@ -8,6 +8,13 @@ export interface NovoClienteDTO {
   nome_admin: string;
 }
 
+export interface NovoMasterDTO {
+  nome: string;
+  email: string;
+  senha_provisoria: string;
+  quota_empresas: number;
+}
+
 export class ClienteMasterService {
   // Apenas quem tem a chave de SERVIÇO pode rodar isso
   // Isso permite criar Contas de Auth sem precisar estar logado e sem disparar emails imediatamente
@@ -86,6 +93,148 @@ export class ClienteMasterService {
   }
 
   /**
+   * Cria um usuário com perfil MASTER que pode gerenciar múltiplas empresas
+   */
+  async provisionarUsuarioMaster(dto: NovoMasterDTO) {
+    const adminSupabase = this.getSupabaseAdmin();
+
+    try {
+      // 1. Criar Auth Identity
+      const { data: authData, error: authErr } = await adminSupabase.auth.admin.createUser({
+        email: dto.email,
+        password: dto.senha_provisoria,
+        email_confirm: true,
+        user_metadata: { name: dto.nome }
+      });
+
+      if (authErr || !authData.user) throw new Error("Erro ao criar login Auth Master: " + authErr?.message);
+
+      // 2. Criar Perfil com Role MASTER e Quota
+      const { error: perfilErr } = await adminSupabase
+        .from('perfis_usuarios')
+        .insert([{
+          id: authData.user.id,
+          nome: dto.nome,
+          role: 'Master',
+          quota_empresas: dto.quota_empresas
+        }]);
+
+      if (perfilErr) {
+        await adminSupabase.auth.admin.deleteUser(authData.user.id);
+        throw new Error("Erro ao criar Perfil Master: " + perfilErr.message);
+      }
+
+      return { sucesso: true, userId: authData.user.id };
+    } catch (e: any) {
+      console.error(e);
+      throw e;
+    }
+  }
+
+  /**
+   * Adiciona uma empresa existente ao portfólio de um Master
+   */
+  async adicionarEmpresaAoPortfolio(masterId: string, empresaId: string) {
+    const adminSupabase = this.getSupabaseAdmin();
+
+    try {
+      // 1. Verificar Quota
+      const { data: perfil, error: perfilErr } = await adminSupabase
+        .from('perfis_usuarios')
+        .select('quota_empresas')
+        .eq('id', masterId)
+        .single();
+      
+      if (perfilErr || !perfil) throw new Error("Perfil Master não encontrado.");
+
+      const { count, error: countErr } = await adminSupabase
+        .from('master_portfolios')
+        .select('*', { count: 'exact', head: true })
+        .eq('master_id', masterId);
+      
+      if (countErr) throw new Error("Erro ao verificar portfólio atual.");
+
+      if ((count || 0) >= perfil.quota_empresas) {
+        throw new Error(`Quota excedida. Este Master pode gerenciar no máximo ${perfil.quota_empresas} empresas.`);
+      }
+
+      // 2. Vincular
+      const { error: insertErr } = await adminSupabase
+        .from('master_portfolios')
+        .insert([{ master_id: masterId, empresa_id: empresaId }]);
+      
+      if (insertErr) {
+        if (insertErr.code === '23505') throw new Error("Esta empresa já faz parte deste portfólio.");
+        throw insertErr;
+      }
+
+      return { sucesso: true };
+    } catch (e: any) {
+      console.error(e);
+      throw e;
+    }
+  }
+
+  /**
+   * Lista as empresas de um Master
+   */
+  async listarPortfolioMaster(masterId: string) {
+    const adminSupabase = this.getSupabaseAdmin();
+    const { data, error } = await adminSupabase
+      .from('master_portfolios')
+      .select('*, empresas(*)')
+      .eq('master_id', masterId);
+    
+    if (error) throw error;
+    return data;
+  }
+
+  /**
+   * Lista todos os usuários MASTER para o UltraAdmin
+   */
+  async listarTodosMasters() {
+    const adminSupabase = this.getSupabaseAdmin();
+    const { data, error } = await adminSupabase
+      .from('perfis_usuarios')
+      .select('*, master_portfolios(count)')
+      .eq('role', 'Master');
+    
+    if (error) throw error;
+    return data;
+  }
+
+  /**
+   * Lista todas as empresas do sistema indicando quem é o Master responsável (se houver)
+   */
+  async listarTodasEmpresasComMaster() {
+    const adminSupabase = this.getSupabaseAdmin();
+    const { data, error } = await adminSupabase
+      .from('empresas')
+      .select('*, master_portfolios(master_id, perfis_usuarios(nome))');
+    
+    if (error) throw error;
+    return data;
+  }
+
+  /**
+   * Retorna estatísticas globais para o UltraAdmin
+   */
+  async getEstatisticasGlobais() {
+    const adminSupabase = this.getSupabaseAdmin();
+    
+    const { count: totalEmpresas } = await adminSupabase.from('empresas').select('*', { count: 'exact', head: true });
+    const { count: totalMasters } = await adminSupabase.from('perfis_usuarios').select('*', { count: 'exact', head: true }).eq('role', 'Master');
+    const { count: totalColaboradores } = await adminSupabase.from('colaboradores_base').select('*', { count: 'exact', head: true });
+
+    return {
+      totalEmpresas: totalEmpresas || 0,
+      totalMasters: totalMasters || 0,
+      totalColaboradores: totalColaboradores || 0
+    };
+  }
+
+
+  /**
    * Retorna a lista de todos os clientes da plataforma e suas estatísticas vitais
    */
   async listarClientes() {
@@ -113,8 +262,8 @@ export class ClienteMasterService {
     // Se não existir, retorna um default para não quebrar a UI
     if (error) {
       return {
-        nome_plataforma: 'NR1 Compliance',
-        email_suporte: 'suporte@nr1.com.br',
+        nome_plataforma: 'Segurament',
+        email_suporte: 'suporte@segurament.com.br',
         modo_manutencao: false,
         limite_usuarios_trial: 10
       };

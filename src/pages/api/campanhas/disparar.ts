@@ -94,21 +94,31 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
       
       const urlPesquisa = `${hostUrl}/responder/${part?.token_acesso || ''}`;
+      const urlDenuncia = `${hostUrl}/canal-de-denuncia`;
       
       return {
-        from: 'NR1 Saúde e Segurança <onboarding@resend.dev>', // Modifique para o domínio autenticado no Resend da Empresa posteriormente
+        from: 'Pesquisa <contato@segurament.com.br>', // Domínio autenticado no Resend
         to: c.email,
         subject: `[Confidencial] ${campanha.titulo}`,
         html: `
           <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
             <h2 style="color: #2e6bb8;">Olá, ${c.nome}!</h2>
             <p>${mensagem.replace(/\n/g, '<br>')}</p>
-            <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;" />
+            
             <div style="text-align: center; margin-top: 30px;">
-              <a href="${urlPesquisa}" style="background-color: #2e6bb8; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Iniciar Avaliação Confidencial</a>
+              <a href="${urlPesquisa}" style="display: inline-block; background-color: #2e6bb8; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Iniciar Avaliação Confidencial</a>
             </div>
-            <p style="margin-top: 30px; font-size: 12px; color: #888;">
-               O link fornecido é único, intransferível e expirará assim que for respondido. Suas respostas são anônimas para a diretoria, garantindo privacidade e segurança.
+
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;" />
+            
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; text-align: center;">
+              <p style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #64748b;">CANAL DE ÉTICA E SEGURANÇA</p>
+              <p style="margin: 0 0 20px 0; font-size: 13px; color: #64748b;">Deseja realizar um relato anônimo de irregularidade ou situação de risco?</p>
+              <a href="${urlDenuncia}" style="display: inline-block; border: 2px solid #ef4444; color: #ef4444; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px;">Realizar Denúncia Anônima</a>
+            </div>
+
+            <p style="margin-top: 30px; font-size: 12px; color: #888; text-align: center;">
+               O link da avaliação é único e intransferível. Suas respostas são anônimas para a diretoria, garantindo privacidade e segurança.
             </p>
           </div>
         `

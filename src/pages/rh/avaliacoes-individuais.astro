@@ -67,140 +67,133 @@ function getTipoBadge(tipo: string) {
     <!-- Sidebar Modular -->
     <SidebarRH activeMenu="avaliacoes-individuais" />
 
-    <!-- Main Content -->
-    <main class="main-content" style="background: #fafafa;">
-      <div style="padding: 2.5rem 3.5rem;">
+    <!-- Main Content     <!-- Main Content Compacto -->
+    <main class="main-content" style="height: 100vh; overflow: hidden; display: flex; flex-direction: column;">
+      <div style="padding: 1.25rem 1.5rem; flex: 1; display: flex; flex-direction: column; overflow-y: auto;" class="custom-scrollbar">
         
-        <!-- Header -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
+        <!-- Header Compacto -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-shrink: 0;">
           <div>
-            <h2 style="font-size: 1.5rem; color: var(--color-primary); font-weight: 700; margin: 0;">Avaliações de Ciclo de Vida</h2>
-            <p style="color: var(--color-text-muted); font-size: 0.95rem; margin-top: 0.25rem;">
-              Acompanhamento de período de experiência (45/90 dias) e entrevistas de desligamento.
-            </p>
+            <h2 style="font-size: 1.3rem; color: var(--color-primary); font-weight: 700; margin: 0; letter-spacing: -0.5px;">Avaliações de Ciclo de Vida</h2>
+            <p style="color: var(--color-text-muted); font-size: 0.8rem; margin-top: 0.1rem;">Acompanhamento de período de experiência e desligamentos.</p>
           </div>
           
-          <button id="btnAgendarAvaliacao" class="btn btn-primary" style="padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-            <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 2v4M8 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"></path></svg>
+          <button id="btnAgendarAvaliacao" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 700;">
+            <svg style="width: 14px; height: 14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 2v4M8 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"></path></svg>
             AGENDAR AVALIAÇÃO
           </button>
         </div>
 
-        <!-- Indicadores de Qualidade e Turnover -->
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2.5rem;">
+        <!-- Indicadores Compactos -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.25rem; flex-shrink: 0;">
           
-          <div style="background: white; border: 1px solid var(--color-border); border-radius: 16px; padding: 1.5rem; border-left: 4px solid #0ea5e9;">
-            <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Adaptação (45 dias)</p>
-            <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.5rem;">
-              <span style="font-size: 1.75rem; font-weight: 800; color: var(--color-text);">{stats.media45}%</span>
-              <span style="font-size: 0.8rem; color: #0ea5e9; font-weight: 600;">média geral</span>
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 0.75rem 1rem; border-left: 4px solid #0ea5e9;">
+            <p style="margin: 0; font-size: 0.6rem; color: var(--color-text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Adaptação (45d)</p>
+            <div style="display: flex; align-items: baseline; gap: 0.3rem; margin-top: 0.2rem;">
+              <span style="font-size: 1.2rem; font-weight: 800; color: var(--color-text);">{stats.media45}%</span>
+              <span style="font-size: 0.65rem; color: #0ea5e9; font-weight: 700;">média</span>
             </div>
-            <div style="width: 100%; height: 6px; background: #f1f5f9; border-radius: 10px; margin-top: 0.75rem; overflow: hidden;">
+            <div style="width: 100%; height: 4px; background: #f1f5f9; border-radius: 10px; margin-top: 0.5rem; overflow: hidden;">
               <div style={`width: ${stats.media45}%; height: 100%; background: #0ea5e9;`}></div>
             </div>
           </div>
 
-          <div style="background: white; border: 1px solid var(--color-border); border-radius: 16px; padding: 1.5rem; border-left: 4px solid #6366f1;">
-            <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Efetivação (90 dias)</p>
-            <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.5rem;">
-              <span style="font-size: 1.75rem; font-weight: 800; color: var(--color-text);">{stats.media90}%</span>
-              <span style="font-size: 0.8rem; color: #6366f1; font-weight: 600;">média geral</span>
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 0.75rem 1rem; border-left: 4px solid #6366f1;">
+            <p style="margin: 0; font-size: 0.6rem; color: var(--color-text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Efetivação (90d)</p>
+            <div style="display: flex; align-items: baseline; gap: 0.3rem; margin-top: 0.2rem;">
+              <span style="font-size: 1.2rem; font-weight: 800; color: var(--color-text);">{stats.media90}%</span>
+              <span style="font-size: 0.65rem; color: #6366f1; font-weight: 700;">média</span>
             </div>
-            <div style="width: 100%; height: 6px; background: #f1f5f9; border-radius: 10px; margin-top: 0.75rem; overflow: hidden;">
+            <div style="width: 100%; height: 4px; background: #f1f5f9; border-radius: 10px; margin-top: 0.5rem; overflow: hidden;">
               <div style={`width: ${stats.media90}%; height: 100%; background: #6366f1;`}></div>
             </div>
           </div>
 
-          <div style="background: white; border: 1px solid var(--color-border); border-radius: 16px; padding: 1.5rem; border-left: 4px solid #ef4444;">
-            <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Taxa de Turnover</p>
-            <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.5rem;">
-              <span style="font-size: 1.75rem; font-weight: 800; color: var(--color-text);">{turnover}%</span>
-              <span style="font-size: 0.8rem; color: #ef4444; font-weight: 600;">anual aprox.</span>
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 0.75rem 1rem; border-left: 4px solid #ef4444;">
+            <p style="margin: 0; font-size: 0.6rem; color: var(--color-text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Turnover</p>
+            <div style="display: flex; align-items: baseline; gap: 0.3rem; margin-top: 0.2rem;">
+              <span style="font-size: 1.2rem; font-weight: 800; color: var(--color-text);">{turnover}%</span>
+              <span style="font-size: 0.65rem; color: #ef4444; font-weight: 700;">taxa anual</span>
             </div>
-            <p style="margin: 0.5rem 0 0 0; font-size: 0.7rem; color: var(--color-text-muted);">Baseado em {stats.desligamentos} desligamentos</p>
           </div>
 
-          <div style="background: white; border: 1px solid var(--color-border); border-radius: 16px; padding: 1.5rem; border-left: 4px solid #22c55e;">
-            <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Base Ativa</p>
-            <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.5rem;">
-              <span style="font-size: 1.75rem; font-weight: 800; color: var(--color-text);">{colaboradores.length}</span>
-              <span style="font-size: 0.8rem; color: #22c55e; font-weight: 600;">colaboradores</span>
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 0.75rem 1rem; border-left: 4px solid #22c55e;">
+            <p style="margin: 0; font-size: 0.6rem; color: var(--color-text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Base Ativa</p>
+            <div style="display: flex; align-items: baseline; gap: 0.3rem; margin-top: 0.2rem;">
+              <span style="font-size: 1.2rem; font-weight: 800; color: var(--color-text);">{colaboradores.length}</span>
+              <span style="font-size: 0.65rem; color: #22c55e; font-weight: 700;">colabs</span>
             </div>
-            <p style="margin: 0.5rem 0 0 0; font-size: 0.7rem; color: var(--color-text-muted);">Dados em tempo real</p>
           </div>
-
         </div>
 
-        <!-- Filtros -->
-        <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; display: flex; gap: 1.5rem; align-items: center;">
-          <div style="font-size: 0.85rem; font-weight: 600; color: var(--color-text-muted);">FILTRAR POR:</div>
-          <select id="filtroStatusAv" style="padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 6px; outline: none; font-size: 0.85rem; background: #fbfbfc;">
+        <!-- Filtros Compactos -->
+        <div style="background: white; border: 1px solid var(--color-border); border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 1.25rem; display: flex; gap: 1rem; align-items: center; flex-shrink: 0;">
+          <div style="font-size: 0.7rem; font-weight: 800; color: var(--color-text-muted); text-transform: uppercase;">Filtrar:</div>
+          <select id="filtroStatusAv" style="padding: 0.4rem; border: 1px solid var(--color-border); border-radius: 6px; outline: none; font-size: 0.75rem; background: #fbfbfc; font-weight: 600;">
              <option value="todas">Status (Todos)</option>
              <option value="Pendente">Pendentes</option>
              <option value="Em Andamento">Em Andamento</option>
              <option value="Concluído">Concluídas</option>
           </select>
-          <select id="filtroTipoAv" style="padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 6px; outline: none; font-size: 0.85rem; background: #fbfbfc;">
-             <option value="todas">Tipos de Avaliação (Todas)</option>
-             <option value="Experiência_45_Dias">Experiência - 45 Dias</option>
-             <option value="Experiência_90_Dias">Experiência - 90 Dias</option>
-             <option value="Desligamento">Offboarding / Desligamento</option>
+          <select id="filtroTipoAv" style="padding: 0.4rem; border: 1px solid var(--color-border); border-radius: 6px; outline: none; font-size: 0.75rem; background: #fbfbfc; font-weight: 600;">
+             <option value="todas">Tipos (Todos)</option>
+             <option value="Experiência_45_Dias">Exp. 45 Dias</option>
+             <option value="Experiência_90_Dias">Exp. 90 Dias</option>
+             <option value="Desligamento">Offboarding</option>
           </select>
         </div>
 
-        <!-- Grade de Cartões -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;">
+        <!-- Grade de Cartões Compacta -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
           {avaliacoes.length === 0 ? (
-            <div style="grid-column: 1 / -1; padding: 4rem; text-align: center; background: white; border: 1px dashed var(--color-border); border-radius: 12px; color: var(--color-text-muted);">
-               Nenhuma avaliação agendada para esta empresa.
+            <div style="grid-column: 1 / -1; padding: 3rem; text-align: center; background: white; border: 1px dashed var(--color-border); border-radius: 12px; color: var(--color-text-muted); font-size: 0.85rem;">
+               Nenhuma avaliação agendada.
             </div>
           ) : avaliacoes.map((av) => {
             const badge = getTipoBadge(av.tipo);
             return (
-              <div class="av-card" data-status={av.status} data-tipo={av.tipo} style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+              <div class="av-card" data-status={av.status} data-tipo={av.tipo} style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 6px -1px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'">
                  
-                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-                    <span style={`background: ${badge.bg}; color: ${badge.color}; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;`}>
+                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                    <span style={`background: ${badge.bg}; color: ${badge.color}; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; border: 1px solid currentColor;`}>
                       {badge.label}
                     </span>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        {av.status === 'Pendente' && <span style="font-size: 0.75rem; color: #b45309; font-weight: 600;">PENDENTE</span>}
-                        {av.status === 'Em Andamento' && <span style="font-size: 0.75rem; color: #2563eb; font-weight: 600;">EM ANDAMENTO</span>}
-                        {av.status === 'Concluído' && <span style="font-size: 0.75rem; color: #16a34a; font-weight: 600;">CONCLUÍDO</span>}
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                        {av.status === 'Pendente' && <span style="font-size: 0.65rem; color: #b45309; font-weight: 800;">PENDENTE</span>}
+                        {av.status === 'Em Andamento' && <span style="font-size: 0.65rem; color: #2563eb; font-weight: 800;">EM ANDAMENTO</span>}
+                        {av.status === 'Concluído' && <span style="font-size: 0.65rem; color: #16a34a; font-weight: 800;">CONCLUÍDO</span>}
                         
-                        <button class="btn-excluir-av" data-id={av.id} style="background: none; border: none; cursor: pointer; color: #cbd5e1; padding: 0.2rem; transition: color 0.2s; margin-left: 0.5rem;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#cbd5e1'">
-                          <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        <button class="btn-excluir-av" data-id={av.id} style="background: none; border: none; cursor: pointer; color: #cbd5e1; padding: 0.1rem; transition: color 0.2s;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#cbd5e1'">
+                          <svg style="width: 14px; height: 14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                         </button>
                      </div>
                  </div>
                  
                  <div style="flex: 1;">
-                    <h3 style="margin: 0 0 0.2rem 0; font-size: 1.1rem; color: var(--color-text);">{av.colaboradores_base?.nome || 'Colaborador Excluído'}</h3>
-                    <p style="margin: 0; font-size: 0.85rem; color: var(--color-text-muted);">{av.colaboradores_base?.cargo || 'Sem Cargo'}</p>
+                    <h3 style="margin: 0 0 0.1rem 0; font-size: 0.95rem; color: var(--color-text); font-weight: 700;">{av.colaboradores_base?.nome || 'Excluído'}</h3>
+                    <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600;">{av.colaboradores_base?.cargo || 'Sem Cargo'}</p>
                  </div>
                  
-                 <div style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border); padding-top: 1rem;">
-                    <div style="font-size: 0.75rem; color: var(--color-text-muted);">
-                       Prazo: <strong style="color: var(--color-text);">{new Date(av.data_limite).toLocaleDateString('pt-BR')}</strong>
+                 <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 0.75rem;">
+                    <div style="font-size: 0.7rem; color: var(--color-text-muted); font-weight: 600;">
+                       Prazo: <strong style="color: var(--color-text); font-weight: 800;">{new Date(av.data_limite).toLocaleDateString('pt-BR')}</strong>
                     </div>
                     
-                    <button class={`btn btn-outline ${av.status === 'Concluído' ? 'btnVerRelatorio' : 'btnResponderAv'}`} 
+                    <button class={`btn ${av.status === 'Concluído' ? 'btnVerRelatorio' : 'btnResponderAv'}`} 
                       data-id={av.id}
                       data-nome={av.colaboradores_base?.nome || 'Desconhecido'} 
                       data-cargo={av.colaboradores_base?.cargo || ''} 
                       data-tipo={av.tipo} 
                       data-dados={JSON.stringify(av.dados_resposta || {})}
-                      style="font-size: 0.75rem; padding: 0.4rem 0.8rem;">
-                       {av.status === 'Concluído' ? 'VER RELATÓRIO' : 'RESPONDER'}
+                      style={`font-size: 0.65rem; padding: 0.3rem 0.6rem; font-weight: 800; border-radius: 4px; ${av.status === 'Concluído' ? 'background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0;' : 'background: var(--color-primary); color: white; border: none;'}`}>
+                       {av.status === 'Concluído' ? 'RELATÓRIO' : 'RESPONDER'}
                     </button>
                  </div>
 
               </div>
             )
           })}
-
         </div>
-
       </div>
     </main>
 

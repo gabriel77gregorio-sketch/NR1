@@ -20,13 +20,25 @@ try {
 let data = { user: { email: 'rh@empresa.com', name: 'Gestor de RH' }, company: 'Indústria Metalúrgica SA' };
 
 
+let userRole = '';
+const queryEmpresa = Astro.url.searchParams.get('empresa');
+
 if (user) {
   data.user.email = user.email || '';
   const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, empresa_id, role').eq('id', user.id).single();
   if (perfil) {
     data.user.name = perfil.nome;
-    const { data: emp } = await supabaseClient.from('empresas').select('nome').eq('id', perfil.empresa_id).single();
-    if (emp) data.company = emp.nome;
+    userRole = perfil.role;
+    
+    let effectiveEmpresaId = perfil.empresa_id;
+    if (userRole === 'Master' && queryEmpresa) {
+        effectiveEmpresaId = queryEmpresa;
+    }
+
+    if (effectiveEmpresaId) {
+        const { data: emp } = await supabaseClient.from('empresas').select('nome').eq('id', effectiveEmpresaId).single();
+        if (emp) data.company = emp.nome;
+    }
     
     // Busca notificações não lidas
     const { count } = await supabaseClient.from('notificacoes').select('*', { count: 'exact', head: true })
@@ -34,6 +46,11 @@ if (user) {
     unreadNotifs = count || 0;
   }
 }
+
+// Função para injetar o parâmetro de empresa nos links se necessário
+const getLink = (path: string) => {
+    return queryEmpresa ? `${path}?empresa=${queryEmpresa}` : path;
+};
 ---
 
 <aside class="sidebar">
@@ -49,43 +66,52 @@ if (user) {
   <!-- Navegação -->
   <nav class="sidebar-nav">
     <ul class="nav-list">
+      {userRole === 'Master' && (
+        <li class="nav-item">
+          <a href="/adm/master-portfolio" class="nav-link" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; margin-bottom: 1rem; border: 1px dashed rgba(56, 189, 248, 0.4);">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            VOLTAR AO PORTFÓLIO
+          </a>
+        </li>
+      )}
+
       <li class={activeMenu === 'inicio' ? "nav-item active" : "nav-item"}>
-        <a href="/rh/inicio" class="nav-link">
+        <a href={getLink("/rh/inicio")} class="nav-link">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
           Dashboard
         </a>
       </li>
 
       <li class={activeMenu === 'dashboard' ? "nav-item active" : "nav-item"}>
-        <a href="/rh/dashboard" class="nav-link">
+        <a href={getLink("/rh/dashboard")} class="nav-link">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
           Matriz de Risco
         </a>
       </li>
       
       <li class={activeMenu === 'pesquisas' ? "nav-item active" : "nav-item"}>
-        <a href="/rh/pesquisas" class="nav-link">
+        <a href={getLink("/rh/pesquisas")} class="nav-link">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
           Disparos
         </a>
       </li>
 
       <li class={activeMenu === 'planos' ? "nav-item active" : "nav-item"}>
-        <a href="/rh/planos-de-acao" class="nav-link">
+        <a href={getLink("/rh/planos-de-acao")} class="nav-link">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M9 14l2 2 4-4"></path></svg>
           Planos de Ação
         </a>
       </li>
 
       <li class={activeMenu === 'denuncias' ? "nav-item active" : "nav-item"}>
-        <a href="/rh/denuncias" class="nav-link">
+        <a href={getLink("/rh/denuncias")} class="nav-link">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
           Denúncias
         </a>
       </li>
 
       <li class={activeMenu === 'advertencias' ? "nav-item active" : "nav-item"}>
-        <a href="/rh/advertencias" class="nav-link">
+        <a href={getLink("/rh/advertencias")} class="nav-link">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
           <span style="flex: 1;">Advertências</span>
           {unreadNotifs > 0 && (
@@ -95,41 +121,28 @@ if (user) {
       </li>
 
       <li class={activeMenu === 'avaliacoes-individuais' ? "nav-item active" : "nav-item"}>
-        <a href="/rh/avaliacoes-individuais" class="nav-link">
+        <a href={getLink("/rh/avaliacoes-individuais")} class="nav-link">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
           Avaliações
         </a>
       </li>
 
       <li class={activeMenu === 'gestao-atestados' ? "nav-item active" : "nav-item"}>
-        <a href="/rh/gestao-atestados" class="nav-link">
+        <a href={getLink("/rh/gestao-atestados")} class="nav-link">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
           Atestados
         </a>
       </li>
-
-      {/* Desativado temporariamente
-      {['Master', 'Diretoria', 'Segurança_Trabalho', 'RH', 'Admin_RH', 'SuperAdmin'].includes(userRole) && (
-        <li class={activeMenu === 'inteligencia-de-dados' ? "nav-item active" : "nav-item"}>
-          <a href="/rh/inteligencia-de-dados" class="nav-link" style="color: #60a5fa;">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line>
-            </svg>
-            Inteligência IA
-          </a>
-        </li>
-      )}
-      */}
     </ul>
   </nav>
 
   <!-- Rodapé Sidebar -->
   <div class="sidebar-footer">
-    <a href="/rh/configuracoes" class={activeMenu === 'configuracoes' ? "nav-link active" : "nav-link"}>
+    <a href={getLink("/rh/configuracoes")} class={activeMenu === 'configuracoes' ? "nav-link active" : "nav-link"}>
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
       Ajustes
     </a>
-    <a href="/login" class="nav-link logout">
+    <a href="/api/auth/signout" class="nav-link logout">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
       Sair
     </a>

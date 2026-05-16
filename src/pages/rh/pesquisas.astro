@@ -59,20 +59,25 @@ if (sessionUser) {
   <div class="app-layout">
     <SidebarRH activeMenu="pesquisas" />
 
-    <main class="main-content">
-      <div style="padding: 2rem 3rem;">
+    <!-- Main Content Compacto -->
+    <main class="main-content" style="height: 100vh; overflow: hidden; display: flex; flex-direction: column;">
+      <div style="padding: 1.25rem 1.5rem; flex: 1; display: flex; flex-direction: column; overflow-y: auto;" class="custom-scrollbar">
         
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <!-- Header Compacto -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-shrink: 0;">
           <div>
-            <h2 style="font-size: 1.5rem; color: var(--color-primary); font-weight: 600; margin: 0;">Ciclos de Avaliação Psicossocial</h2>
-            <p style="color: var(--color-text-muted); font-size: 0.875rem; margin-top: 0.25rem;">Agrupe seus disparos em ciclos para comparar indicadores e medir a evolução da empresa.</p>
+            <h2 style="font-size: 1.3rem; color: var(--color-primary); font-weight: 700; margin: 0; letter-spacing: -0.5px;">Ciclos de Avaliação Psicossocial</h2>
+            <p style="color: var(--color-text-muted); font-size: 0.8rem; margin-top: 0.1rem;">Agrupe seus disparos em ciclos para medir a evolução (COPSOQ II).</p>
           </div>
-          <div style="display: flex; gap: 1rem;">
-            <button class="btn btn-outline btnAbrirModalCiclo" style="border-color: var(--color-primary); color: var(--color-primary);">
+          <div style="display: flex; gap: 0.75rem;">
+            <button id="btnAbrirMetodologia" class="btn btn-outline" style="border-color: #cbd5e1; color: #64748b; font-size: 0.65rem; padding: 0.4rem 0.75rem; font-weight: 700;">
+              METODOLOGIA
+            </button>
+            <button class="btn btn-outline btnAbrirModalCiclo" style="border-color: var(--color-primary); color: var(--color-primary); font-size: 0.65rem; padding: 0.4rem 0.75rem; font-weight: 700;">
               + NOVO CICLO
             </button>
-            <button id="btnAbrirModalPesquisa" class="btn btn-primary" disabled={ciclos.length === 0}>
-              <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <button id="btnAbrirModalPesquisa" class="btn btn-primary" disabled={ciclos.length === 0} style="font-size: 0.65rem; padding: 0.4rem 0.75rem; font-weight: 700; display: flex; align-items: center; gap: 0.4rem;">
+              <svg style="width: 14px; height: 14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
               NOVO DISPARO
             </button>
           </div>
@@ -85,24 +90,23 @@ if (sessionUser) {
             <p style="max-width: 400px; margin: 0 auto;">Para começar a coletar dados, você precisa criar um Ciclo de Avaliação (ex: Ciclo 2025) utilizando o botão superior.</p>
           </div>
         ) : (
-          <div style="display: flex; flex-direction: column; gap: 2.5rem;">
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
             {ciclos.map((ciclo) => (
-              <section style="background: white; border: 1px solid var(--color-border); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-                <header style="padding: 1.5rem 2rem; border-bottom: 1px solid var(--color-border); background: #fbfbfc; display: flex; justify-content: space-between; align-items: center;">
+              <section style="background: white; border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                <header style="padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--color-border); background: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
                   <div>
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                      <h3 style="margin: 0; font-size: 1.25rem; color: var(--color-primary); font-weight: 700;">{ciclo.nome}</h3>
-                      <span style={`font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; text-transform: uppercase; background: ${ciclo.status === 'Ativo' ? '#d1fae5' : '#f1f5f9'}; color: ${ciclo.status === 'Ativo' ? '#065f46' : '#475569'};`}>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                      <h3 style="margin: 0; font-size: 1rem; color: var(--color-primary); font-weight: 800;">{ciclo.nome}</h3>
+                      <span style={`font-size: 0.55rem; font-weight: 800; padding: 0.15rem 0.4rem; border-radius: 4px; text-transform: uppercase; background: ${ciclo.status === 'Ativo' ? '#dcfce7' : '#f1f5f9'}; color: ${ciclo.status === 'Ativo' ? '#166534' : '#475569'}; border: 1px solid currentColor;`}>
                         {ciclo.status}
                       </span>
                     </div>
-                    <p style="margin: 0.25rem 0 0 0; font-size: 0.8rem; color: var(--color-text-muted);">Iniciado em {new Date(ciclo.data_inicio).toLocaleDateString('pt-BR')}</p>
+                    <p style="margin: 0; font-size: 0.7rem; color: var(--color-text-muted); font-weight: 600;">Iniciado em {new Date(ciclo.data_inicio).toLocaleDateString('pt-BR')}</p>
                   </div>
                   
-                  <!-- Comparativo Real -->
-                  <div style="display: flex; gap: 2rem; align-items: center;">
+                  <div style="display: flex; gap: 1.5rem; align-items: center;">
                     <div style="text-align: right;">
-                      <p style="margin: 0; font-size: 0.7rem; font-weight: 600; color: var(--color-text-muted);">ÍNDICE GERAL</p>
+                      <p style="margin: 0; font-size: 0.6rem; font-weight: 800; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Engajamento</p>
                       {(() => {
                         let total = 0;
                         let respondidos = 0;
@@ -114,62 +118,61 @@ if (sessionUser) {
                         });
                         
                         if (total === 0) {
-                          return <p style="margin: 0; font-size: 0.875rem; font-weight: 600; color: var(--color-text-muted);">AGUARDANDO DISPARO</p>;
+                          return <p style="margin: 0; font-size: 0.75rem; font-weight: 800; color: #94a3b8;">SEM DISPAROS</p>;
                         }
                         
                         const taxaEngajamento = Math.round((respondidos / total) * 100);
                         
                         return (
-                           <p style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--color-text);">
+                           <p style="margin: 0; font-size: 1rem; font-weight: 800; color: var(--color-text);">
                             {taxaEngajamento}% 
-                            <span style={`font-size: 0.8rem; color: ${taxaEngajamento >= 50 ? '#10b981' : '#f59e0b'}; margin-left: 0.5rem;`}>
-                              {respondidos}/{total} respostas
+                            <span style={`font-size: 0.7rem; color: ${taxaEngajamento >= 50 ? '#10b981' : '#f59e0b'}; margin-left: 0.4rem; font-weight: 700;`}>
+                              ({respondidos}/{total})
                             </span>
                            </p>
                         );
                       })()}
                     </div>
-                    <div style="width: 1px; height: 30px; background: var(--color-border);"></div>
-                    <a href={`/rh/relatorio-ciclo/${ciclo.id}`} class="btn btn-outline" style="font-size: 0.75rem; padding: 0.5rem 1rem;">RELATÓRIO DO CICLO</a>
+                    <div style="width: 1px; height: 24px; background: var(--color-border);"></div>
+                    <a href={`/rh/relatorio-ciclo/${ciclo.id}`} class="btn" style="font-size: 0.65rem; padding: 0.35rem 0.75rem; background: white; border: 1px solid var(--color-border); color: var(--color-text); font-weight: 800; border-radius: 4px;">RELATÓRIO</a>
                     
-                    <form method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este ciclo e todos os dados vinculados? Esta ação é irreversível.');" style="margin: 0;">
+                    <form method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este ciclo?');" style="margin: 0;">
                       <input type="hidden" name="action" value="delete_ciclo" />
                       <input type="hidden" name="ciclo_id" value={ciclo.id} />
-                      <button type="submit" title="Excluir Ciclo" class="btn-excluir-ciclo" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0.5rem; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">
-                        <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                      <button type="submit" style="background: none; border: none; color: #cbd5e1; cursor: pointer; padding: 0.25rem; transition: color 0.2s;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#cbd5e1'">
+                        <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                       </button>
                     </form>
                   </div>
                 </header>
 
-                <div style="padding: 1.5rem 2rem;">
-                  <h4 style="font-size: 0.875rem; color: var(--color-text-muted); font-weight: 600; margin-bottom: 1rem;">Disparos Realizados</h4>
-                  <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="padding: 1rem 1.25rem;">
+                  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                     {ciclo.campanhas_pesquisa.length === 0 && (
-                      <div style="padding: 2rem; text-align: center; color: var(--color-text-muted); font-size: 0.875rem; background: #f8fafc; border-radius: 8px; border: 1px dashed var(--color-border);">
-                        Nenhuma pesquisa disparada neste ciclo ainda.
+                      <div style="padding: 1.5rem; text-align: center; color: var(--color-text-muted); font-size: 0.75rem; background: #fbfbfc; border-radius: 8px; border: 1px dashed var(--color-border); font-weight: 600;">
+                        Nenhuma pesquisa disparada neste ciclo.
                       </div>
                     )}
                     {ciclo.campanhas_pesquisa.map((camp: any) => (
-                      <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; border: 1px solid var(--color-border); border-radius: 12px; background: white; transition: all 0.2s;" class="survey-item">
-                        <div style="display: flex; align-items: center; gap: 1rem;">
-                          <div style="width: 40px; height: 40px; border-radius: 8px; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.85rem; border: 1px solid #f1f5f9; border-radius: 8px; background: white; transition: all 0.2s;" class="survey-item">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                          <div style="width: 32px; height: 32px; border-radius: 6px; background: #eff6ff; color: #3b82f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                           </div>
                           <div>
-                            <p style="margin: 0; font-weight: 600; color: var(--color-text);">{camp.titulo}</p>
-                            <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted);">{new Date(camp.data_programada).toLocaleDateString('pt-BR')} • {camp.campanhas_participantes?.length || 0} destinatários</p>
+                            <p style="margin: 0; font-weight: 700; color: var(--color-text); font-size: 0.85rem;">{camp.titulo}</p>
+                            <p style="margin: 0; font-size: 0.65rem; color: var(--color-text-muted); font-weight: 600;">{new Date(camp.data_programada).toLocaleDateString('pt-BR')} • {camp.campanhas_participantes?.length || 0} envios</p>
                           </div>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
                           {(() => {
                             const total = camp.campanhas_participantes?.length || 0;
                             const respondidos = camp.campanhas_participantes?.filter((p: any) => p.respondido_em).length || 0;
                             const isConcluido = total > 0 && respondidos >= total;
                             
                             return (
-                              <span style={`font-size: 0.65rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 999px; text-transform: uppercase; background: ${isConcluido ? '#dcfce7' : '#e0f2fe'}; color: ${isConcluido ? '#166534' : '#0369a1'};`}>
-                                {isConcluido ? 'CONCLUÍDO' : 'EM ANDAMENTO'}
+                              <span style={`font-size: 0.55rem; font-weight: 800; padding: 0.15rem 0.4rem; border-radius: 4px; text-transform: uppercase; background: ${isConcluido ? '#dcfce7' : '#e0f2fe'}; color: ${isConcluido ? '#166534' : '#0369a1'}; border: 1px solid currentColor;`}>
+                                {isConcluido ? 'CONCLUÍDO' : 'ATIVO'}
                               </span>
                             );
                           })()}
@@ -224,7 +227,7 @@ if (sessionUser) {
               <label style="display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--color-text-muted);">2. CANAL DE ENVIO</label>
               <select id="canalEnvio" style="width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); outline: none;">
                 <option value="email">📧 E-mail Corporativo (Resend)</option>
-                <option value="whatsapp">💬 WhatsApp (Link Direto)</option>
+                <option value="whatsapp" disabled>💬 WhatsApp (Em breve)</option>
               </select>
             </div>
           </div>
@@ -269,6 +272,87 @@ if (sessionUser) {
       </div>
     </div>
 
+    <!-- Modal Metodologia Técnica (Auditoria) -->
+    <div id="modalMetodologia" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 2500; align-items: center; justify-content: center; padding: 2rem;">
+      <div style="background: white; border-radius: 24px; width: 100%; max-width: 850px; max-height: 90vh; overflow-y: auto; padding: 3rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); position: relative;">
+        <button id="btnFecharMetodologia" style="position: absolute; top: 1.5rem; right: 1.5rem; background: #f1f5f9; border: none; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b; font-weight: bold;">&times;</button>
+        
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+          <div style="background: #eff6ff; color: #3b82f6; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">⚙️</div>
+          <div>
+            <h2 style="font-size: 1.5rem; color: #1e293b; margin: 0; font-weight: 800;">Dossiê Técnico de Avaliação</h2>
+            <p style="color: #64748b; margin: 0; font-size: 0.9rem;">Referencial Metodológico e Lógica de Processamento de Dados (COPSOQ II)</p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; text-align: left;">
+          
+          <div style="background: #f8fafc; padding: 1.5rem; border-radius: 16px; border: 1px solid #e2e8f0;">
+            <h3 style="font-size: 1rem; color: var(--color-primary); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+              📏 Escala e Pontuação
+            </h3>
+            <p style="font-size: 0.875rem; color: #475569; line-height: 1.6; margin-bottom: 1rem;">
+              As respostas utilizam uma escala Likert de 5 pontos, convertida para uma base centesimal (0 a 100) para facilitar a análise de indicadores.
+            </p>
+            <table style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <th style="text-align: left; padding: 0.5rem; color: #94a3b8;">Resposta</th>
+                <th style="text-align: center; padding: 0.5rem; color: #94a3b8;">Valor</th>
+                <th style="text-align: right; padding: 0.5rem; color: #94a3b8;">Pontos</th>
+              </tr>
+              <tr><td style="padding: 0.4rem 0.5rem;">Nunca / Nada</td><td style="text-align: center;">1</td><td style="text-align: right; font-weight: 700;">0</td></tr>
+              <tr><td style="padding: 0.4rem 0.5rem;">Raramente</td><td style="text-align: center;">2</td><td style="text-align: right; font-weight: 700;">25</td></tr>
+              <tr><td style="padding: 0.4rem 0.5rem;">Às vezes</td><td style="text-align: center;">3</td><td style="text-align: right; font-weight: 700;">50</td></tr>
+              <tr><td style="padding: 0.4rem 0.5rem;">Frequentemente</td><td style="text-align: center;">4</td><td style="text-align: right; font-weight: 700;">75</td></tr>
+              <tr><td style="padding: 0.4rem 0.5rem;">Sempre / Muito</td><td style="text-align: center;">5</td><td style="text-align: right; font-weight: 700;">100</td></tr>
+            </table>
+          </div>
+
+          <div style="background: #fdf2f2; padding: 1.5rem; border-radius: 16px; border: 1px solid #fee2e2;">
+            <h3 style="font-size: 1rem; color: #b91c1c; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+              🔄 Polaridade das Perguntas
+            </h3>
+            <p style="font-size: 0.875rem; color: #7f1d1d; line-height: 1.6; margin-bottom: 1rem;">
+              Para garantir que <strong>pontuação alta sempre signifique maior risco</strong>, o sistema inverte a lógica conforme o fator avaliado:
+            </p>
+            <ul style="padding-left: 1rem; font-size: 0.8rem; color: #991b1b; display: flex; flex-direction: column; gap: 0.5rem;">
+              <li><strong>Direta:</strong> "Sempre" = 100 pts. (Ex: Demandas, Estresse).</li>
+              <li><strong>Inversa:</strong> "Sempre" = 0 pts. (Ex: Autonomia, Apoio Social, Reconhecimento).</li>
+            </ul>
+          </div>
+
+          <div style="grid-column: span 2; background: #f0fdf4; padding: 1.5rem; border-radius: 16px; border: 1px solid #dcfce7;">
+            <h3 style="font-size: 1rem; color: #15803d; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+              📊 Consolidação de Indicadores e Risco (Severidade x Probabilidade)
+            </h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+              <div style="font-size: 0.875rem; color: #166534; line-height: 1.5;">
+                <strong>Média por Eixo:</strong> O score de cada eixo é a média aritmética das perguntas que o compõem. 
+                <br><br>
+                <strong>Zonas de Risco:</strong>
+                <ul style="margin-top: 0.5rem; padding-left: 1.25rem;">
+                  <li>🟢 0 - 33: Risco Baixo (Proteção)</li>
+                  <li>🟡 33 - 66: Risco Médio (Atenção)</li>
+                  <li>🔴 66 - 100: Risco Alto (Intervenção)</li>
+                </ul>
+              </div>
+              <div style="font-size: 0.875rem; color: #166534; line-height: 1.5;">
+                <strong>Matriz Matemática:</strong> Cruza a <strong>Severidade</strong> (Média do Eixo) com a <strong>Probabilidade</strong> (Frequência de Red Flags e Denúncias no setor).
+                <br><br>
+                Este cruzamento gera a matriz visual, permitindo identificar onde o risco é mais imediato e perigoso para a saúde mental.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 2.5rem; border-top: 1px solid #e2e8f0; padding-top: 1.5rem; text-align: center;">
+          <p style="font-size: 0.75rem; color: #94a3b8; font-style: italic;">
+            Este sistema foi desenvolvido em conformidade com as diretrizes da NR-1 e utiliza o instrumento COPSOQ II validado cientificamente.
+          </p>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal de Sucesso e Próximos Passos -->
     <div id="modalSucessoDisparo" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(4px); z-index: 2000; align-items: center; justify-content: center; padding: 1rem;">
       <div style="background: white; border-radius: 24px; width: 100%; max-width: 550px; padding: 2.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); text-align: center;">
@@ -278,6 +362,7 @@ if (sessionUser) {
         
         <h2 style="font-size: 1.75rem; color: #1e293b; margin-bottom: 0.5rem; font-weight: 800;">Disparo Realizado!</h2>
         <p style="color: #64748b; margin-bottom: 2rem;">As avaliações foram enviadas com sucesso para a sua base.</p>
+
 
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
           <div style="text-align: left;">
@@ -342,6 +427,17 @@ if (sessionUser) {
       const modalCiclo = document.getElementById('modalNovoCiclo');
       const btnFecharModalCiclo = document.getElementById('btnFecharModalCiclo');
       
+      const btnAbrirMetodologia = document.getElementById('btnAbrirMetodologia');
+      const modalMetodologia = document.getElementById('modalMetodologia');
+      const btnFecharMetodologia = document.getElementById('btnFecharMetodologia');
+
+      if(btnAbrirMetodologia && modalMetodologia) {
+        btnAbrirMetodologia.addEventListener('click', () => { modalMetodologia.style.display = 'flex'; });
+      }
+      if(btnFecharMetodologia && modalMetodologia) {
+        btnFecharMetodologia.addEventListener('click', () => { modalMetodologia.style.display = 'none'; });
+      }
+
       const btnAbrirPesquisa = document.getElementById('btnAbrirModalPesquisa');
       
       // Eventos dos Modais

@@ -1,0 +1,287 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { supabase } from '../../lib/supabase';
+import { ClienteMasterService } from '../../services/ClienteMasterService';
+
+const supabaseClient = supabase(Astro);
+const { data: { user } } = await supabaseClient.auth.getUser();
+
+if (!user) {
+  return Astro.redirect('/login');
+}
+
+const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, role').eq('id', user.id).single();
+
+if (!perfil || (perfil.role !== 'UltraAdmin' && perfil.role !== 'SuperAdmin')) {
+  return Astro.redirect('/dashboard');
+}
+
+const masterService = new ClienteMasterService();
+let msgErro = null;
+let msgSucesso = null;
+
+if (Astro.request.method === "POST") {
+  try {
+    const formData = await Astro.request.formData();
+    const action = formData.get("action")?.toString();
+
+    if (action === "create_master") {
+      const novoMaster = {
+        nome: formData.get("nome")?.toString() || '',
+        email: formData.get("email")?.toString() || '',
+        senha_provisoria: formData.get("senha")?.toString() || '',
+        quota_empresas: parseInt(formData.get("quota")?.toString() || '5')
+      };
+      
+      await masterService.provisionarUsuarioMaster(novoMaster);
+      msgSucesso = "Usuário Master criado com sucesso!";
+    }
+  } catch (err: any) {
+    msgErro = err.message || "Erro inesperado.";
+  }
+}
+
+const masters = await masterService.listarTodosMasters();
+const empresas = await masterService.listarTodasEmpresasComMaster();
+const stats = await masterService.getEstatisticasGlobais();
+---
+
+<Layout title="Ultra Dashboard | Segurament">
+  <div class="app-layout" style="background: #f8fafc; min-height: 100vh; display: flex; font-family: 'Inter', sans-serif;">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" style="width: 280px; background: #0f172a; border-right: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; color: white;">
+      <div style="padding: 2rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: center;">
+        <img src="/logo-segurament-horizontal-white.png" alt="Segurament" style="width: 180px; margin-bottom: 1rem;" />
+        <div style="background: #38bdf8; color: #0f172a; font-size: 0.6rem; font-weight: 900; padding: 2px 8px; border-radius: 4px; display: inline-block; letter-spacing: 1px;">ULTRA ADMIN</div>
+      </div>
+      
+      <nav style="flex: 1; padding: 2rem 1rem;">
+        <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.75rem;">
+          <li>
+            <a href="/adm/ultra" style="display: flex; align-items: center; padding: 0.875rem 1.25rem; background: #38bdf820; color: #38bdf8; border-radius: 12px; text-decoration: none; font-size: 0.9rem; font-weight: 600; gap: 1rem;">
+              <svg style="width: 20px; height: 20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              Dashboard Global
+            </a>
+          </li>
+          <li>
+            <a href="/dashboard" style="display: flex; align-items: center; padding: 0.875rem 1.25rem; color: #94a3b8; border-radius: 12px; text-decoration: none; font-size: 0.9rem; font-weight: 500; gap: 1rem;">
+              <svg style="width: 20px; height: 20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+              Master View
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div style="padding: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
+        <a href="/api/auth/signout" style="display: flex; align-items: center; color: #f87171; text-decoration: none; font-size: 0.85rem; font-weight: 600; gap: 1rem; padding: 0.75rem; border-radius: 10px; transition: background 0.2s;">
+          <svg style="width: 18px; height: 18px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          Sair do Sistema
+        </a>
+      </div>
+    </aside>
+
+    <main style="flex: 1; padding: 2.5rem 4rem; overflow-y: auto;">
+      
+      <!-- Mensagens Feedback -->
+      {msgErro && <div class="glass" style="background: #fee2e2; border: 1px solid #fecaca; color: #b91c1c; padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.75rem;">
+        <svg style="width: 20px; height: 20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <span style="font-weight: 600;">{msgErro}</span>
+      </div>}
+      
+      {msgSucesso && <div class="glass" style="background: #dcfce7; border: 1px solid #bbf7d0; color: #166534; padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.75rem;">
+        <svg style="width: 20px; height: 20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <span style="font-weight: 600;">{msgSucesso}</span>
+      </div>}
+
+      <!-- Header -->
+      <header style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3rem;">
+        <div>
+          <h2 style="font-size: 2.25rem; font-weight: 900; color: #0f172a; margin: 0; letter-spacing: -1px;">Ultra Dashboard</h2>
+          <p style="color: #64748b; margin-top: 0.5rem; font-size: 1.1rem;">Visão consolidada de toda a infraestrutura Segurament.</p>
+        </div>
+        <button id="btnNovoMaster" class="btn btn-primary" style="background: #0f172a; color: white; padding: 0.875rem 1.5rem; border-radius: 12px; font-weight: 700; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: transform 0.2s;">
+          <svg style="width: 20px; height: 20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          NOVO MASTER
+        </button>
+      </header>
+
+      <!-- Stats Grid -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-bottom: 3rem;">
+        <div class="card" style="background: white; padding: 2rem; border-radius: 24px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+            <div style="width: 48px; height: 48px; background: #eff6ff; color: #2563eb; border-radius: 14px; display: flex; align-items: center; justify-content: center;">
+              <svg style="width: 24px; height: 24px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+            </div>
+            <span style="font-size: 0.75rem; font-weight: 800; color: #16a34a; background: #f0fdf4; padding: 0.25rem 0.75rem; border-radius: 99px;">Ativos</span>
+          </div>
+          <h3 style="font-size: 2.5rem; font-weight: 900; margin: 0; color: #0f172a;">{stats.totalMasters}</h3>
+          <p style="margin: 0.25rem 0 0 0; color: #64748b; font-weight: 600; font-size: 0.9rem;">Parceiros Master</p>
+        </div>
+
+        <div class="card" style="background: white; padding: 2rem; border-radius: 24px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+            <div style="width: 48px; height: 48px; background: #f0fdf4; color: #16a34a; border-radius: 14px; display: flex; align-items: center; justify-content: center;">
+              <svg style="width: 24px; height: 24px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+            </div>
+          </div>
+          <h3 style="font-size: 2.5rem; font-weight: 900; margin: 0; color: #0f172a;">{stats.totalEmpresas}</h3>
+          <p style="margin: 0.25rem 0 0 0; color: #64748b; font-weight: 600; font-size: 0.9rem;">Empresas (Tenants)</p>
+        </div>
+
+        <div class="card" style="background: white; padding: 2rem; border-radius: 24px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+            <div style="width: 48px; height: 48px; background: #faf5ff; color: #9333ea; border-radius: 14px; display: flex; align-items: center; justify-content: center;">
+              <svg style="width: 24px; height: 24px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
+            </div>
+          </div>
+          <h3 style="font-size: 2.5rem; font-weight: 900; margin: 0; color: #0f172a;">{stats.totalColaboradores}</h3>
+          <p style="margin: 0.25rem 0 0 0; color: #64748b; font-weight: 600; font-size: 0.9rem;">Vidas Protegidas</p>
+        </div>
+      </div>
+
+      <!-- Main Sections -->
+      <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 2.5rem;">
+        
+        <!-- Listagem de Masters -->
+        <section>
+          <div class="card" style="background: white; border-radius: 24px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);">
+            <div style="padding: 1.5rem 2rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+              <h4 style="margin: 0; font-weight: 800; color: #0f172a;">Parceiros Master</h4>
+              <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; background: #f1f5f9; padding: 4px 10px; border-radius: 6px;">{masters.length} TOTAL</span>
+            </div>
+            
+            <div style="padding: 0;">
+              {masters.map(m => {
+                const used = m.master_portfolios?.[0]?.count || 0;
+                const perc = (used / m.quota_empresas) * 100;
+                return (
+                  <div style="padding: 1.5rem 2rem; border-bottom: 1px solid #f8fafc; transition: background 0.2s;" class="master-row">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                      <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="width: 40px; height: 40px; background: #f1f5f9; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #0f172a;">{m.nome.charAt(0)}</div>
+                        <div>
+                          <p style="margin: 0; font-weight: 700; color: #1e293b;">{m.nome}</p>
+                          <p style="margin: 0; font-size: 0.75rem; color: #64748b;">ID: {m.id.split('-')[0]}...</p>
+                        </div>
+                      </div>
+                      <div style="text-align: right;">
+                        <span style="font-size: 0.75rem; font-weight: 800; color: #1e293b;">{used} / {m.quota_empresas} Empresas</span>
+                      </div>
+                    </div>
+                    <div style="width: 100%; height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden;">
+                      <div style={`width: ${perc}%; height: 100%; background: ${perc > 80 ? '#ef4444' : '#38bdf8'}; transition: width 1s ease;`}></div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </section>
+
+        <!-- Listagem de Empresas Finais -->
+        <section>
+          <div class="card" style="background: white; border-radius: 24px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);">
+            <div style="padding: 1.5rem 2rem; border-bottom: 1px solid #f1f5f9;">
+              <h4 style="margin: 0; font-weight: 800; color: #0f172a;">Empresas (Tenants)</h4>
+            </div>
+            
+            <div style="max-height: 500px; overflow-y: auto;">
+              {empresas.map(e => {
+                const masterName = e.master_portfolios?.[0]?.perfis_usuarios?.nome || 'Direto / Sem Master';
+                return (
+                  <div style="padding: 1.25rem 2rem; border-bottom: 1px solid #f8fafc; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                      <p style="margin: 0; font-weight: 700; color: #1e293b; font-size: 0.9rem;">{e.nome}</p>
+                      <p style="margin: 0; font-size: 0.7rem; color: #94a3b8;">CNPJ: {e.cnpj}</p>
+                    </div>
+                    <div style="text-align: right;">
+                      <span style={`font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 4px; ${masterName === 'Direto / Sem Master' ? 'background: #f1f5f9; color: #64748b;' : 'background: #eff6ff; color: #2563eb;'}`}>
+                        {masterName.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Modal Novo Master -->
+      <div id="modalMaster" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; padding: 2rem;">
+        <div style="background: white; padding: 3rem; border-radius: 32px; width: 100%; max-width: 480px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+          <header style="margin-bottom: 2rem; text-align: center;">
+            <div style="width: 64px; height: 64px; background: #f1f5f9; color: #0f172a; border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                <svg style="width: 32px; height: 32px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+            <h3 style="margin: 0; font-size: 1.5rem; font-weight: 900; color: #0f172a;">Novo Parceiro Master</h3>
+            <p style="color: #64748b; margin-top: 0.5rem; font-size: 0.9rem;">Configure os acessos e limites do consultor.</p>
+          </header>
+
+          <form method="POST" style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <input type="hidden" name="action" value="create_master" />
+            
+            <div>
+              <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem; text-transform: uppercase;">Nome Completo</label>
+              <input name="nome" type="text" placeholder="Ex: Roberto Andrade" required style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #f1f5f9; border-radius: 12px; outline: none; font-family: inherit; transition: border-color 0.2s;" />
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem; text-transform: uppercase;">E-mail de Acesso</label>
+              <input name="email" type="email" placeholder="master@consultoria.com" required style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #f1f5f9; border-radius: 12px; outline: none; font-family: inherit;" />
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem; text-transform: uppercase;">Senha Provisória</label>
+              <input name="senha" type="text" placeholder="Mínimo 6 caracteres" required style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #f1f5f9; border-radius: 12px; outline: none; font-family: inherit;" />
+            </div>
+            
+            <div>
+              <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem; text-transform: uppercase;">Quota de Empresas</label>
+              <select name="quota" style="width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #f1f5f9; border-radius: 12px; outline: none; font-family: inherit; background: white; cursor: pointer;">
+                <option value="5">5 Empresas (Standard)</option>
+                <option value="10">10 Empresas (Professional)</option>
+                <option value="50">50 Empresas (Parceiro Gold)</option>
+                <option value="100">100 Empresas (Enterprise)</option>
+              </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+              <button type="button" id="btnFecharModal" class="btn btn-outline" style="padding: 1rem; border-radius: 12px; font-weight: 700; border: 2px solid #f1f5f9; background: white; cursor: pointer;">CANCELAR</button>
+              <button type="submit" class="btn btn-primary" style="padding: 1rem; border-radius: 12px; font-weight: 700; background: #0f172a; color: white; border: none; cursor: pointer; transition: transform 0.2s;">CRIAR MASTER</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <style>
+    .master-row:hover {
+      background: #fcfcfd;
+    }
+    input:focus, select:focus {
+      border-color: #38bdf8 !important;
+    }
+    .btn:active {
+      transform: scale(0.98);
+    }
+  </style>
+
+  <script>
+    const btnAbrir = document.getElementById('btnNovoMaster');
+    const btnFechar = document.getElementById('btnFecharModal');
+    const modal = document.getElementById('modalMaster');
+
+    if (btnAbrir && modal) btnAbrir.onclick = () => modal.style.display='flex';
+    if (btnFechar && modal) btnFechar.onclick = () => modal.style.display='none';
+    
+    if (modal) {
+        modal.onclick = (e) => {
+            if (e.target === modal) modal.style.display='none';
+        }
+    }
+  </script>
+</Layout>

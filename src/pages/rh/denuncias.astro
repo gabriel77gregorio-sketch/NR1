@@ -114,114 +114,125 @@ if (Astro.request.method === "POST" && user) {
     <!-- Sidebar Modular -->
     <SidebarRH activeMenu="denuncias" />
 
-    <!-- Main Content -->
-    <main class="main-content">
-      <div style="padding: 2rem 3rem;">
+    <!-- Main Content Compacto -->
+    <main class="main-content" style="height: 100vh; overflow: hidden; display: flex; flex-direction: column;">
+      <div style="padding: 1.25rem 1.5rem; flex: 1; display: flex; flex-direction: column; overflow-y: auto;" class="custom-scrollbar">
         
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-shrink: 0;">
           <div>
-            <h2 style="font-size: 1.5rem; color: var(--color-danger); font-weight: 400; margin: 0;">Tratamento de Denúncias Anônimas</h2>
-            <p style="color: var(--color-text-muted); font-size: 0.875rem; margin-top: 0.25rem;">Ambiente restrito. Avalie relatados de desvios e assédios com total sigilo.</p>
+            <h2 style="font-size: 1.3rem; color: var(--color-danger); font-weight: 700; margin: 0; letter-spacing: -0.5px;">Tratamento de Denúncias Anônimas</h2>
+            <p style="color: var(--color-text-muted); font-size: 0.8rem; margin-top: 0.1rem;">Ambiente restrito. Avalie relatados com total sigilo.</p>
           </div>
-          <div style="display: flex; gap: 1rem;">
-             <a href="/rh/relatorio-denuncias" target="_blank" class="btn btn-outline" style="border-color: var(--color-danger); color: var(--color-danger); text-decoration: none; display: flex; align-items: center;">
-              <svg style="width: 16px; height: 16px; margin-right: 0.5rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              GERAR RELATÓRIO PDF
+          <div style="display: flex; gap: 0.75rem;">
+             <a href="/rh/relatorio-denuncias" target="_blank" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.75rem; border-color: var(--color-danger); color: var(--color-danger); text-decoration: none; display: flex; align-items: center; font-weight: 700;">
+              <svg style="width: 14px; height: 14px; margin-right: 0.4rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              RELATÓRIO PDF
             </a>
           </div>
         </div>
 
-        <!-- Indicadores -->
-        <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
-          <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1rem 1.5rem; flex: 1;">
-            <div style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600;">NOVAS (TOTAL)</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-danger);">{denuncias.filter(d => d.status === 'Nova Denúncia' || d.status === 'Pendente').length}</div>
+        <!-- Indicadores Compactos -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.25rem; flex-shrink: 0;">
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 0.75rem 1.25rem; flex: 1; display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: #fee2e2; display: flex; align-items: center; justify-content: center; color: #ef4444;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+            </div>
+            <div>
+              <div style="font-size: 0.6rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase;">NOVAS</div>
+              <div style="font-size: 1.2rem; font-weight: 800; color: var(--color-danger);">{denuncias.filter(d => d.status === 'Nova Denúncia' || d.status === 'Pendente').length}</div>
+            </div>
           </div>
-          <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1rem 1.5rem; flex: 1;">
-            <div style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600;">EM APURAÇÃO</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-warning);">{denuncias.filter(d => d.status === 'Em Apuração').length}</div>
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 0.75rem 1.25rem; flex: 1; display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: #fff7ed; display: flex; align-items: center; justify-content: center; color: #f97316;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>
+            </div>
+            <div>
+              <div style="font-size: 0.6rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase;">EM APURAÇÃO</div>
+              <div style="font-size: 1.2rem; font-weight: 800; color: var(--color-warning);">{denuncias.filter(d => d.status === 'Em Apuração').length}</div>
+            </div>
           </div>
         </div>
         
-        <!-- Link de Divulgação do Canal -->
-        <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; gap: 2rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
-          <div style="display: flex; align-items: center; gap: 1rem;">
-            <div style="width: 48px; height: 48px; border-radius: 12px; background: #fee2e2; display: flex; align-items: center; justify-content: center; color: #ef4444; flex-shrink: 0;">
-              <svg style="width: 24px; height: 24px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+        <!-- Link de Divulgação Compacto -->
+        <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 36px; height: 36px; border-radius: 8px; background: #fee2e2; display: flex; align-items: center; justify-content: center; color: #ef4444; flex-shrink: 0;">
+              <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
             </div>
             <div>
-              <h3 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: #1e293b;">Link Público do Canal de Denúncia</h3>
-              <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: #64748b;">Este link deve ser divulgado em canais oficiais (E-mail, Mural, WhatsApp).</p>
+              <h3 style="margin: 0; font-size: 0.85rem; font-weight: 700; color: #1e293b;">Link Público do Canal</h3>
             </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 0.75rem; background: #f8fafc; padding: 0.5rem 0.5rem 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; flex: 1; max-width: 500px;">
-            <code id="canalLink" style="font-size: 0.85rem; color: #ef4444; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">/canal-de-denuncia</code>
-            <button id="btnCopiarLink" class="btn" style="padding: 0.5rem 1rem; font-size: 0.75rem; background: #ef4444; color: white; border: none; white-space: nowrap; font-weight: 700; border-radius: 6px; cursor: pointer;">COPIAR LINK</button>
+          <div style="display: flex; align-items: center; gap: 0.5rem; background: #f8fafc; padding: 0.35rem 0.35rem 0.35rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; flex: 1; max-width: 400px;">
+            <code id="canalLink" style="font-size: 0.75rem; color: #ef4444; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">/canal-de-denuncia</code>
+            <button id="btnCopiarLink" class="btn" style="padding: 0.35rem 0.75rem; font-size: 0.65rem; background: #ef4444; color: white; border: none; white-space: nowrap; font-weight: 700; border-radius: 4px;">COPIAR</button>
           </div>
         </div>
 
-        <!-- Filtros -->
-        <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.5rem; display: flex; gap: 1.5rem; align-items: center;">
-          <div style="font-size: 0.85rem; font-weight: 600; color: var(--color-text-muted);">FILTRAR POR:</div>
-          <select id="filtroStatus" style="padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 4px; outline: none; font-size: 0.85rem; background: #fbfbfc;">
+        <!-- Filtros Compactos -->
+        <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; gap: 1rem; align-items: center; flex-shrink: 0;">
+          <div style="font-size: 0.7rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase;">Filtrar:</div>
+          <select id="filtroStatus" style="padding: 0.35rem 0.5rem; border: 1px solid var(--color-border); border-radius: 6px; outline: none; font-size: 0.8rem; background: #fbfbfc; font-weight: 600;">
              <option value="todas">Todas as Situações</option>
-             <option value="Nova Denúncia">Novas Denúncias (Não lidas)</option>
-             <option value="Em Apuração">Em Apuração (Tratativa)</option>
-             <option value="Resolvida">Resolvidas / Fechadas</option>
+             <option value="Nova Denúncia">Novas Denúncias</option>
+             <option value="Em Apuração">Em Apuração</option>
+             <option value="Resolvida">Resolvidas</option>
           </select>
-          <select id="filtroPeriodo" style="padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 4px; outline: none; font-size: 0.85rem; background: #fbfbfc;">
+          <select id="filtroPeriodo" style="padding: 0.35rem 0.5rem; border: 1px solid var(--color-border); border-radius: 6px; outline: none; font-size: 0.8rem; background: #fbfbfc; font-weight: 600;">
              <option value="todos">Qualquer Data</option>
              <option value="7">Últimos 7 dias</option>
              <option value="30">Últimos 30 dias</option>
           </select>
         </div>
 
-        <!-- Table Content -->
-        <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--color-text);">Caixa de Entrada de Ocorrências</h3>
-        <div style="background: white; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden;">
-          <div style="display: flex; padding: 1rem; font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.5px; border-bottom: 1px solid var(--color-border); background: #fbfbfc;">
-            <div style="flex: 1.5;">PROTOCOLO E DATA</div>
-            <div style="flex: 1; text-align: center;">SEVERIDADE EST.</div>
-            <div style="flex: 1; text-align: center;">ÚLTIMA INTERAÇÃO</div>
-            <div style="flex: 1; text-align: center;">STATUS DO COMITÊ</div>
-            <div style="width: 100px; text-align: center;">AÇÕES</div>
-          </div>
-
-          <div id="listaDenuncias" style="display: flex; flex-direction: column;">
-            {denuncias.length === 0 ? (
-               <div style="padding: 3rem; text-align: center; color: var(--color-text-muted);">
-                 Nenhuma denúncia encontrada na caixa de entrada.
-               </div>
-            ) : denuncias.map((denuncia) => (
-              <div class="denuncia-row" 
-                   data-status={denuncia.status} 
-                   data-date={denuncia.data_iso} 
-                   data-texto={denuncia.texto} 
-                   data-protocolo={denuncia.protocolo}
-                   data-andamentos={JSON.stringify(denuncia.andamentos)}
-                   style="display: flex; align-items: center; padding: 1.25rem 1rem; font-size: 0.875rem; border-bottom: 1px solid var(--color-border);">
-                <div style="flex: 1.5;">
-                  <div style="font-weight: 600; color: var(--color-text); font-family: monospace; font-size: 1rem;">{denuncia.protocolo}</div>
-                  <div style="color: var(--color-text-muted); font-size: 0.75rem; margin-top: 0.2rem;">Registrada em {denuncia.data}</div>
+        <!-- Tabela Compacta -->
+        <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0;">
+          <h3 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--color-text);">Caixa de Entrada de Ocorrências</h3>
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); flex: 1;">
+            <div style="display: flex; padding: 0.75rem 1rem; font-size: 0.65rem; font-weight: 700; color: var(--color-text-muted); letter-spacing: 0.5px; border-bottom: 1px solid var(--color-border); background: #f8fafc; text-transform: uppercase; flex-shrink: 0;">
+              <div style="flex: 1.5;">PROTOCOLO E DATA</div>
+              <div style="flex: 1; text-align: center;">SEVERIDADE</div>
+              <div style="flex: 1; text-align: center;">ÚLTIMA ATUALIZ.</div>
+              <div style="flex: 1; text-align: center;">STATUS</div>
+              <div style="width: 80px; text-align: center;">AÇÕES</div>
+            </div>
+  
+            <div id="listaDenuncias" style="overflow-y: auto; flex: 1;" class="custom-scrollbar">
+              {denuncias.length === 0 ? (
+                 <div style="padding: 2rem; text-align: center; color: var(--color-text-muted); font-size: 0.85rem;">
+                   Nenhuma denúncia encontrada.
+                 </div>
+              ) : denuncias.map((denuncia) => (
+                <div class="denuncia-row" 
+                     data-status={denuncia.status} 
+                     data-date={denuncia.data_iso} 
+                     data-texto={denuncia.texto} 
+                     data-protocolo={denuncia.protocolo}
+                     data-andamentos={JSON.stringify(denuncia.andamentos)}
+                     style="display: flex; align-items: center; padding: 0.75rem 1rem; font-size: 0.85rem; border-bottom: 1px solid var(--color-border);">
+                  <div style="flex: 1.5;">
+                    <div style="font-weight: 700; color: var(--color-text); font-family: monospace; font-size: 0.9rem;">{denuncia.protocolo}</div>
+                    <div style="color: var(--color-text-muted); font-size: 0.7rem;">{denuncia.data}</div>
+                  </div>
+                  <div style="flex: 1; text-align: center;">
+                    <span style={`font-size: 0.6rem; font-weight: 700; padding: 0.15rem 0.4rem; border-radius: 4px; text-transform: uppercase; background: ${denuncia.severidade === 'Crítica' ? '#fee2e2' : (denuncia.severidade === 'Alta' ? '#ffedd5' : '#f1f5f9')}; color: ${denuncia.severidade === 'Crítica' ? 'var(--color-danger)' : (denuncia.severidade === 'Alta' ? 'var(--color-warning)' : 'var(--color-text-muted)')}; border: 1px solid currentColor;`}>
+                      {denuncia.severidade}
+                    </span>
+                  </div>
+                  <div style="flex: 1; text-align: center; color: var(--color-text-muted); font-size: 0.75rem;">
+                    {denuncia.ultima_att}
+                  </div>
+                  <div style="flex: 1; display: flex; justify-content: center;">
+                    <span style={`font-size: 0.6rem; font-weight: 700; padding: 0.15rem 0.4rem; border-radius: 4px; text-transform: uppercase; background: ${denuncia.status === 'Nova Denúncia' ? '#fee2e2' : (denuncia.status === 'Em Apuração' ? '#e0e7ff' : '#d1fae5')}; color: ${denuncia.status === 'Nova Denúncia' ? 'var(--color-danger)' : (denuncia.status === 'Em Apuração' ? 'var(--color-primary)' : 'var(--color-success)')}; border: 1px solid currentColor;`}>
+                      {denuncia.status}
+                    </span>
+                  </div>
+                  <div style="width: 80px; text-align: center;">
+                    <button class="btn btnTratar" data-protocolo={denuncia.protocolo} data-texto={denuncia.texto} data-status={denuncia.status} style="font-size: 0.65rem; padding: 0.25rem 0.5rem; background: var(--color-primary); color: white; border: none; border-radius: 4px; font-weight: 700; cursor: pointer;">TRATAR</button>
+                  </div>
                 </div>
-                <div style="flex: 1; text-align: center;">
-                  <span style={`font-size: 0.7rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 999px; text-transform: uppercase; background: ${denuncia.severidade === 'Crítica' ? '#fee2e2' : (denuncia.severidade === 'Alta' ? '#ffedd5' : '#f1f5f9')}; color: ${denuncia.severidade === 'Crítica' ? 'var(--color-danger)' : (denuncia.severidade === 'Alta' ? 'var(--color-warning)' : 'var(--color-text-muted)')};`}>
-                    {denuncia.severidade}
-                  </span>
-                </div>
-                <div style="flex: 1; text-align: center; color: var(--color-text-muted);">
-                  {denuncia.ultima_att}
-                </div>
-                <div style="flex: 1; display: flex; justify-content: center;">
-                  <span style={`font-size: 0.7rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 999px; text-transform: uppercase; background: ${denuncia.status === 'Nova Denúncia' ? '#fee2e2' : (denuncia.status === 'Em Apuração' ? '#e0e7ff' : '#d1fae5')}; color: ${denuncia.status === 'Nova Denúncia' ? 'var(--color-danger)' : (denuncia.status === 'Em Apuração' ? 'var(--color-primary)' : 'var(--color-success)')};`}>
-                    {denuncia.status}
-                  </span>
-                </div>
-                <div style="width: 100px; text-align: center;">
-                  <button class="btn btn-outline btnTratar" data-protocolo={denuncia.protocolo} data-texto={denuncia.texto} data-status={denuncia.status} style="font-size: 0.65rem; padding: 0.3rem 0.6rem; color: var(--color-text); cursor: pointer;">TRATAR</button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>

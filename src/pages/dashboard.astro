@@ -13,7 +13,19 @@ if (!user) {
 let userPerfil = { email: user.email || '', name: 'Admin Master' };
 const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, role').eq('id', user.id).single();
 
-if (!perfil || perfil.role !== 'SuperAdmin') {
+if (!perfil) {
+  return Astro.redirect('/rh/inicio');
+}
+
+if (perfil.role === 'UltraAdmin') {
+  return Astro.redirect('/adm/ultra');
+}
+
+if (perfil.role === 'Master') {
+  return Astro.redirect('/adm/master-portfolio');
+}
+
+if (perfil.role !== 'SuperAdmin') {
   return Astro.redirect('/rh/inicio');
 }
 

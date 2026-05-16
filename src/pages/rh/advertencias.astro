@@ -54,96 +54,95 @@ if (user) {
     <SidebarRH activeMenu="advertencias" />
 
     <!-- Main Content -->
-    <main class="main-content" style="background: #fafafa;">
-      <div style="padding: 2.5rem 3.5rem;">
+    <!-- Main Content Compacto -->
+    <main class="main-content" style="height: 100vh; overflow: hidden; display: flex; flex-direction: column;">
+      <div style="padding: 1.25rem 1.5rem; flex: 1; display: flex; flex-direction: column; overflow-y: auto;" class="custom-scrollbar">
         
-        <!-- Header -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
+        <!-- Header Compacto -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-shrink: 0;">
           <div>
-            <h2 style="font-size: 1.5rem; color: #dc2626; font-weight: 700; margin: 0;">Registro de Advertências</h2>
-            <p style="color: var(--color-text-muted); font-size: 0.95rem; margin-top: 0.25rem;">
-              Controle disciplinar e respaldo jurídico para descumprimentos de normas de segurança (NR1).
-            </p>
+            <h2 style="font-size: 1.3rem; color: #dc2626; font-weight: 700; margin: 0; letter-spacing: -0.5px;">Registro de Advertências</h2>
+            <p style="color: var(--color-text-muted); font-size: 0.8rem; margin-top: 0.1rem;">Controle disciplinar e respaldo jurídico (NR1).</p>
           </div>
           
-          <button id="btnNovaAdvertencia" class="btn btn-primary" style="background: #dc2626; border-color: #dc2626; padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-            <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <button id="btnNovaAdvertencia" class="btn btn-primary" style="background: #dc2626; border-color: #dc2626; padding: 0.5rem 1rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 700;">
+            <svg style="width: 14px; height: 14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             NOVA ADVERTÊNCIA
           </button>
         </div>
 
-        <!-- Indicadores -->
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
-          <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 1.5rem; border-left: 4px solid #dc2626;">
-            <h4 style="font-size: 0.8rem; color: var(--color-text-muted); margin: 0 0 0.5rem 0; text-transform: uppercase;">Total de Advertências</h4>
-            <span style="font-size: 2rem; font-weight: 800; color: var(--color-text);">{advertencias.length}</span>
+        <!-- Indicadores Compactos -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem; flex-shrink: 0;">
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 0.75rem 1rem; border-left: 4px solid #dc2626; display: flex; flex-direction: column; justify-content: center;">
+            <h4 style="font-size: 0.6rem; color: var(--color-text-muted); margin: 0; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">Total</h4>
+            <span style="font-size: 1.25rem; font-weight: 800; color: var(--color-text);">{advertencias.length}</span>
           </div>
-          <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 1.5rem; border-left: 4px solid #f59e0b;">
-            <h4 style="font-size: 0.8rem; color: var(--color-text-muted); margin: 0 0 0.5rem 0; text-transform: uppercase;">Pendentes de Assinatura</h4>
-            <span style="font-size: 2rem; font-weight: 800; color: var(--color-text);">{advertencias.filter(a => a.status_assinatura === 'Pendente').length}</span>
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 0.75rem 1rem; border-left: 4px solid #f59e0b; display: flex; flex-direction: column; justify-content: center;">
+            <h4 style="font-size: 0.6rem; color: var(--color-text-muted); margin: 0; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">Assinaturas Pendentes</h4>
+            <span style="font-size: 1.25rem; font-weight: 800; color: var(--color-text);">{advertencias.filter(a => a.status_assinatura === 'Pendente').length}</span>
           </div>
-          <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 1.5rem; border-left: 4px solid #3b82f6;">
-            <h4 style="font-size: 0.8rem; color: var(--color-text-muted); margin: 0 0 0.5rem 0; text-transform: uppercase;">Reincidências (Mês)</h4>
-            <span style="font-size: 2rem; font-weight: 800; color: var(--color-text);">0</span>
+          <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 0.75rem 1rem; border-left: 4px solid #3b82f6; display: flex; flex-direction: column; justify-content: center;">
+            <h4 style="font-size: 0.6rem; color: var(--color-text-muted); margin: 0; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">Reincidências (Mês)</h4>
+            <span style="font-size: 1.25rem; font-weight: 800; color: var(--color-text);">0</span>
           </div>
         </div>
 
-        <!-- Filtros -->
-        <div style="background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; display: flex; gap: 1.5rem; align-items: center;">
-          <div style="font-size: 0.85rem; font-weight: 600; color: var(--color-text-muted);">FILTRAR POR:</div>
-          <select id="filtroStatusAdv" style="padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 6px; outline: none; font-size: 0.85rem; background: #fbfbfc;">
-             <option value="todas">Status de Assinatura (Todos)</option>
+        <!-- Filtros Compactos -->
+        <div style="background: white; border: 1px solid var(--color-border); border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 1.25rem; display: flex; gap: 1rem; align-items: center; flex-shrink: 0;">
+          <div style="font-size: 0.7rem; font-weight: 800; color: var(--color-text-muted); text-transform: uppercase;">Filtrar:</div>
+          <select id="filtroStatusAdv" style="padding: 0.4rem; border: 1px solid var(--color-border); border-radius: 6px; outline: none; font-size: 0.75rem; background: #fbfbfc; font-weight: 600;">
+             <option value="todas">Assinatura (Todos)</option>
              <option value="Pendente">Pendentes</option>
              <option value="Assinado">Assinadas</option>
           </select>
-          <select id="filtroTipoAdv" style="padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 6px; outline: none; font-size: 0.85rem; background: #fbfbfc;">
-             <option value="todas">Todos os Tipos</option>
+          <select id="filtroTipoAdv" style="padding: 0.4rem; border: 1px solid var(--color-border); border-radius: 6px; outline: none; font-size: 0.75rem; background: #fbfbfc; font-weight: 600;">
+             <option value="todas">Tipos (Todos)</option>
              <option value="Falta de EPI">Falta de EPI</option>
-             <option value="Comportamento Inadequado">Comportamento Inadequado</option>
-             <option value="Descumprimento de Normas">Descumprimento de Normas</option>
-             <option value="Falta/Atraso">Falta Não Justificada / Atraso</option>
+             <option value="Comportamento Inadequado">Comportamento</option>
+             <option value="Descumprimento de Normas">Normas</option>
+             <option value="Falta/Atraso">Falta/Atraso</option>
           </select>
         </div>
 
-        <!-- Lista de Advertências -->
-        <div style="background: white; border: 1px solid var(--color-border); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-           <div style="display: flex; padding: 1rem; font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.5px; border-bottom: 1px solid var(--color-border); background: #fbfbfc;">
+        <!-- Tabela Compacta com Scroll Interno -->
+        <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; background: white; border: 1px solid var(--color-border); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+           <div style="display: flex; padding: 0.75rem 1rem; font-size: 0.65rem; font-weight: 700; color: var(--color-text-muted); letter-spacing: 0.5px; border-bottom: 1px solid var(--color-border); background: #f8fafc; text-transform: uppercase; flex-shrink: 0; position: sticky; top: 0; z-index: 10;">
               <div style="flex: 2;">COLABORADOR / CARGO</div>
               <div style="flex: 2;">TIPO / DESCRIÇÃO</div>
-              <div style="flex: 1;">DATA OCORRÊNCIA</div>
-              <div style="flex: 1;">GESTOR / APLICADOR</div>
-              <div style="flex: 1; text-align: center;">STATUS (ASSINATURA)</div>
+              <div style="flex: 1;">DATA</div>
+              <div style="flex: 1;">GESTOR</div>
+              <div style="flex: 1; text-align: center;">STATUS</div>
               <div style="width: 80px; text-align: center;">AÇÕES</div>
            </div>
            
-           <div id="listaAdvertencias" style="display: flex; flex-direction: column;">
+           <div id="listaAdvertencias" style="overflow-y: auto; flex: 1;" class="custom-scrollbar">
               {advertencias.map((adv) => (
-                 <div class="adv-row" data-id={adv.id} data-status={adv.status_assinatura} data-tipo={adv.tipo} data-nome={adv.colaboradores_base?.nome || 'Desconhecido'} data-cargo={adv.colaboradores_base?.cargo || ''} data-desc={adv.descricao} data-data={adv.data_ocorrencia} style="display: flex; padding: 1rem; border-bottom: 1px solid var(--color-border); align-items: center;">
+                 <div class="adv-row" data-id={adv.id} data-status={adv.status_assinatura} data-tipo={adv.tipo} data-nome={adv.colaboradores_base?.nome || 'Desconhecido'} data-cargo={adv.colaboradores_base?.cargo || ''} data-desc={adv.descricao} data-data={adv.data_ocorrencia} style="display: flex; padding: 0.75rem 1rem; border-bottom: 1px solid #f1f5f9; align-items: center; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
                     <div style="flex: 2;">
-                       <div style="font-weight: 600; color: var(--color-text); font-size: 0.9rem;">{adv.colaboradores_base?.nome || 'Colaborador Excluído'}</div>
-                       <div style="font-size: 0.75rem; color: var(--color-text-muted);">{adv.colaboradores_base?.cargo || 'Sem Cargo'}</div>
+                       <div style="font-weight: 700; color: var(--color-text); font-size: 0.8rem;">{adv.colaboradores_base?.nome || 'Colaborador Excluído'}</div>
+                       <div style="font-size: 0.65rem; color: var(--color-text-muted); font-weight: 500;">{adv.colaboradores_base?.cargo || 'Sem Cargo'}</div>
                     </div>
                     <div style="flex: 2; padding-right: 1rem;">
-                       <div style="font-weight: 600; color: #b91c1c; font-size: 0.85rem;">{adv.tipo}</div>
-                       <div style="font-size: 0.75rem; color: var(--color-text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{adv.descricao}</div>
+                       <div style="font-weight: 800; color: #dc2626; font-size: 0.75rem; text-transform: uppercase;">{adv.tipo}</div>
+                       <div style="font-size: 0.65rem; color: var(--color-text-muted); font-weight: 500; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">{adv.descricao}</div>
                     </div>
-                    <div style="flex: 1; font-size: 0.85rem; color: var(--color-text);">{new Date(adv.data_ocorrencia).toLocaleDateString('pt-BR')}</div>
-                    <div style="flex: 1; font-size: 0.85rem; color: var(--color-text-muted);">{adv.perfis_usuarios?.nome || 'Gestor'}</div>
+                    <div style="flex: 1; font-size: 0.75rem; color: var(--color-text); font-weight: 700; font-family: monospace;">{new Date(adv.data_ocorrencia).toLocaleDateString('pt-BR')}</div>
+                    <div style="flex: 1; font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600;">{adv.perfis_usuarios?.nome || 'Gestor'}</div>
                     <div style="flex: 1; display: flex; justify-content: center;">
                        {adv.status_assinatura === 'Pendente' ? (
-                          <span style="background: #fef3c7; color: #b45309; padding: 0.25rem 0.5rem; border-radius: 99px; font-size: 0.7rem; font-weight: 600;">PENDENTE</span>
+                          <span style="background: #fef3c7; color: #b45309; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.6rem; font-weight: 800; border: 1px solid currentColor;">PENDENTE</span>
                        ) : (
-                          <span style="background: #dcfce7; color: #15803d; padding: 0.25rem 0.5rem; border-radius: 99px; font-size: 0.7rem; font-weight: 600;">ASSINADO</span>
+                          <span style="background: #dcfce7; color: #15803d; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.6rem; font-weight: 800; border: 1px solid currentColor;">ASSINADO</span>
                        )}
                     </div>
                     <div style="width: 80px; text-align: center;">
-                      <button class="btn btn-outline btnTratarAdv" style="font-size: 0.65rem; padding: 0.3rem 0.6rem; color: var(--color-text); cursor: pointer;">TRATAR</button>
+                      <button class="btnTratarAdv" style="font-size: 0.65rem; padding: 0.25rem 0.5rem; color: var(--color-primary); cursor: pointer; border: 1px solid var(--color-border); background: white; font-weight: 800; border-radius: 4px;">TRATAR</button>
                     </div>
                  </div>
               ))}
               
               {advertencias.length === 0 && (
-                <div style="padding: 3rem; text-align: center; color: var(--color-text-muted);">
+                <div style="padding: 2rem; text-align: center; color: var(--color-text-muted); font-size: 0.85rem;">
                   Nenhuma advertência registrada.
                 </div>
               )}

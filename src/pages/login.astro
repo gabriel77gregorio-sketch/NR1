@@ -2,6 +2,23 @@
 import Layout from '../layouts/Layout.astro';
 import { supabase } from '../lib/supabase';
 
+const supabaseClient = supabase(Astro);
+const { data: { session } } = await supabaseClient.auth.getSession();
+
+if (session) {
+  const { data: perfil } = await supabaseClient
+    .from('perfis_usuarios')
+    .select('role')
+    .eq('id', session.user.id)
+    .single();
+    
+  if (perfil?.role === 'SuperAdmin') {
+    return Astro.redirect('/dashboard');
+  } else {
+    return Astro.redirect('/rh/dashboard');
+  }
+}
+
 let errorMsg = '';
 
 if (Astro.request.method === 'POST') {
@@ -10,7 +27,6 @@ if (Astro.request.method === 'POST') {
     const email = formData.get('email')?.toString();
     const password = formData.get('password')?.toString();
 
-    const supabaseClient = supabase(Astro);
     const { data: authData, error } = await supabaseClient.auth.signInWithPassword({
       email: email || '',
       password: password || '',

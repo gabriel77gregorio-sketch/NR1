@@ -139,6 +139,8 @@ const alternativas = [
   { valor: 4, texto: "Frequentemente / Muito" },
   { valor: 5, texto: "Sempre / Quase sempre / Extremamente" }
 ];
+
+
 ---
 
 <html lang="pt-BR">
@@ -294,8 +296,17 @@ const alternativas = [
 
       {status === 'pendente' && (
         <form method="POST">
-          <div style="background: #eff6ff; color: #1e40af; padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 2rem; font-size: 0.875rem; line-height: 1.5;">
-            <strong>🔒 Sua privacidade é garantida.</strong> Este formulário é confidencial. Seus dados individuais não serão compartilhados com a chefia; apenas os resultados agrupados por setor serão analisados.
+          <div style="background: #eff6ff; color: #1e40af; padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 2rem; font-size: 0.875rem; line-height: 1.6; border: 1px solid #dbeafe;">
+            <div style="display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 1rem;">
+              <span style="font-size: 1.25rem;">🔒</span>
+              <div>
+                <strong>Sua privacidade é nossa prioridade.</strong> Este formulário é processado em conformidade com a LGPD (Lei 13.709/2018). Suas respostas são tratadas de forma confidencial e apresentadas apenas de forma estatística por setor. Saiba mais na nossa <a href="/privacidade" target="_blank" style="color: var(--color-primary); font-weight: 700; text-decoration: underline;">Política de Privacidade</a>.
+              </div>
+            </div>
+            <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.6rem 0.85rem; background: white; border-radius: 8px; border: 1px solid #bfdbfe; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--color-primary)'" onmouseout="this.style.borderColor='#bfdbfe'">
+              <input type="checkbox" required style="width: 18px; height: 18px; accent-color: var(--color-primary);" />
+              <span style="font-size: 0.85rem; font-weight: 700;">CONCORDAR E INICIAR AVALIAÇÃO</span>
+            </label>
           </div>
 
           {templateQuestoes.map((eixo) => (

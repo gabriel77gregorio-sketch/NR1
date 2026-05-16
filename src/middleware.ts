@@ -1,6 +1,22 @@
 import { defineMiddleware } from 'astro:middleware';
+import { supabase } from './lib/supabase';
 
-export const onRequest = defineMiddleware(async (_context, next) => {
+export const onRequest = defineMiddleware(async (context, next) => {
+  const isProtectedPath = 
+    context.url.pathname.startsWith('/dashboard') || 
+    context.url.pathname.startsWith('/rh') || 
+    context.url.pathname.startsWith('/adm') || 
+    context.url.pathname.startsWith('/cliente');
+  
+  if (isProtectedPath) {
+    const supabaseClient = supabase(context);
+    const { data: { session } } = await supabaseClient.auth.getSession();
+
+    if (!session) {
+      return context.redirect('/login');
+    }
+  }
+
   // Configuração básica de segurança de CSP e Headers para mitigar XSS/Clickjacking
   const response = await next();
   
@@ -13,20 +29,6 @@ export const onRequest = defineMiddleware(async (_context, next) => {
       "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co;"
     );
   }
-
-  // Interceptador de Autenticação SSR (Desativado temporariamente para desenvolvimento da UI livre)
-  /*
-  const isProtectedPath = context.url.pathname.startsWith('/dashboard') || context.url.pathname.startsWith('/api/protected');
-  
-  if (isProtectedPath) {
-    const accessToken = context.cookies.get('sb-access-token');
-    const refreshToken = context.cookies.get('sb-refresh-token');
-
-    if (!accessToken || !refreshToken) {
-      return context.redirect('/login');
-    }
-  }
-  */
 
   return response;
 });

@@ -130,4 +130,70 @@ export class PlanoAcaoService {
 
     return data;
   }
+  /**
+   * Atualiza o progresso de um plano de ação (Gerenciar Pendência/Gargalo)
+   */
+  async atualizarProgresso(planoId: string, dados: { 
+    acao: 'encaminhar' | 'encerrar', 
+    proximo_responsavel_id?: string, 
+    descricao: string 
+  }) {
+    const { data: { user } } = await this.supabase.auth.getUser();
+    if (!user) throw new Error("Usuário não autenticado");
+
+    // 1. Buscar dados do plano atual
+    const { data: plano } = await this.supabase
+      .from('planos_de_acao_pgr')
+      .select('what_title, empresa_id')
+      .eq('id', planoId)
+      .single();
+
+    if (!plano) throw new Error("Plano não encontrado");
+
+    // 2. Preparar dados do histórico
+    let responsavelUUID = dados.proximo_responsavel_id;
+    let isUserSystem = false;
+
+    if (responsavelUUID && responsavelUUID.startsWith('USER_')) {
+      responsavelUUID = responsavelUUID.replace('USER_', '');
+      isUserSystem = true;
+    }
+
+    // 3. Inserir no histórico
+    const { error: histError } = await this.supabase.from('historico_planos_acao').insert([{
+      plano_id: planoId,
+      responsavel_id: responsavelUUID || user.id,
+      descricao: dados.acao === 'encerrar' ? `PLANO CONCLUÍDO: ${dados.descricao}` : dados.descricao,
+      status: dados.acao === 'encerrar' ? 'Concluído' : 'Em Andamento'
+    }]);
+
+    if (histError) throw histError;
+
+    // 4. Atualizar o plano principal
+    const updateData: any = {
+      status: dados.acao === 'encerrar' ? 'Concluído' : 'Em Andamento',
+      pendente_com_id: dados.acao === 'encerrar' ? null : responsavelUUID
+    };
+
+    const { error: updateError } = await this.supabase
+      .from('planos_de_acao_pgr')
+      .update(updateData)
+      .eq('id', planoId);
+
+    if (updateError) throw updateError;
+
+    // 5. Notificar se houver encaminhamento
+    if (dados.acao === 'encaminhar' && responsavelUUID) {
+      await this.supabase.from('notificacoes').insert([{
+        empresa_id: plano.empresa_id,
+        usuario_id: isUserSystem ? responsavelUUID : null,
+        colaborador_id: !isUserSystem ? responsavelUUID : null,
+        titulo: 'Nova Pendência Atribuída',
+        mensagem: `O plano '${plano.what_title}' foi encaminhado para sua ação.`,
+        link_acao: isUserSystem ? '/rh/planos-de-acao' : '/colaborador/pendencias'
+      }]);
+    }
+
+    return { success: true };
+  }
 }

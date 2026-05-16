@@ -193,79 +193,72 @@ if (user) {
       </div>
     </div>
 
-    <!-- Main Content -->
-    <main class="main-content">
-      <div style="padding: 2rem 3rem;">
+    <!-- Main Content Compacto -->
+    <main class="main-content" style="height: 100vh; overflow: hidden; display: flex; flex-direction: column;">
+      <div style="padding: 1.25rem 1.5rem; flex: 1; display: flex; flex-direction: column; overflow-y: auto;" class="custom-scrollbar">
         
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-shrink: 0;">
           <div>
-            <h2 style="font-size: 1.5rem; color: var(--color-primary); font-weight: 400; margin: 0;">Planos de Ação (5W2H)</h2>
-            <p style="color: var(--color-text-muted); font-size: 0.875rem; margin-top: 0.25rem;">Planeje e faça a gestão das medidas preventivas exigidas pela NR-1 e pelo mapeamento de riscos.</p>
+            <h2 style="font-size: 1.3rem; color: var(--color-primary); font-weight: 700; margin: 0; letter-spacing: -0.5px;">Planos de Ação (5W2H)</h2>
+            <p style="color: var(--color-text-muted); font-size: 0.8rem; margin-top: 0.1rem;">Gestão de medidas preventivas NR-1.</p>
           </div>
-          <button id="btnAbrirModal5w2h" class="btn btn-primary">
-            <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <button id="btnAbrirModal5w2h" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 700;">
+            <svg style="width: 14px; height: 14px; margin-right: 0.4rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             NOVO PLANO 5W2H
           </button>
         </div>
 
-        <!-- Tabela -->
-        <div style="background: white; border-top: 1px solid var(--color-border);">
-          <div style="display: flex; padding: 1rem 0; font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.5px; border-bottom: 1px solid var(--color-border);">
-            <div style="width: 40px; text-align: center;"></div>
-            <div style="flex: 2;">AÇÃO PREVENTIVA (WHAT)</div>
+        <!-- Tabela Compacta com Scroll Interno -->
+        <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; background: white; border: 1px solid var(--color-border); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <div style="display: flex; padding: 0.75rem 1rem; font-size: 0.65rem; font-weight: 700; color: var(--color-text-muted); letter-spacing: 0.5px; border-bottom: 1px solid var(--color-border); background: #f8fafc; text-transform: uppercase; flex-shrink: 0;">
+            <div style="width: 32px; text-align: center;"></div>
+            <div style="flex: 2;">AÇÃO (WHAT)</div>
             <div style="flex: 1;">RESPONSÁVEL (WHO)</div>
-            <div style="flex: 1;">ÁREA/SETOR (WHERE)</div>
-            <div style="flex: 1; text-align: center;">PRAZO (WHEN)</div>
-            <div style="flex: 1; text-align: center;">SITUAÇÃO</div>
+            <div style="flex: 1;">LOCAL (WHERE)</div>
+            <div style="flex: 0.8; text-align: center;">PRAZO</div>
+            <div style="flex: 0.8; text-align: center;">STATUS</div>
             <div style="width: 80px; text-align: center;">AÇÕES</div>
           </div>
 
-          <div style="display: flex; flex-direction: column;">
+          <div style="overflow-y: auto; flex: 1;" class="custom-scrollbar">
             {planos.length === 0 ? (
-              <div style="padding: 2rem; text-align: center; color: var(--color-text-muted);">
-                Nenhum Plano de Ação cadastrado ainda. Use o botão acima para injetar a primeira matriz.
+              <div style="padding: 2rem; text-align: center; color: var(--color-text-muted); font-size: 0.85rem;">
+                Nenhum Plano de Ação cadastrado.
               </div>
             ) : planos.map((plano) => (
-              <div class="table-row-hover hover:bg-slate-50 transition-colors duration-200" style="display: flex; align-items: center; padding: 1.25rem 0; font-size: 0.875rem; border-bottom: 1px solid #f1f5f9;">
-                <div style="width: 40px; text-align: center;">
-                  <input type="checkbox" style="width: 16px; height: 16px; border: 1px solid var(--color-border); border-radius: 4px;" />
+              <div class="table-row-hover hover:bg-slate-50 transition-colors duration-200" style="display: flex; align-items: center; padding: 0.75rem 0; font-size: 0.8rem; border-bottom: 1px solid #f1f5f9;">
+                <div style="width: 32px; text-align: center;">
+                  <input type="checkbox" style="width: 14px; height: 14px; border: 1px solid var(--color-border); border-radius: 4px;" />
                 </div>
-                <div style="flex: 2;">
-                  <div style="font-weight: 600; font-size: 0.95rem; color: var(--color-primary); margin-bottom: 0.25rem;">{plano.what_title}</div>
-                  <div style="font-size: 0.75rem; color: var(--color-text-muted);">Motivador: {(plano as any).why_reason?.substring(0, 50) || 'Não especificado'}...</div>
+                <div style="flex: 2; padding-right: 1rem;">
+                  <div style="font-weight: 700; font-size: 0.85rem; color: var(--color-primary); margin-bottom: 0.1rem;">{plano.what_title}</div>
+                  <div style="font-size: 0.65rem; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Motivador: {(plano as any).why_reason || 'N/A'}</div>
                 </div>
-                <div style="flex: 1; color: var(--color-text-muted); font-weight: 500;">
-                  <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                     <div style="width: 24px; height: 24px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: var(--color-text-muted);">
+                <div style="flex: 1; color: var(--color-text-muted); font-weight: 600;">
+                  <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                     <div style="width: 20px; height: 20px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 0.55rem; color: var(--color-text-muted); flex-shrink: 0;">
                        {(plano.responsavel_id && equipe.find(e => e.id === plano.responsavel_id) ? equipe.find(e => e.id === plano.responsavel_id).nome : plano.who_responsible).substring(0,2).toUpperCase()}
                      </div>
-                     {plano.responsavel_id && equipe.find(e => e.id === plano.responsavel_id) ? equipe.find(e => e.id === plano.responsavel_id).nome : plano.who_responsible}
-                     
-                     {plano.pendente_com_id && (
-                        <span title="Gargalo Operacional Identificado" style="font-size: 0.6rem; background: #fee2e2; color: #b91c1c; padding: 0.2rem 0.4rem; border-radius: 4px; display: flex; align-items: center; gap: 0.2rem; margin-top: 0.2rem;">
-                          <svg style="width: 10px; height: 10px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                          Travado com: {equipe.find(e => e.id === plano.pendente_com_id)?.nome}
-                        </span>
-                     )}
+                     <span style="font-size: 0.75rem;">{plano.responsavel_id && equipe.find(e => e.id === plano.responsavel_id) ? equipe.find(e => e.id === plano.responsavel_id).nome : plano.who_responsible}</span>
                   </div>
                 </div>
-                <div style="flex: 1; color: var(--color-text-muted);">
+                <div style="flex: 1; color: var(--color-text-muted); font-size: 0.75rem;">
                   {plano.where_location}
                 </div>
-                <div style="flex: 1; text-align: center; color: var(--color-text); font-weight: 500; font-family: monospace;">
+                <div style="flex: 0.8; text-align: center; color: var(--color-text); font-weight: 700; font-family: monospace; font-size: 0.75rem;">
                   {new Date(plano.when_end).toLocaleDateString('pt-BR')}
                 </div>
-                <div style="flex: 1; display: flex; justify-content: center;">
-                  <span style={`font-size: 0.65rem; font-weight: 600; padding: 0.3rem 0.6rem; border-radius: 999px; text-transform: uppercase; background: ${plano.status === 'Atrasado' ? '#fee2e2' : (plano.status === 'Em Andamento' || plano.status === 'Aberto' ? '#e0f2fe' : '#dcfce7')}; color: ${plano.status === 'Atrasado' ? '#b91c1c' : (plano.status === 'Em Andamento' || plano.status === 'Aberto' ? '#0369a1' : '#15803d')};`}>
+                <div style="flex: 0.8; display: flex; justify-content: center;">
+                  <span style={`font-size: 0.6rem; font-weight: 800; padding: 0.15rem 0.4rem; border-radius: 4px; text-transform: uppercase; background: ${plano.status === 'Atrasado' ? '#fee2e2' : (plano.status === 'Em Andamento' || plano.status === 'Aberto' ? '#e0f2fe' : '#dcfce7')}; color: ${plano.status === 'Atrasado' ? '#b91c1c' : (plano.status === 'Em Andamento' || plano.status === 'Aberto' ? '#0369a1' : '#15803d')}; border: 1px solid currentColor;`}>
                     {plano.status}
                   </span>
                 </div>
-                <div style="width: 80px; text-align: center; color: var(--color-primary); cursor: pointer; display: flex; gap: 0.5rem; justify-content: center;">
-                  <button title="Ver Detalhes e Timeline" class="btnVerDetalhes" data-plano={JSON.stringify(plano)} style="background: transparent; border: 1px solid var(--color-border); padding: 0.4rem; border-radius: var(--radius-md); cursor: pointer; color: var(--color-primary);">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                <div style="width: 80px; text-align: center; color: var(--color-primary); cursor: pointer; display: flex; gap: 0.35rem; justify-content: center;">
+                  <button title="Ver Detalhes" class="btnVerDetalhes" data-plano={JSON.stringify(plano)} style="background: transparent; border: 1px solid var(--color-border); padding: 0.25rem; border-radius: 4px; cursor: pointer; color: var(--color-primary);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                   </button>
-                  <button title="Gerenciar Gargalo" class="btnGerenciarAcao" data-id={plano.id} style="background: transparent; border: 1px solid var(--color-border); padding: 0.4rem; border-radius: var(--radius-md); cursor: pointer; color: var(--color-primary);">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                  <button title="Gerenciar" class="btnGerenciarAcao" data-id={plano.id} style="background: transparent; border: 1px solid var(--color-border); padding: 0.25rem; border-radius: 4px; cursor: pointer; color: var(--color-primary);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                   </button>
                 </div>
               </div>
@@ -558,12 +551,12 @@ if (user) {
       const selectAcaoTomar = document.getElementById('selectAcaoTomar');
       const divProximoResponsavel = document.getElementById('divProximoResponsavel');
       const btnSalvarGerenciar = document.getElementById('btnSalvarGerenciar');
-      // currentPlanoId removido para evitar avisos de build.
-
+      let currentPlanoId = '';
       const btnsGerenciar = document.querySelectorAll('.btnGerenciarAcao');
       btnsGerenciar.forEach(btn => {
         btn.addEventListener('click', (e) => {
           const target = e.currentTarget as HTMLButtonElement;
+          currentPlanoId = target.getAttribute('data-id') || '';
           if (modalGerenciar) modalGerenciar.style.display = 'flex';
         });
       });
@@ -584,11 +577,38 @@ if (user) {
       }
       
       if (btnSalvarGerenciar) {
-        btnSalvarGerenciar.addEventListener('click', () => {
-           alert('Ação registrada com sucesso! Notificações disparadas para os envolvidos.');
-           fecharGerenciar();
-           // Na vida real, enviaria via fetch para uma API de atualização.
-           setTimeout(() => window.location.reload(), 500);
+        btnSalvarGerenciar.addEventListener('click', async () => {
+           const acao = (document.getElementById('selectAcaoTomar') as HTMLSelectElement).value;
+           const proximo_responsavel_id = (document.getElementById('proximoResponsavelSelect') as HTMLSelectElement).value;
+           const descricao = (document.getElementById('justificativaGerenciar') as HTMLTextAreaElement).value;
+
+           if (!descricao) {
+             alert('Por favor, descreva a justificativa da ação.');
+             return;
+           }
+
+           const originalText = btnSalvarGerenciar.innerText;
+           (btnSalvarGerenciar as HTMLButtonElement).innerText = 'PROCESSANDO...';
+           (btnSalvarGerenciar as HTMLButtonElement).disabled = true;
+
+           try {
+             const res = await fetch(`/api/planos/${currentPlanoId}/atualizar`, {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ acao, proximo_responsavel_id, descricao })
+             });
+
+             if (!res.ok) throw new Error('Falha ao atualizar plano');
+
+             alert('Ação registrada com sucesso! Notificações disparadas.');
+             fecharGerenciar();
+             window.location.reload();
+           } catch (err) {
+             console.error(err);
+             alert('Erro ao registrar ação. Tente novamente.');
+             (btnSalvarGerenciar as HTMLButtonElement).innerText = originalText;
+             (btnSalvarGerenciar as HTMLButtonElement).disabled = false;
+           }
         });
       }
       

@@ -19,6 +19,7 @@ export interface IndicadorEixo {
   label: string;
   color: string;
   descricao: string;
+  respondentes: number;
 }
 
 export class MatrizRiscoService {
@@ -55,11 +56,18 @@ export class MatrizRiscoService {
 
     // 2. Buscar Respostas Reais do Banco (Sempre filtrando por empresa_id através do relacionamento ou explícito)
     // Aqui assumimos que respostas_avaliacoes tem empresa_id ou vinculamos via setores
-    const { data: respostasReais } = await this.supabase
+    const query = this.supabase
       .from('respostas_avaliacoes')
       .select('respostas, ciclo_id, empresa_id')
-      .eq('empresa_id', this.empresaId)
-      .filter('ciclo_id', cicloId ? 'eq' : 'not.is', cicloId || null);
+      .eq('empresa_id', this.empresaId);
+
+    if (cicloId) {
+      query.eq('ciclo_id', cicloId);
+    } else {
+      query.not('ciclo_id', 'is', null);
+    }
+
+    const { data: respostasReais } = await query;
 
     // 2.1 Buscar Denúncias Anônimas Pendentes
     const { data: denunciasPendentes } = await this.supabase
@@ -146,11 +154,13 @@ export class MatrizRiscoService {
       risk = 'Alto'; color = 'var(--color-warning)'; bg = '#ffedd5';
     } else if (score >= 4) {
       risk = 'Médio'; color = 'var(--color-primary)'; bg = '#e0e7ff';
+    } else if (parciais.probability === 1 && parciais.severity === 1 && parciais.funcao === 'Aguardando Respostas') {
+      risk = 'N/A'; color = '#94a3b8'; bg = '#f1f5f9';
     } else {
       risk = 'Baixo'; color = 'var(--color-success)'; bg = '#d1fae5';
     }
 
-    return { ...parciais, score, risk, color, bg };
+    return { ...parciais, score: risk === 'N/A' ? 0 : score, risk, color, bg };
   }
 
   /**
@@ -162,7 +172,11 @@ export class MatrizRiscoService {
       .select('respostas')
       .eq('empresa_id', this.empresaId);
 
-    if (cicloId) query = query.eq('ciclo_id', cicloId);
+    if (cicloId) {
+      query = query.eq('ciclo_id', cicloId);
+    } else {
+      query = query.not('ciclo_id', 'is', null);
+    }
 
     const { data: respostasReais, error: errorResp } = await query;
 
@@ -216,19 +230,20 @@ export class MatrizRiscoService {
         score: parseFloat(media.toFixed(2)),
         label,
         color,
-        descricao: e.desc
+        descricao: e.desc,
+        respondentes: stats.count
       };
     });
   }
 
   public gerarMockIndicadores(): IndicadorEixo[] {
     return [
-      { nome: 'Exigências no Trabalho (Demandas)', score: 72.5, label: 'Alto', color: '#ef4444', descricao: 'Avalia ritmo de trabalho, carga quantitativa e exigências emocionais do cargo.' },
-      { nome: 'Organização e Conteúdo do Trabalho', score: 45.2, label: 'Médio', color: '#f59e0b', descricao: 'Mede a influência, clareza de papel e o sentido que o colaborador vê nas tarefas.' },
-      { nome: 'Relações Interpessoais e Liderança', score: 28.9, label: 'Baixo', color: '#10b981', descricao: 'Foca na qualidade da liderança, apoio social dos colegas e justiça organizacional.' },
-      { nome: 'Interface Trabalho-Indivíduo', score: 55.0, label: 'Médio', color: '#f59e0b', descricao: 'Mapeia o equilíbrio entre vida profissional e pessoal (família) e satisfação geral.' },
-      { nome: 'Saúde e Bem-Estar', score: 68.4, label: 'Alto', color: '#ef4444', descricao: 'Indicadores de estresse, burnout, vitalidade e sintomas psicossomáticos.' },
-      { nome: 'Comportamentos Ofensivos', score: 12.0, label: 'Baixo', color: '#10b981', descricao: 'Frequência de relatos de assédio, bullying, violência ou discriminação.' }
+      { nome: 'Exigências no Trabalho (Demandas)', score: 72.5, label: 'Alto', color: '#ef4444', descricao: 'Avalia ritmo de trabalho, carga quantitativa e exigências emocionais do cargo.', respondentes: 12 },
+      { nome: 'Organização e Conteúdo do Trabalho', score: 45.2, label: 'Médio', color: '#f59e0b', descricao: 'Mede a influência, clareza de papel e o sentido que o colaborador vê nas tarefas.', respondentes: 12 },
+      { nome: 'Relações Interpessoais e Liderança', score: 28.9, label: 'Baixo', color: '#10b981', descricao: 'Foca na qualidade da liderança, apoio social dos colegas e justiça organizacional.', respondentes: 12 },
+      { nome: 'Interface Trabalho-Indivíduo', score: 55.0, label: 'Médio', color: '#f59e0b', descricao: 'Mapeia o equilíbrio entre vida profissional e pessoal (família) e satisfação geral.', respondentes: 12 },
+      { nome: 'Saúde e Bem-Estar', score: 68.4, label: 'Alto', color: '#ef4444', descricao: 'Indicadores de estresse, burnout, vitalidade e sintomas psicossomáticos.', respondentes: 12 },
+      { nome: 'Comportamentos Ofensivos', score: 12.0, label: 'Baixo', color: '#10b981', descricao: 'Frequência de relatos de assédio, bullying, violência ou discriminação.', respondentes: 12 }
     ];
   }
 

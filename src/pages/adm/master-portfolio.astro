@@ -1,0 +1,165 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { supabase } from '../../lib/supabase';
+import { ClienteMasterService } from '../../services/ClienteMasterService';
+
+const supabaseClient = supabase(Astro);
+const { data: { user } } = await supabaseClient.auth.getUser();
+
+if (!user) {
+  return Astro.redirect('/login');
+}
+
+const { data: perfil } = await supabaseClient.from('perfis_usuarios').select('nome, role, quota_empresas').eq('id', user.id).single();
+
+if (!perfil || perfil.role !== 'Master') {
+  return Astro.redirect('/dashboard');
+}
+
+const masterService = new ClienteMasterService();
+let msgErro = null;
+let msgSucesso = null;
+
+if (Astro.request.method === "POST") {
+  try {
+    const formData = await Astro.request.formData();
+    const action = formData.get("action")?.toString();
+
+    if (action === "vincular_empresa") {
+      const empresaId = formData.get("empresa_id")?.toString();
+      if (empresaId) {
+        await masterService.adicionarEmpresaAoPortfolio(user.id, empresaId);
+        msgSucesso = "Empresa vinculada ao seu portfólio!";
+      }
+    } else if (action === "provisionar_empresa") {
+       // O Master também pode criar uma empresa do zero se tiver quota
+       const novoCliente = {
+        nome_empresa: formData.get("nome_empresa")?.toString() || '',
+        cnpj: formData.get("cnpj")?.toString() || '',
+        nome_admin: formData.get("nome_admin")?.toString() || '',
+        email_admin: formData.get("email_admin")?.toString() || '',
+        senha_provisoria: formData.get("senha_provisoria")?.toString() || '',
+      };
+      
+      const res = await masterService.provisionarNovoCliente(novoCliente);
+      if (res.sucesso) {
+        await masterService.adicionarEmpresaAoPortfolio(user.id, res.empresa.id);
+        msgSucesso = "Nova empresa criada e vinculada ao seu portfólio!";
+      }
+    }
+  } catch (err: any) {
+    msgErro = err.message || "Erro inesperado.";
+  }
+}
+
+const portfolio = await masterService.listarPortfolioMaster(user.id);
+const todasEmpresas = await masterService.listarClientes(); // Para o select de vínculo
+---
+
+<Layout title="Gestão de Portfólio | Segurament">
+  <div class="app-layout" style="background: #fdfbff; min-height: 100vh; display: flex;">
+    
+    <aside class="sidebar" style="width: 280px; background: #0f172a; border-right: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; color: white;">
+      <div style="padding: 2rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <h1 style="font-size: 1.5rem; margin: 0; font-weight: 800; color: #38bdf8;">MASTER PORTFOLIO</h1>
+        <p style="font-size: 0.7rem; color: #94a3b8; margin: 0; letter-spacing: 1px;">GESTÃO MULTI-TENANT</p>
+      </div>
+      
+      <nav style="flex: 1; padding: 1.5rem 1rem;">
+        <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem;">
+          <li>
+            <a href="/adm/master-portfolio" style="display: flex; align-items: center; padding: 0.875rem 1.25rem; background: #38bdf820; color: #38bdf8; border-radius: 12px; text-decoration: none; font-size: 0.9rem; font-weight: 600; gap: 1rem;">
+              <svg style="width: 20px; height: 20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+              Minhas Empresas
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div style="padding: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
+        <a href="/login" style="display: flex; align-items: center; color: #f87171; text-decoration: none; font-size: 0.9rem; font-weight: 600; gap: 1rem;">
+          Encerrar Sessão
+        </a>
+      </div>
+    </aside>
+
+    <main style="flex: 1; padding: 2.5rem 3.5rem;">
+      {msgErro && <div style="background: #fee2e2; color: #b91c1c; padding: 1rem; border-radius: 12px; margin-bottom: 2rem;">{msgErro}</div>}
+      {msgSucesso && <div style="background: #dcfce7; color: #166534; padding: 1rem; border-radius: 12px; margin-bottom: 2rem;">{msgSucesso}</div>}
+
+      <header style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3rem;">
+        <div>
+          <h2 style="font-size: 2rem; font-weight: 800; color: #1e293b; margin: 0;">Meu Portfólio</h2>
+          <p style="color: #64748b; margin-top: 0.5rem;">Você está gerenciando <strong>{portfolio.length}</strong> de <strong>{perfil.quota_empresas}</strong> empresas permitidas.</p>
+        </div>
+        <div style="display: flex; gap: 1rem;">
+            <button onclick="document.getElementById('modalVincular').style.display='flex'" class="btn btn-outline" style="border-radius: 12px;">VINCULAR EXISTENTE</button>
+            <button onclick="document.getElementById('modalNovaEmpresa').style.display='flex'" class="btn btn-primary" style="background: #0ea5e9; border-radius: 12px;">+ NOVA EMPRESA</button>
+        </div>
+      </header>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+        {portfolio.map(item => (
+          <div class="card" style="background: white; padding: 1.5rem; border-radius: 20px; border: 1px solid #e2e8f0; position: relative;">
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+              <div style="width: 48px; height: 48px; background: #f0f9ff; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #0ea5e9;">
+                <svg style="width: 24px; height: 24px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+              </div>
+              <div>
+                <h4 style="margin: 0; font-weight: 800; color: #1e293b;">{item.empresas.nome}</h4>
+                <p style="margin: 0; font-size: 0.75rem; color: #64748b;">CNPJ: {item.empresas.cnpj}</p>
+              </div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid #f1f5f9;">
+              <span style="font-size: 0.75rem; color: #94a3b8;">ID: {item.empresas.id.split('-')[0]}</span>
+              <a href={`/rh/dashboard?empresa=${item.empresas.id}`} class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem; background: #0ea5e9;">ACESSAR PAINEL</a>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <!-- Modal Vincular -->
+      <div id="modalVincular" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 2rem; border-radius: 24px; width: 100%; max-width: 400px;">
+          <h3 style="margin-bottom: 1rem; font-weight: 800;">Vincular Empresa</h3>
+          <form method="POST">
+            <input type="hidden" name="action" value="vincular_empresa" />
+            <select name="empresa_id" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 1.5rem;">
+              <option value="">Selecione uma empresa...</option>
+              {todasEmpresas.map(e => (
+                <option value={e.id}>{e.nome} ({e.cnpj})</option>
+              ))}
+            </select>
+            <div style="display: flex; gap: 1rem;">
+              <button type="button" onclick="document.getElementById('modalVincular').style.display='none'" class="btn btn-outline" style="flex: 1;">FECHAR</button>
+              <button type="submit" class="btn btn-primary" style="flex: 1; background: #0ea5e9;">VINCULAR</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Modal Nova Empresa -->
+      <div id="modalNovaEmpresa" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 2rem; border-radius: 24px; width: 100%; max-width: 500px;">
+          <h3 style="margin-bottom: 1rem; font-weight: 800;">Provisionar Nova Empresa</h3>
+          <form method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" name="action" value="provisionar_empresa" />
+            <input name="nome_empresa" placeholder="Razão Social" required style="padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px;" />
+            <input name="cnpj" placeholder="CNPJ" required style="padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px;" />
+            <hr/>
+            <p style="font-size: 0.75rem; font-weight: 700; color: #64748b; margin: 0;">ADMINISTRADOR LOCAL (RH)</p>
+            <input name="nome_admin" placeholder="Nome do Responsável" required style="padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px;" />
+            <input name="email_admin" type="email" placeholder="E-mail de Login" required style="padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px;" />
+            <input name="senha_provisoria" placeholder="Senha Provisória" required style="padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px;" />
+            
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+              <button type="button" onclick="document.getElementById('modalNovaEmpresa').style.display='none'" class="btn btn-outline" style="flex: 1;">FECHAR</button>
+              <button type="submit" class="btn btn-primary" style="flex: 1; background: #0ea5e9;">CRIAR E VINCULAR</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+</Layout>

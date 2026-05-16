@@ -1,7 +1,24 @@
 ---
-import Layout from '../layouts/Layout.astro';
+import { supabase } from '../lib/supabase';
 
-return Astro.redirect('/rh/inicio');
+const supabaseClient = supabase(Astro);
+const { data: { session } } = await supabaseClient.auth.getSession();
+
+if (session) {
+  const { data: perfil } = await supabaseClient
+    .from('perfis_usuarios')
+    .select('role')
+    .eq('id', session.user.id)
+    .single();
+    
+  if (perfil?.role === 'SuperAdmin') {
+    return Astro.redirect('/dashboard');
+  } else {
+    return Astro.redirect('/rh/dashboard');
+  }
+}
+
+return Astro.redirect('/login');
 ---
 
 <Layout title="Dashboard">
