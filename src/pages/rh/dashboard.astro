@@ -296,9 +296,9 @@ const currentSetorName = departamentos.find(d => d.id === filterSetorId)?.nome |
              const modalMetodologia = document.getElementById('modal-metodologia');
              const closeMetodologia = document.getElementById('close-metodologia');
 
-             btnMetodologia?.addEventListener('click', () => modalMetodologia.style.display = 'flex');
-             closeMetodologia?.addEventListener('click', () => modalMetodologia.style.display = 'none');
-             window.addEventListener('click', (e) => { if (e.target === modalMetodologia) modalMetodologia.style.display = 'none'; });
+             btnMetodologia?.addEventListener('click', () => { if (modalMetodologia) modalMetodologia.style.display = 'flex'; });
+             closeMetodologia?.addEventListener('click', () => { if (modalMetodologia) modalMetodologia.style.display = 'none'; });
+             window.addEventListener('click', (e) => { if (modalMetodologia && e.target === modalMetodologia) modalMetodologia.style.display = 'none'; });
 
              const risks = [
                { id: 'burnout', prob: 12, color: '#10b981' },
